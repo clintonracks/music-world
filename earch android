@@ -1,0 +1,24 @@
+[32mapksigner[0m/stable 33.0.1-1 all
+  APK signing tool from Android SDK
+
+[32md8[0m/stable 33.0.1-1 all
+  DEX bytecode compiler from Android SDK
+
+[32mladspa-sdk[0m/stable 1.17-3 arm
+  Linux Audio Developer's Simple Plugin API
+
+[32mlibbullet[0m/stable 3.25-2 arm
+  SDK for real-time collision detection and multi-physics simulation for robotics, VR, etc
+
+[32mlibvpx[0m/stable 1:1.16.0 arm
+  VP8 & VP9 Codec SDK
+
+[32munixodbc[0m/stable 2.3.14 arm
+  An Open Source ODBC sub-system and an ODBC SDK for Linux, Mac OSX, and UNIX
+
+[32mvamp-plugin-sdk[0m/stable 2.10-3 arm
+  An API for audio analysis and feature extraction plugins
+
+[32mvamp-plugin-sdk-static[0m/stable 2.10-3 arm
+  Static libraries for vamp-plugin-sdk
+
