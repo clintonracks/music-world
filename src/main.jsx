@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
 import './styles.css';
 
@@ -26,28 +26,71 @@ function App() {
   const [chart, setChart] = useState('Africa');
   const [searchOpen, setSearchOpen] = useState(false);
   const [search, setSearch] = useState('');
-  const [accountType, setAccountType] = useState(null);
   const [signedIn, setSignedIn] = useState(false);
+  const [showSignIn, setShowSignIn] = useState(false);
+  const [settings, setSettings] = useState(false);
+  const [theme, setTheme] = useState('system');
+  const [playlist, setPlaylist] = useState([]);
 
   const filteredSearch = useMemo(() => {
     const q = search.trim().toLowerCase();
     if (!q) return artists;
+
     return artists.filter(a =>
-      `${a.name} ${a.song} ${a.country} ${a.continent}`.toLowerCase().includes(q)
+      `${a.name} ${a.song} ${a.country} ${a.continent}`
+        .toLowerCase()
+        .includes(q)
     );
   }, [search]);
 
   const continentArtists = artists.filter(a => a.continent === chart);
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+  }, [theme]);
 
   function startSong(song) {
     setPlaying(song);
     setExpandedPlayer(false);
   }
 
+  function addToPlaylist(song) {
+    if (!playlist.some(item => item.rank === song.rank)) {
+      setPlaylist([...playlist, song]);
+    }
+  }
+
+  function goBack() {
+    if (expandedPlayer) {
+      setExpandedPlayer(false);
+      return;
+    }
+
+    if (searchOpen) {
+      setSearchOpen(false);
+      return;
+    }
+
+    if (settings) {
+      setSettings(false);
+      return;
+    }
+
+    if (showSignIn) {
+      setShowSignIn(false);
+      return;
+    }
+
+    setTab('Home');
+  }
+
   return (
     <div className="app">
+
       <header>
-        <div className="logo">MUSIC<span>WORLD</span></div>
+        <div className="logo">
+          MUSIC<span>WORLD</span>
+        </div>
 
         <button className="search" onClick={() => setSearchOpen(true)}>
           ⌕ <span>Search artists, songs...</span>
@@ -55,25 +98,39 @@ function App() {
       </header>
 
       <main>
+
         {tab === 'Home' && (
           <>
             <section className="hero">
               <div>
                 <p className="eyebrow">THE WORLD IS LISTENING</p>
                 <h1>Discover music.<br /><em>Watch artists rise.</em></h1>
-                <p className="sub">A global home for artists, listeners and the next #1.</p>
-                <button onClick={() => startSong(artists[0])} className="primary">
+                <p className="sub">
+                  A global home for artists, listeners and the next #1.
+                </p>
+
+                <button
+                  onClick={() => startSong(artists[0])}
+                  className="primary"
+                >
                   ▶ Play Global #1
                 </button>
               </div>
-              <div className="heroBadge">#1<br /><small>GLOBAL</small></div>
+
+              <div className="heroBadge">
+                #1<br /><small>GLOBAL</small>
+              </div>
             </section>
 
             <Section title="Global Top 10" action="View all">
               <div className="cards">
-                {artists.slice(0, 4).map(a =>
-                  <Track key={a.rank} a={a} onPlay={() => startSong(a)} />
-                )}
+                {artists.slice(0, 4).map(a => (
+                  <Track
+                    key={a.rank}
+                    a={a}
+                    onPlay={() => startSong(a)}
+                  />
+                ))}
               </div>
             </Section>
 
@@ -122,11 +179,12 @@ function App() {
                     <div className="row" key={a.rank}>
                       <strong>#{a.rank}</strong>
                       <div className="avatar">{a.name[0]}</div>
+
                       <div className="meta">
                         <b>{a.song}</b>
                         <small>{a.name} · {a.country}</small>
                       </div>
-                      <span className="move">↑</span>
+
                       <button onClick={() => startSong(a)}>▶</button>
                     </div>
                   ))}
@@ -147,7 +205,7 @@ function App() {
             <Title title="Charts" />
 
             <div className="tabs">
-              {['Global', 'Africa', 'Europe', 'Asia', 'North America', 'South America', 'Oceania'].map(x => (
+              {['Global', ...continents].map(x => (
                 <button
                   className={chart === x ? 'sel' : ''}
                   onClick={() => setChart(x)}
@@ -159,15 +217,19 @@ function App() {
             </div>
 
             <div className="chartList">
-              {(chart === 'Global' ? artists : artists.filter(a => a.continent === chart)).map((a, i) => (
+              {(chart === 'Global'
+                ? artists
+                : artists.filter(a => a.continent === chart)
+              ).map((a, i) => (
                 <div className="row" key={a.rank}>
                   <strong>#{i + 1}</strong>
                   <div className="avatar">{a.name[0]}</div>
+
                   <div className="meta">
                     <b>{a.song}</b>
                     <small>{a.name} · {a.country}</small>
                   </div>
-                  <span className="move">{i < 2 ? '↑' : '—'}</span>
+
                   <button onClick={() => startSong(a)}>▶</button>
                 </div>
               ))}
@@ -178,16 +240,40 @@ function App() {
         {tab === 'Library' && (
           <>
             <Title title="Your Library" />
-            <div className="empty">
-              <div>♫</div>
-              <h2>Your music lives here.</h2>
-              <p>Like songs and create playlists to build your library.</p>
-              <button className="primary">Create playlist</button>
-            </div>
+
+            {playlist.length === 0 ? (
+              <div className="empty">
+                <div>♫</div>
+                <h2>Your playlist is empty.</h2>
+                <p>Add songs from Music World and they will appear here.</p>
+              </div>
+            ) : (
+              <div className="chartList">
+                {playlist.map(a => (
+                  <div className="row" key={a.rank}>
+                    <div className="avatar">{a.name[0]}</div>
+
+                    <div className="meta">
+                      <b>{a.song}</b>
+                      <small>{a.name} · {a.country}</small>
+                    </div>
+
+                    <button onClick={() => startSong(a)}>▶</button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <button
+              className="primary"
+              onClick={() => setTab('Home')}
+            >
+              Discover Music
+            </button>
           </>
         )}
 
-        {tab === 'Profile' && (
+        {tab === 'Profile' && !settings && !showSignIn && (
           <>
             <Title title="Profile" />
 
@@ -195,65 +281,157 @@ function App() {
               <div className="profile">
                 <div className="bigAvatar">♪</div>
                 <h2>Welcome to MUSICWORLD</h2>
-                <p>Create an account and choose how you want to use Music World.</p>
+                <p>Sign in to manage your Music World account.</p>
 
-                {!accountType ? (
-                  <div className="accountChoices">
-                    <button className="accountCard" onClick={() => setAccountType('artist')}>
-                      <span>🎤</span>
-                      <b>I'm an Artist</b>
-                      <small>Upload music and build your artist profile.</small>
-                    </button>
+                <button
+                  className="primary"
+                  onClick={() => setShowSignIn(true)}
+                >
+                  SIGN IN
+                </button>
 
-                    <button className="accountCard" onClick={() => setAccountType('listener')}>
-                      <span>🎧</span>
-                      <b>I'm a Listener</b>
-                      <small>Discover music, follow artists and build playlists.</small>
-                    </button>
-                  </div>
-                ) : (
-                  <div className="accountForm">
-                    <h2>{accountType === 'artist' ? 'Artist Account' : 'Listener Account'}</h2>
-                    <input placeholder="Your name or username" />
-                    <input placeholder="Email address" type="email" />
-                    <input placeholder="Password" type="password" />
-                    <button className="primary" onClick={() => setSignedIn(true)}>
-                      Create Account
-                    </button>
-                    <button onClick={() => setAccountType(null)}>← Choose another account type</button>
-                  </div>
-                )}
+                <button onClick={() => setSettings(true)}>
+                  ⚙️ Settings
+                </button>
               </div>
             ) : (
               <div className="profile">
-                <div className="bigAvatar">{accountType === 'artist' ? '🎤' : '🎧'}</div>
+                <div className="bigAvatar">♪</div>
+
                 <h2>Your MUSICWORLD profile</h2>
-                <p>{accountType === 'artist' ? 'Artist account' : 'Listener account'}</p>
+                <p>Music World listener</p>
 
                 <div className="stats">
-                  <div><b>0</b><small>Followers</small></div>
-                  <div><b>0</b><small>Following</small></div>
-                  <div><b>0</b><small>Playlists</small></div>
+                  <div>
+                    <b>0</b>
+                    <small>Followers</small>
+                  </div>
+
+                  <div>
+                    <b>0</b>
+                    <small>Following</small>
+                  </div>
+
+                  <div>
+                    <b>{playlist.length}</b>
+                    <small>Playlists</small>
+                  </div>
                 </div>
 
-                {accountType === 'artist' && (
-                  <button className="primary" onClick={() => alert('Song upload area coming next!')}>
-                    📤 Upload a Song
-                  </button>
-                )}
+                <button onClick={() => setTab('Library')}>
+                  🎶 My Playlist
+                </button>
 
-                <button onClick={() => setSignedIn(false)}>Log out</button>
+                <button onClick={() => setSettings(true)}>
+                  ⚙️ Settings
+                </button>
+
+                <button onClick={() => setSignedIn(false)}>
+                  Log out
+                </button>
               </div>
             )}
           </>
         )}
+
+        {showSignIn && (
+          <div className="profile">
+            <Title title="Sign In" />
+
+            <div className="accountForm">
+              <input
+                placeholder="Email address"
+                type="email"
+              />
+
+              <input
+                placeholder="Password"
+                type="password"
+              />
+
+              <button
+                className="primary"
+                onClick={() => {
+                  setSignedIn(true);
+                  setShowSignIn(false);
+                }}
+              >
+                Sign In
+              </button>
+
+              <p>
+                New to Music World? Account creation will be added next.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {settings && (
+          <div className="settings">
+            <Title title="Settings" />
+
+            <section>
+              <h2>Appearance</h2>
+
+              <button onClick={() => setTheme('system')}>
+                📱 System Default
+              </button>
+
+              <button onClick={() => setTheme('light')}>
+                ☀️ Light Theme
+              </button>
+
+              <button onClick={() => setTheme('dark')}>
+                🌙 Dark Theme
+              </button>
+            </section>
+
+            <section>
+              <h2>Account</h2>
+
+              <button>
+                🔐 Change Password
+              </button>
+
+              <button>
+                📧 Account Information
+              </button>
+            </section>
+
+            <section>
+              <h2>Music</h2>
+
+              <button onClick={() => setTab('Library')}>
+                🎶 My Playlist
+              </button>
+
+              <button>
+                📁 Device Music — Coming Soon
+              </button>
+            </section>
+
+            <section>
+              <h2>About</h2>
+              <p>A World of Artists. A Standard of Music.</p>
+            </section>
+          </div>
+        )}
+
       </main>
 
       {searchOpen && (
         <div className="searchOverlay">
           <div className="searchBox">
-            <button className="closeSearch" onClick={() => setSearchOpen(false)}>✕</button>
+
+            <button
+              className="closeSearch"
+              onClick={goBack}
+            >
+              ←
+            </button>
+
             <h2>Search Music World</h2>
+
             <input
               autoFocus
               value={search}
@@ -263,20 +441,30 @@ function App() {
 
             <div className="searchResults">
               {filteredSearch.map(a => (
-                <button key={a.rank} onClick={() => {
-                  startSong(a);
-                  setSearchOpen(false);
-                }}>
-                  <span className="avatar">{a.name[0]}</span>
-                  <span>
-                    <b>{a.song}</b>
-                    <small>{a.name} · {a.country}</small>
-                  </span>
-                  <span>▶</span>
-                </button>
+                <div className="searchResult" key={a.rank}>
+                  <button
+                    onClick={() => {
+                      startSong(a);
+                      setSearchOpen(false);
+                    }}
+                  >
+                    <span className="avatar">{a.name[0]}</span>
+
+                    <span>
+                      <b>{a.song}</b>
+                      <small>{a.name} · {a.country}</small>
+                    </span>
+                  </button>
+
+                  <button onClick={() => addToPlaylist(a)}>
+                    ＋
+                  </button>
+                </div>
               ))}
 
-              {filteredSearch.length === 0 && <p>No music found.</p>}
+              {filteredSearch.length === 0 && (
+                <p>No music found.</p>
+              )}
             </div>
           </div>
         </div>
@@ -285,38 +473,96 @@ function App() {
       <nav>
         {['Home', 'Discover', 'Charts', 'Library', 'Profile'].map(x => (
           <button
-            className={tab === x ? 'active' : ''}
-            onClick={() => setTab(x)}
+            className={tab === x && !settings && !showSignIn ? 'active' : ''}
+            onClick={() => {
+              setTab(x);
+              setSettings(false);
+              setShowSignIn(false);
+            }}
             key={x}
           >
-            <span>{({ Home: '⌂', Discover: '◉', Charts: '▥', Library: '♫', Profile: '●' })[x]}</span>
+            <span>
+              {{
+                Home: '⌂',
+                Discover: '◉',
+                Charts: '▥',
+                Library: '♫',
+                Profile: '●'
+              }[x]}
+            </span>
             {x}
           </button>
         ))}
       </nav>
 
+      {(settings || showSignIn || searchOpen || expandedPlayer) && (
+        <button className="backButton" onClick={goBack}>
+          ← Back
+        </button>
+      )}
+
       {playing && !expandedPlayer && (
-        <div className="player" onClick={() => setExpandedPlayer(true)}>
+        <div
+          className="player"
+          onClick={() => setExpandedPlayer(true)}
+        >
           <div className="cover">♪</div>
+
           <div className="pmeta">
             <b>{playing.song}</b>
             <small>{playing.name}</small>
           </div>
-          <button onClick={e => { e.stopPropagation(); setPlaying(null); }}>✕</button>
-          <button className="play" onClick={e => e.stopPropagation()}>▶</button>
+
+          <button
+            onClick={e => {
+              e.stopPropagation();
+              setPlaying(null);
+            }}
+          >
+            ✕
+          </button>
+
+          <button
+            className="play"
+            onClick={e => e.stopPropagation()}
+          >
+            ▶
+          </button>
+
+          <button
+            onClick={e => {
+              e.stopPropagation();
+              addToPlaylist(playing);
+            }}
+          >
+            ＋
+          </button>
         </div>
       )}
 
       {playing && expandedPlayer && (
         <div className="fullPlayer">
-          <button className="minimize" onClick={() => setExpandedPlayer(false)}>⌄</button>
+          <button
+            className="minimize"
+            onClick={() => setExpandedPlayer(false)}
+          >
+            ↓
+          </button>
+
           <div className="largeCover">♪</div>
+
           <p className="eyebrow">NOW PLAYING</p>
           <h1>{playing.song}</h1>
           <p>{playing.name} · {playing.country}</p>
 
-          <div className="progress"><span></span></div>
-          <div className="times"><small>0:00</small><small>3:24</small></div>
+          <div className="progress">
+            <span></span>
+          </div>
+
+          <div className="times">
+            <small>0:00</small>
+            <small>3:24</small>
+          </div>
 
           <div className="controls">
             <button>↶</button>
@@ -324,14 +570,25 @@ function App() {
             <button>↷</button>
           </div>
 
-          <button className="closeFull" onClick={() => {
-            setPlaying(null);
-            setExpandedPlayer(false);
-          }}>
+          <button
+            className="primary"
+            onClick={() => addToPlaylist(playing)}
+          >
+            ＋ Add to Playlist
+          </button>
+
+          <button
+            className="closeFull"
+            onClick={() => {
+              setPlaying(null);
+              setExpandedPlayer(false);
+            }}
+          >
             Close Player
           </button>
         </div>
       )}
+
     </div>
   );
 }
