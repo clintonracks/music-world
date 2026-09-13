@@ -41,6 +41,9 @@ jobs:
       - name: Sync Capacitor
         run: npx cap sync android
 
+      - name: Remove local Termux AAPT2 override
+        run: sed -i '/android\.aapt2FromMavenOverride=/d' android/gradle.properties
+    
       - name: Build APK
         working-directory: android
         run: ./gradlew assembleDebug
