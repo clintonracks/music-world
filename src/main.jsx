@@ -31,6 +31,7 @@ function App() {
   const [settings, setSettings] = useState(false);
   const [theme, setTheme] = useState('system');
   const [playlist, setPlaylist] = useState([]);
+  const [playlistOpen, setPlaylistOpen] = useState(false);
 
   const filteredSearch = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -241,35 +242,71 @@ function App() {
           <>
             <Title title="Your Library" />
 
-            {playlist.length === 0 ? (
-              <div className="empty">
-                <div>♫</div>
-                <h2>Your playlist is empty.</h2>
-                <p>Add songs from Music World and they will appear here.</p>
-              </div>
+            {!playlistOpen ? (
+              <>
+                <button
+                  className="libraryFolder"
+                  onClick={() => setPlaylistOpen(true)}
+                >
+                  <span className="folderIcon">🎶</span>
+                  <span className="folderInfo">
+                    <b>My Playlist</b>
+                    <small>{playlist.length} {playlist.length === 1 ? 'song' : 'songs'}</small>
+                  </span>
+                  <span className="folderArrow">›</span>
+                </button>
+
+                <button className="libraryFolder">
+                  <span className="folderIcon">📁</span>
+                  <span className="folderInfo">
+                    <b>Device Music</b>
+                    <small>Coming Soon</small>
+                  </span>
+                  <span className="folderArrow">›</span>
+                </button>
+
+                <button
+                  className="primary"
+                  onClick={() => setTab('Home')}
+                >
+                  Discover Music
+                </button>
+              </>
             ) : (
-              <div className="chartList">
-                {playlist.map(a => (
-                  <div className="row" key={a.rank}>
-                    <div className="avatar">{a.name[0]}</div>
+              <>
+                <button
+                  className="backButton"
+                  onClick={() => setPlaylistOpen(false)}
+                >
+                  ← Your Library
+                </button>
 
-                    <div className="meta">
-                      <b>{a.song}</b>
-                      <small>{a.name} · {a.country}</small>
-                    </div>
+                <Title title="My Playlist" />
 
-                    <button onClick={() => startSong(a)}>▶</button>
+                {playlist.length === 0 ? (
+                  <div className="empty">
+                    <div>♫</div>
+                    <h2>Your playlist is empty.</h2>
+                    <p>Add songs from Music World and they will appear here.</p>
                   </div>
-                ))}
-              </div>
-            )}
+                ) : (
+                  <div className="chartList">
+                    {playlist.map(a => (
+                      <div className="row" key={a.rank}>
+                        <div className="avatar">{a.name[0]}</div>
 
-            <button
-              className="primary"
-              onClick={() => setTab('Home')}
-            >
-              Discover Music
-            </button>
+                        <div className="meta">
+                          <b>{a.song}</b>
+                          <small>{a.name} · {a.country}</small>
+                        </div>
+
+                        <button onClick={() => startSong(a)}>▶</button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
           </>
         )}
 

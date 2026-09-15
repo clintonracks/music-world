@@ -834,3 +834,50 @@ section {
   opacity: 0.7;
 }
 
+
+.libraryFolder {
+  width: calc(100% - 32px);
+  margin: 0 16px 12px;
+  padding: 16px;
+  border: 1px solid #ddd;
+  border-radius: 16px;
+  background: var(--surface, #f2f2f2);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.folderIcon {
+  font-size: 28px;
+}
+
+.folderInfo {
+  flex: 1;
+}
+
+.folderInfo b {
+  display: block;
+  font-size: 16px;
+}
+
+.folderInfo small {
+  display: block;
+  margin-top: 4px;
+  opacity: 0.65;
+}
+
+.folderArrow {
+  font-size: 28px;
+  opacity: 0.5;
+}
+
+.backButton {
+  margin: 0 16px 8px;
+  padding: 8px 0;
+  border: 0;
+  background: transparent;
+  font-size: 15px;
+  cursor: pointer;
+}
