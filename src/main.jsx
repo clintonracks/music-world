@@ -30,6 +30,9 @@ function App() {
   const [showSignIn, setShowSignIn] = useState(false);
   const [settings, setSettings] = useState(false);
   const [theme, setTheme] = useState('dark');
+  const [font, setFont] = useState('system');
+  const [fontStyle, setFontStyle] = useState('normal');
+  const [fontSize, setFontSize] = useState('medium'); 
   const [playlist, setPlaylist] = useState([]);
   const [playlistOpen, setPlaylistOpen] = useState(false);
 
@@ -49,6 +52,12 @@ function App() {
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
   }, [theme]);
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-font', font);
+    document.documentElement.setAttribute('data-font-style', fontStyle);
+    document.documentElement.setAttribute('data-font-size', fontSize);
+}, [font, fontStyle, fontSize]);
 
   function startSong(song) {
     setPlaying(song);
@@ -434,6 +443,50 @@ function App() {
                 🌌 Midnight Theme
               </button>
             </section>
+
+<section>
+  <h2>Font</h2>
+
+  <button onClick={() => setFont('system')}>
+    🔤 System
+  </button>
+
+  <button onClick={() => setFont('modern')}>
+    ✨ Modern
+  </button>
+
+  <button onClick={() => setFont('classic')}>
+    📖 Classic
+  </button>
+
+  <button onClick={() => setFont('rounded')}>
+    🔵 Rounded
+  </button>
+
+  <button onClick={() => setFontStyle('normal')}>
+    A Normal
+  </button>
+
+  <button onClick={() => setFontStyle('italic')}>
+    * Italic
+  </button>
+
+  <button onClick={() => setFontSize('small')}>
+    Small
+  </button>
+
+  <button onClick={() => setFontSize('medium')}>
+    Medium
+  </button>
+
+  <button onClick={() => setFontSize('large')}>
+    Large
+  </button>
+
+  <button onClick={() => setFontSize('extra-large')}>
+    Extra Large
+  </button>
+</section>
 
             <section>
               <h2>Account</h2>

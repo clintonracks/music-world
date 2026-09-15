@@ -1000,3 +1000,45 @@ section {
 [data-theme="midnight"] .stats span {
   color: #aeb7d6;
 }
+
+/* FONT SETTINGS */
+
+[data-font="system"] {
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+[data-font="modern"] {
+  font-family: "Trebuchet MS", Arial, sans-serif;
+}
+
+[data-font="classic"] {
+  font-family: Georgia, "Times New Roman", serif;
+}
+
+[data-font="rounded"] {
+  font-family: "Arial Rounded MT Bold", "Trebuchet MS", Arial, sans-serif;
+}
+
+[data-font-style="italic"] {
+  font-style: italic;
+}
+
+[data-font-style="normal"] {
+  font-style: normal;
+}
+
+[data-font-size="small"] {
+  font-size: 90%;
+}
+
+[data-font-size="medium"] {
+  font-size: 100%;
+}
+
+[data-font-size="large"] {
+  font-size: 110%;
+}
+
+[data-font-size="extra-large"] {
+  font-size: 120%;
+}
