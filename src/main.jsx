@@ -29,7 +29,7 @@ function App() {
   const [signedIn, setSignedIn] = useState(false);
   const [showSignIn, setShowSignIn] = useState(false);
   const [settings, setSettings] = useState(false);
-  const [theme, setTheme] = useState('system');
+  const [theme, setTheme] = useState('dark');
   const [playlist, setPlaylist] = useState([]);
   const [playlistOpen, setPlaylistOpen] = useState(false);
 
@@ -410,16 +410,28 @@ function App() {
             <section>
               <h2>Appearance</h2>
 
-              <button onClick={() => setTheme('system')}>
-                📱 System Default
+              <button onClick={() => setTheme('dark')}>
+                🌙 Dark Theme
               </button>
 
               <button onClick={() => setTheme('light')}>
                 ☀️ Light Theme
               </button>
 
-              <button onClick={() => setTheme('dark')}>
-                🌙 Dark Theme
+              <button onClick={() => setTheme('pink')}>
+                💗 Pink Theme
+              </button>
+
+              <button onClick={() => setTheme('red')}>
+                ❤️ Red Theme
+              </button>
+
+              <button onClick={() => setTheme('blue')}>
+                💙 Blue Theme
+              </button>
+
+              <button onClick={() => setTheme('midnight')}>
+                🌌 Midnight Theme
               </button>
             </section>
 

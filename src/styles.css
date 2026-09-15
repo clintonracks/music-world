@@ -881,3 +881,122 @@ section {
   font-size: 15px;
   cursor: pointer;
 }
+
+/* PINK THEME */
+
+[data-theme="pink"] {
+  background: #fff0f6;
+  color: #3a1025;
+}
+
+[data-theme="pink"] body,
+[data-theme="pink"] .app {
+  background: #fff0f6;
+  color: #3a1025;
+}
+
+[data-theme="pink"] .track,
+[data-theme="pink"] .row,
+[data-theme="pink"] .profile,
+[data-theme="pink"] .empty,
+[data-theme="pink"] .continent,
+[data-theme="pink"] .settingsCard,
+[data-theme="pink"] .settings button,
+[data-theme="pink"] .searchResult,
+[data-theme="pink"] .accountForm input,
+[data-theme="pink"] .searchBox input {
+  background: #ffe0ed;
+  color: #3a1025;
+  border-color: #f3a6c4;
+}
+
+/* RED THEME */
+
+[data-theme="red"] {
+  background: #fff5f5;
+  color: #350808;
+}
+
+[data-theme="red"] body,
+[data-theme="red"] .app {
+  background: #fff5f5;
+  color: #350808;
+}
+
+[data-theme="red"] .track,
+[data-theme="red"] .row,
+[data-theme="red"] .profile,
+[data-theme="red"] .empty,
+[data-theme="red"] .continent,
+[data-theme="red"] .settingsCard,
+[data-theme="red"] .settings button,
+[data-theme="red"] .searchResult,
+[data-theme="red"] .accountForm input,
+[data-theme="red"] .searchBox input {
+  background: #ffe1e1;
+  color: #350808;
+  border-color: #e9a0a0;
+}
+
+/* BLUE THEME */
+
+[data-theme="blue"] {
+  background: #eef6ff;
+  color: #09233f;
+}
+
+[data-theme="blue"] body,
+[data-theme="blue"] .app {
+  background: #eef6ff;
+  color: #09233f;
+}
+
+[data-theme="blue"] .track,
+[data-theme="blue"] .row,
+[data-theme="blue"] .profile,
+[data-theme="blue"] .empty,
+[data-theme="blue"] .continent,
+[data-theme="blue"] .settingsCard,
+[data-theme="blue"] .settings button,
+[data-theme="blue"] .searchResult,
+[data-theme="blue"] .accountForm input,
+[data-theme="blue"] .searchBox input {
+  background: #dceeff;
+  color: #09233f;
+  border-color: #9bc7ef;
+}
+
+/* MIDNIGHT THEME */
+
+[data-theme="midnight"] {
+  background: #080b18;
+  color: #f1f3ff;
+}
+
+[data-theme="midnight"] body,
+[data-theme="midnight"] .app {
+  background: #080b18;
+  color: #f1f3ff;
+}
+
+[data-theme="midnight"] .track,
+[data-theme="midnight"] .row,
+[data-theme="midnight"] .profile,
+[data-theme="midnight"] .empty,
+[data-theme="midnight"] .continent,
+[data-theme="midnight"] .settingsCard,
+[data-theme="midnight"] .settings button,
+[data-theme="midnight"] .searchResult,
+[data-theme="midnight"] .accountForm input,
+[data-theme="midnight"] .searchBox input {
+  background: #151a2e;
+  color: #f1f3ff;
+  border-color: #303856;
+}
+
+[data-theme="midnight"] .trackInfo span,
+[data-theme="midnight"] .meta span,
+[data-theme="midnight"] .empty,
+[data-theme="midnight"] .stats span {
+  color: #aeb7d6;
+}
