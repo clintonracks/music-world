@@ -1,7 +1,9 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
+import { registerPlugin } from '@capacitor/core';
 import './styles.css';
 
+const DeviceMusic = registerPlugin('DeviceMusic');	
 const artists = [
   { rank: 1, name: 'Luna Ray', country: 'Nigeria', continent: 'Africa', song: 'After Midnight', plays: '2.8M' },
   { rank: 2, name: 'Jay K', country: 'Zambia', continent: 'Africa', song: 'No Limits', plays: '2.4M' },
@@ -20,6 +22,27 @@ const artists = [
 const continents = ['Africa', 'Europe', 'Asia', 'North America', 'South America', 'Oceania'];
 
 function App() {
+  const openDeviceMusic = async () => {
+    setDeviceMusicOpen(true);
+    setDeviceMusicLoading(true);
+
+    try {
+      const permission = await DeviceMusic.requestPermission();
+
+      if (!permission.granted) {
+        setDeviceMusicLoading(false);
+        return;
+      }
+
+      const result = await DeviceMusic.getSongs();
+      setDeviceMusic(result.songs || []);
+    } catch (error) {
+      console.error('Device Music error:', error);
+      setDeviceMusic([]);
+    }
+
+    setDeviceMusicLoading(false);
+  };
   const [tab, setTab] = useState('Home');
   const [playing, setPlaying] = useState(null);
   const [expandedPlayer, setExpandedPlayer] = useState(false);
@@ -33,6 +56,9 @@ function App() {
   const [font, setFont] = useState('system');
   const [fontStyle, setFontStyle] = useState('normal');
   const [fontSize, setFontSize] = useState('medium'); 
+  const [deviceMusic, setDeviceMusic] = useState([]);
+  const [deviceMusicOpen, setDeviceMusicOpen] = useState(false);
+  const [deviceMusicLoading, setDeviceMusicLoading] = useState(false);
   const [playlist, setPlaylist] = useState([]);
   const [playlistOpen, setPlaylistOpen] = useState(false);
 
@@ -251,8 +277,39 @@ function App() {
           <>
             <Title title="Your Library" />
 
-            {!playlistOpen ? (
-              <>
+{deviceMusicOpen ? (
+  <>
+    <button
+      className="backButton"
+      onClick={() => setDeviceMusicOpen(false)}
+    >
+      ← Your Library
+    </button>
+
+    <Title title="Device Music" />
+
+    {deviceMusicLoading ? (
+      <p>Loading music from your phone...</p>
+    ) : deviceMusic.length === 0 ? (
+      <p>No music files were found on this device.</p>
+    ) : (
+      <div className="songList">
+        {deviceMusic.map(song => (
+          <div className="songRow" key={song.id}>
+            <div>
+              <b>{song.title || 'Unknown Song'}</b>
+              <small>{song.artist || 'Unknown Artist'}</small>
+            </div>
+
+            <button onClick={() => setPlaying(song)}>
+              ▶
+            </button>
+          </div>
+        ))}
+      </div>
+    )}
+  </>
+) : !playlistOpen ? (              <>
                 <button
                   className="libraryFolder"
                   onClick={() => setPlaylistOpen(true)}
@@ -265,15 +322,17 @@ function App() {
                   <span className="folderArrow">›</span>
                 </button>
 
-                <button className="libraryFolder">
-                  <span className="folderIcon">📁</span>
-                  <span className="folderInfo">
-                    <b>Device Music</b>
-                    <small>Coming Soon</small>
-                  </span>
-                  <span className="folderArrow">›</span>
-                </button>
-
+<button
+  className="libraryFolder"
+  onClick={openDeviceMusic}
+>
+  <span className="folderIcon">📁</span>
+  <span className="folderInfo">
+    <b>Device Music</b>
+    <small>{deviceMusicOpen ? `${deviceMusic.length} songs` : 'Music on this phone'}</small>
+  </span>
+  <span className="folderArrow">›</span>
+</button>
                 <button
                   className="primary"
                   onClick={() => setTab('Home')}
