@@ -37,7 +37,7 @@ function App() {
     if (!q) return artists;
 
     return artists.filter(a =>
-      `${a.name} ${a.song} ${a.country} ${a.continent}`
+      `${a.name} ${a.song}`
         .toLowerCase()
         .includes(q)
     );
@@ -420,52 +420,38 @@ function App() {
       </main>
 
       {searchOpen && (
-        <div className="searchOverlay">
-          <div className="searchBox">
+        <div className="compactSearch">
+          <input
+            autoFocus
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Search artists, songs..."
+          />
 
-            <button
-              className="closeSearch"
-              onClick={goBack}
-            >
-              ←
-            </button>
+          <div className="searchResults">
+            {filteredSearch.map(a => (
+              <div className="searchResult" key={a.rank}>
+                <button
+                  onClick={() => {
+                    startSong(a);
+                    setSearchOpen(false);
+                  }}
+                >
+                  <span>
+                    <b>{a.song}</b>
+                    <small>{a.name}</small>
+                  </span>
+                </button>
 
-            <h2>Search Music World</h2>
+                <button onClick={() => addToPlaylist(a)}>
+                  ＋
+                </button>
+              </div>
+            ))}
 
-            <input
-              autoFocus
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              placeholder="Search artists, songs, countries..."
-            />
-
-            <div className="searchResults">
-              {filteredSearch.map(a => (
-                <div className="searchResult" key={a.rank}>
-                  <button
-                    onClick={() => {
-                      startSong(a);
-                      setSearchOpen(false);
-                    }}
-                  >
-                    <span className="avatar">{a.name[0]}</span>
-
-                    <span>
-                      <b>{a.song}</b>
-                      <small>{a.name} · {a.country}</small>
-                    </span>
-                  </button>
-
-                  <button onClick={() => addToPlaylist(a)}>
-                    ＋
-                  </button>
-                </div>
-              ))}
-
-              {filteredSearch.length === 0 && (
-                <p>No music found.</p>
-              )}
-            </div>
+            {filteredSearch.length === 0 && (
+              <p>No music found.</p>
+            )}
           </div>
         </div>
       )}

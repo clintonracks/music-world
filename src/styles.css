@@ -793,3 +793,44 @@ section {
     margin-top: 55px;
   }
 }
+
+.compactSearch {
+  margin: 0 16px 18px;
+  padding: 12px;
+  border-radius: 16px;
+  background: var(--surface, #f2f2f2);
+}
+
+.compactSearch input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 12px 14px;
+  border: 1px solid #ccc;
+  border-radius: 12px;
+  font-size: 15px;
+  outline: none;
+}
+
+.compactSearch .searchResults {
+  margin-top: 10px;
+}
+
+.compactSearch .searchResult {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 0;
+}
+
+.compactSearch .searchResult > button:first-child {
+  flex: 1;
+  text-align: left;
+}
+
+.compactSearch .searchResult small {
+  display: block;
+  margin-top: 3px;
+  opacity: 0.7;
+}
+
