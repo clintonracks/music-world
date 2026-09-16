@@ -48,13 +48,12 @@ public class DeviceMusicPlugin extends Plugin {
     public void getSongs(PluginCall call) {
         ContentResolver resolver = getContext().getContentResolver();
 
-        Uri collection = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
+        Uri collection = MediaStore.Files.getContentUri("external");
 
         String[] projection = {
-            MediaStore.Audio.Media._ID,
-            MediaStore.Audio.Media.TITLE,
-            MediaStore.Audio.Media.ARTIST,
-            MediaStore.Audio.Media.ALBUM
+            MediaStore.Files.FileColumns._ID,
+            MediaStore.Files.FileColumns.DISPLAY_NAME,
+            MediaStore.Files.FileColumns.MIME_TYPE
         };
 
         JSObject result = new JSObject();
@@ -63,23 +62,18 @@ public class DeviceMusicPlugin extends Plugin {
             Cursor cursor = resolver.query(
                 collection,
                 projection,
-                null,
-                null,
-                MediaStore.Audio.Media.TITLE + " ASC"
+                MediaStore.Files.FileColumns.MEDIA_TYPE + " = ?",
+                new String[] { String.valueOf(MediaStore.Files.FileColumns.MEDIA_TYPE_AUDIO) },
+                MediaStore.Files.FileColumns.DISPLAY_NAME + " ASC"
             );
 
             org.json.JSONArray songs = new org.json.JSONArray();
 
             if (cursor != null) {
                 int idColumn =
-                    cursor.getColumnIndexOrThrow(MediaStore.Audio.Media._ID);
+                    cursor.getColumnIndexOrThrow(MediaStore.Files.FileColumns._ID);
                 int titleColumn =
-                    cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.TITLE);
-                int artistColumn =
-                    cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ARTIST);
-                int albumColumn =
-                    cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ALBUM);
-
+                    cursor.getColumnIndexOrThrow(MediaStore.Files.FileColumns.DISPLAY_NAME);
                 while (cursor.moveToNext()) {
                     JSObject song = new JSObject();
 
@@ -87,13 +81,13 @@ public class DeviceMusicPlugin extends Plugin {
 
                     song.put("id", id);
                     song.put("title", cursor.getString(titleColumn));
-                    song.put("artist", cursor.getString(artistColumn));
-                    song.put("album", cursor.getString(albumColumn));
+                    song.put("artist", "");
+                    song.put("album", "");
                     song.put(
                         "uri",
-                        Uri.withAppendedPath(
+                        android.content.ContentUris.withAppendedId(
                             collection,
-                            String.valueOf(id)
+                            id
                         ).toString()
                     );
 
