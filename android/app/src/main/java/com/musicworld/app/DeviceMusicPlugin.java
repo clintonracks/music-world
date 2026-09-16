@@ -2,8 +2,8 @@ package com.musicworld.app;
 
 import android.Manifest;
 import android.content.ContentResolver;
-import android.content.pm.PackageManager;
 import android.database.Cursor;
+import android.net.Uri;
 import android.provider.MediaStore;
 
 import com.getcapacitor.JSArray;
@@ -60,43 +60,51 @@ public class DeviceMusicPlugin extends Plugin {
             MediaStore.Audio.Media.TITLE,
             MediaStore.Audio.Media.ARTIST,
             MediaStore.Audio.Media.ALBUM,
-            MediaStore.Audio.Media.DURATION
+            MediaStore.Audio.Media.DURATION,
+            MediaStore.Audio.Media.MIME_TYPE
         };
 
         JSArray songs = new JSArray();
 
-        try (Cursor cursor = resolver.query(
-                MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
-                projection,
-                null,
-                null,
-                MediaStore.Audio.Media.TITLE + " ASC"
-        )) {
-            if (cursor != null) {
-                int idColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media._ID);
-                int titleColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.TITLE);
-                int artistColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ARTIST);
-                int albumColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ALBUM);
-                int durationColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DURATION);
+        try {
+            Uri audioUri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
 
-                while (cursor.moveToNext()) {
-                    long id = cursor.getLong(idColumn);
+            try (Cursor cursor = resolver.query(
+                    audioUri,
+                    projection,
+                    null,
+                    null,
+                    MediaStore.Audio.Media.TITLE + " ASC"
+            )) {
+                if (cursor != null) {
+                    int idColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media._ID);
+                    int titleColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.TITLE);
+                    int artistColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ARTIST);
+                    int albumColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ALBUM);
+                    int durationColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DURATION);
+                    int mimeColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.MIME_TYPE);
 
-                    JSObject song = new JSObject();
-                    song.put("id", id);
-                    song.put("title", cursor.getString(titleColumn));
-                    song.put("artist", cursor.getString(artistColumn));
-                    song.put("album", cursor.getString(albumColumn));
-                    song.put("duration", cursor.getLong(durationColumn));
+                    while (cursor.moveToNext()) {
+                        long id = cursor.getLong(idColumn);
+                        String mimeType = cursor.getString(mimeColumn);
 
-                    String uri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
-                            .buildUpon()
-                            .appendPath(String.valueOf(id))
-                            .build()
-                            .toString();
+                        if (mimeType == null || !mimeType.startsWith("audio/")) {
+                            continue;
+                        }
 
-                    song.put("uri", uri);
-                    songs.put(song);
+                        JSObject song = new JSObject();
+
+                        song.put("id", id);
+                        song.put("title", cursor.getString(titleColumn));
+                        song.put("artist", cursor.getString(artistColumn));
+                        song.put("album", cursor.getString(albumColumn));
+                        song.put("duration", cursor.getLong(durationColumn));
+
+                        Uri songUri = Uri.withAppendedPath(audioUri, String.valueOf(id));
+                        song.put("uri", songUri.toString());
+
+                        songs.put(song);
+                    }
                 }
             }
 
