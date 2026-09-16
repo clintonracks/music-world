@@ -32,7 +32,7 @@ function App() {
       setDeviceMusic(result.songs || []);
     } catch (error) {
       console.error('Device Music error:', error);
-      setDeviceMusic([]);
+      setDeviceMusic([]); alert('Device Music error: ' + (error?.message || error));
     }
 
     setDeviceMusicLoading(false);
