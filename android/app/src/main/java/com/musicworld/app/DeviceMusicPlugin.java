@@ -4,6 +4,8 @@ import android.Manifest;
 import android.content.ContentResolver;
 import android.database.Cursor;
 import android.net.Uri;
+import android.content.Intent;
+import androidx.activity.result.ActivityResult;
 import android.provider.MediaStore;
 
 import com.getcapacitor.JSObject;
@@ -44,6 +46,50 @@ public class DeviceMusicPlugin extends Plugin {
         );
         call.resolve(result);
     }
+    @PluginMethod
+    public void pickAudio(PluginCall call) {
+        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+        intent.addCategory(Intent.CATEGORY_OPENABLE);
+        intent.setType("audio/*");
+        intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
+        startActivityForResult(call, intent, "audioPickerResult");
+    }
+
+    @com.getcapacitor.annotation.ActivityCallback
+    private void audioPickerResult(PluginCall call, ActivityResult result) {
+        JSObject response = new JSObject();
+        org.json.JSONArray songs = new org.json.JSONArray();
+
+        if (result.getResultCode() == android.app.Activity.RESULT_OK && result.getData() != null) {
+            Intent data = result.getData();
+
+            if (data.getClipData() != null) {
+                android.content.ClipData clipData = data.getClipData();
+
+                for (int i = 0; i < clipData.getItemCount(); i++) {
+                    Uri uri = clipData.getItemAt(i).getUri();
+                    JSObject song = new JSObject();
+                    song.put("title", uri.getLastPathSegment());
+                    song.put("artist", "");
+                    song.put("album", "");
+                    song.put("uri", uri.toString());
+                    songs.put(song);
+                }
+            } else if (data.getData() != null) {
+                Uri uri = data.getData();
+                JSObject song = new JSObject();
+                song.put("title", uri.getLastPathSegment());
+                song.put("artist", "");
+                song.put("album", "");
+                song.put("uri", uri.toString());
+                songs.put(song);
+            }
+        }
+
+        response.put("songs", songs);
+        call.resolve(response);
+    }
+
     @PluginMethod
     public void getSongs(PluginCall call) {
         ContentResolver resolver = getContext().getContentResolver();

@@ -27,14 +27,8 @@ function App() {
     setDeviceMusicLoading(true);
 
     try {
-      const permission = await DeviceMusic.requestPermission();
 
-      if (!permission.granted) {
-        setDeviceMusicLoading(false);
-        return;
-      }
-
-      const result = await DeviceMusic.getSongs();
+      const result = await DeviceMusic.pickAudio();
       setDeviceMusic(result.songs || []);
     } catch (error) {
       console.error('Device Music error:', error);
