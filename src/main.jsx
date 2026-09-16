@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { createRoot } from 'react-dom/client';
 import { registerPlugin } from '@capacitor/core';
 import './styles.css';
@@ -40,6 +40,7 @@ function App() {
   const [tab, setTab] = useState('Home');
   const [playing, setPlaying] = useState(null);
   const [expandedPlayer, setExpandedPlayer] = useState(false);
+  const audioRef = useRef(null);
   const [chart, setChart] = useState('Africa');
   const [searchOpen, setSearchOpen] = useState(false);
   const [search, setSearch] = useState('');
@@ -78,10 +79,13 @@ function App() {
     document.documentElement.setAttribute('data-font-style', fontStyle);
     document.documentElement.setAttribute('data-font-size', fontSize);
 }, [font, fontStyle, fontSize]);
-
   function startSong(song) {
     setPlaying(song);
     setExpandedPlayer(false);
+    if (song?.uri && audioRef.current) {
+      audioRef.current.src = song.uri;
+      audioRef.current.play().catch(err => console.error("Audio playback error:", err));
+    }
   }
 
   function addToPlaylist(song) {
@@ -116,6 +120,7 @@ function App() {
 
   return (
     <div className="app">
+      <audio ref={audioRef} />
 
       <header>
         <div className="logo">
