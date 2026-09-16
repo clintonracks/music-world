@@ -7,6 +7,7 @@ import android.net.Uri;
 import android.content.Intent;
 import androidx.activity.result.ActivityResult;
 import android.provider.MediaStore;
+import android.media.MediaPlayer;
 
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
@@ -25,6 +26,56 @@ import com.getcapacitor.annotation.Permission;
     }
 )
 public class DeviceMusicPlugin extends Plugin {
+    private MediaPlayer mediaPlayer;
+    @PluginMethod
+    public void play(PluginCall call) {
+        String uriString = call.getString("uri");
+
+        if (uriString == null || uriString.isEmpty()) {
+            call.reject("No audio URI provided");
+            return;
+        }
+
+        try {
+            if (mediaPlayer != null) {
+                mediaPlayer.release();
+                mediaPlayer = null;
+            }
+
+            mediaPlayer = new MediaPlayer();
+            mediaPlayer.setDataSource(getContext(), Uri.parse(uriString));
+
+            mediaPlayer.setOnPreparedListener(player -> {
+                player.start();
+                call.resolve();
+            });
+
+            mediaPlayer.setOnErrorListener((player, what, extra) -> {
+                call.reject("Unable to play this audio");
+                return true;
+            });
+
+            mediaPlayer.prepareAsync();
+
+        } catch (Exception e) {
+            call.reject("Unable to start audio playback", e);
+        }
+    }
+    @PluginMethod
+    public void pause(PluginCall call) {
+        if (mediaPlayer != null && mediaPlayer.isPlaying()) {
+            mediaPlayer.pause();
+        }
+        call.resolve();
+    }
+
+    @PluginMethod
+    public void resume(PluginCall call) {
+        if (mediaPlayer != null) {
+            mediaPlayer.start();
+        }
+        call.resolve();
+    }
     @PluginMethod
     public void requestPermission(PluginCall call) {
         if (getPermissionState("music") == com.getcapacitor.PermissionState.GRANTED) {

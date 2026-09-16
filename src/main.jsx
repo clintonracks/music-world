@@ -127,40 +127,44 @@ function App() {
     return `${minutes}:${String(seconds).padStart(2, "0")}`;
   }
 
-  function startSong(song) {
+
+  async function startSong(song) {
     setPlaying(song);
     setExpandedPlayer(false);
     setCurrentTime(0);
     setDuration(song?.duration || 0);
 
-    if (song?.uri && audioRef.current) {
-      audioRef.current.src = song.uri;
-      audioRef.current.play()
-        .then(() => setIsPlaying(true))
-        .catch(err => {
-          setIsPlaying(false);
-          console.error("Audio playback error:", err);
-        });
+    if (song?.uri) {
+      try {
+        await DeviceMusic.play({ uri: song.uri });
+        setIsPlaying(true);
+      } catch (error) {
+        setIsPlaying(false);
+        console.error("Native audio playback error:", error);
+        alert("Unable to play this song.");
+      }
     } else {
       setIsPlaying(false);
     }
   }
 
-  function togglePlayback(e) {
+  async function togglePlayback(e) {
     if (e) e.stopPropagation();
 
-    if (!audioRef.current || !playing?.uri) return;
+    if (!playing?.uri) return;
 
-    if (audioRef.current.paused) {
-      audioRef.current.play()
-        .then(() => setIsPlaying(true))
-        .catch(err => console.error("Audio playback error:", err));
-    } else {
-      audioRef.current.pause();
-      setIsPlaying(false);
+    try {
+      if (isPlaying) {
+        await DeviceMusic.pause();
+        setIsPlaying(false);
+      } else {
+        await DeviceMusic.resume();
+        setIsPlaying(true);
+      }
+    } catch (error) {
+      console.error("Native playback error:", error);
     }
   }
-
   function addToPlaylist(song) {
     if (!playlist.some(item => item.rank === song.rank)) {
       setPlaylist([...playlist, song]);
