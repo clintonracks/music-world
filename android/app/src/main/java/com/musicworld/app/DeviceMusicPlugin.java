@@ -23,7 +23,27 @@ import com.getcapacitor.annotation.Permission;
     }
 )
 public class DeviceMusicPlugin extends Plugin {
+    @PluginMethod
+    public void requestPermission(PluginCall call) {
+        if (getPermissionState("music") == com.getcapacitor.PermissionState.GRANTED) {
+            JSObject result = new JSObject();
+            result.put("granted", true);
+            call.resolve(result);
+            return;
+        }
 
+        requestPermissionForAlias("music", call, "permissionCallback");
+    }
+
+    @com.getcapacitor.annotation.PermissionCallback
+    private void permissionCallback(PluginCall call) {
+        JSObject result = new JSObject();
+        result.put(
+            "granted",
+            getPermissionState("music") == com.getcapacitor.PermissionState.GRANTED
+        );
+        call.resolve(result);
+    }
     @PluginMethod
     public void getSongs(PluginCall call) {
         ContentResolver resolver = getContext().getContentResolver();
