@@ -6,18 +6,17 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.provider.MediaStore;
 
+import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
+import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.CapacitorPlugin;
-import com.getcapacitor.annotation.PluginMethod;
-
-import org.json.JSONArray;
-import org.json.JSONObject;
+import com.getcapacitor.annotation.Permission;
 
 @CapacitorPlugin(
     name = "DeviceMusic",
     permissions = {
-        @com.getcapacitor.annotation.Permission(
+        @Permission(
             alias = "music",
             strings = { Manifest.permission.READ_MEDIA_AUDIO }
         )
@@ -38,7 +37,7 @@ public class DeviceMusicPlugin extends Plugin {
             MediaStore.Audio.Media.ALBUM
         };
 
-        JSONArray songs = new JSONArray();
+        JSObject result = new JSObject();
 
         try {
             Cursor cursor = resolver.query(
@@ -49,14 +48,20 @@ public class DeviceMusicPlugin extends Plugin {
                 MediaStore.Audio.Media.TITLE + " ASC"
             );
 
+            org.json.JSONArray songs = new org.json.JSONArray();
+
             if (cursor != null) {
-                int idColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media._ID);
-                int titleColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.TITLE);
-                int artistColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ARTIST);
-                int albumColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ALBUM);
+                int idColumn =
+                    cursor.getColumnIndexOrThrow(MediaStore.Audio.Media._ID);
+                int titleColumn =
+                    cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.TITLE);
+                int artistColumn =
+                    cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ARTIST);
+                int albumColumn =
+                    cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ALBUM);
 
                 while (cursor.moveToNext()) {
-                    JSONObject song = new JSONObject();
+                    JSObject song = new JSObject();
 
                     long id = cursor.getLong(idColumn);
 
@@ -66,7 +71,10 @@ public class DeviceMusicPlugin extends Plugin {
                     song.put("album", cursor.getString(albumColumn));
                     song.put(
                         "uri",
-                        Uri.withAppendedPath(collection, String.valueOf(id)).toString()
+                        Uri.withAppendedPath(
+                            collection,
+                            String.valueOf(id)
+                        ).toString()
                     );
 
                     songs.put(song);
@@ -75,7 +83,6 @@ public class DeviceMusicPlugin extends Plugin {
                 cursor.close();
             }
 
-            JSONObject result = new JSONObject();
             result.put("songs", songs);
             call.resolve(result);
 
