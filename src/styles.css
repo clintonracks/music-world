@@ -1059,3 +1059,96 @@ section {
 [data-font-size="extra-large"] {
   font-size: 120%;
 }
+
+
+/* Music World player polish */
+.fullPlayer {
+  padding: 48px 16px 16px;
+  overflow-y: auto;
+}
+
+.fullPlayer h1 {
+  width: 100%;
+  max-width: 420px;
+  text-align: center;
+  font-size: clamp(22px, 6vw, 32px);
+  line-height: 1.2;
+  margin: 8px 0;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+
+.fullPlayer > p:not(.eyebrow) {
+  max-width: 90%;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fullPlayer .largeCover {
+  width: min(58vw, 220px);
+  height: min(58vw, 220px);
+  margin-bottom: 10px;
+}
+
+.fullPlayer .progress,
+.fullPlayer .times {
+  width: min(90%, 420px);
+}
+
+.fullPlayer .controls {
+  margin-top: 10px;
+}
+
+.fullPlayer .controls button {
+  flex-shrink: 0;
+}
+
+.songRow > div {
+  min-width: 0;
+  flex: 1;
+}
+
+.songRow b {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.songRow small {
+  display: block;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+
+
+/* Mini-player stability */
+.player {
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.player .pmeta {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.player .pmeta b,
+.player .pmeta small {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.player > button {
+  flex: 0 0 auto;
+}

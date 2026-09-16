@@ -7,7 +7,11 @@ import android.net.Uri;
 import android.content.Intent;
 import androidx.activity.result.ActivityResult;
 import android.provider.MediaStore;
-import android.media.MediaPlayer;
+import androidx.media3.common.MediaItem;
+import androidx.media3.common.MediaMetadata;
+import androidx.media3.session.MediaController;
+import androidx.media3.session.SessionToken;
+import com.google.common.util.concurrent.ListenableFuture;
 
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
@@ -26,7 +30,35 @@ import com.getcapacitor.annotation.Permission;
     }
 )
 public class DeviceMusicPlugin extends Plugin {
-    private MediaPlayer mediaPlayer;
+    private MediaController mediaController;
+    private ListenableFuture<MediaController> controllerFuture;
+    private ListenableFuture<MediaController> getController() {
+        if (controllerFuture == null) {
+            SessionToken token = new SessionToken(
+                getContext(),
+                new android.content.ComponentName(
+                    getContext(),
+                    MusicPlaybackService.class
+                )
+            );
+
+            controllerFuture = new MediaController.Builder(
+                getContext(),
+                token
+            ).buildAsync();
+
+            controllerFuture.addListener(() -> {
+                try {
+                    mediaController = controllerFuture.get();
+                } catch (Exception e) {
+                    android.util.Log.e("DeviceMusic", "MediaController connection failed", e);
+                }
+            }, androidx.core.content.ContextCompat.getMainExecutor(getContext()));
+        }
+
+        return controllerFuture;
+    }
+
     @PluginMethod
     public void play(PluginCall call) {
         String uriString = call.getString("uri");
@@ -36,46 +68,82 @@ public class DeviceMusicPlugin extends Plugin {
             return;
         }
 
-        try {
-            if (mediaPlayer != null) {
-                mediaPlayer.release();
-                mediaPlayer = null;
-            }
+        getController().addListener(() -> {
+            try {
+                MediaController controller = getController().get();
 
-            mediaPlayer = new MediaPlayer();
-            mediaPlayer.setDataSource(getContext(), Uri.parse(uriString));
+                String title = call.getString("title", "Unknown Song");
+                String artist = call.getString("artist", "Unknown Artist");
+                String album = call.getString("album", "");
 
-            mediaPlayer.setOnPreparedListener(player -> {
-                player.start();
+                MediaMetadata metadata = new MediaMetadata.Builder()
+                    .setTitle(title)
+                    .setArtist(artist)
+                    .setAlbumTitle(album)
+                    .build();
+
+                MediaItem item = new MediaItem.Builder()
+                    .setUri(Uri.parse(uriString))
+                    .setMediaMetadata(metadata)
+                    .build();
+
+                controller.setMediaItem(item);
+                controller.prepare();
+                controller.play();
+
                 call.resolve();
-            });
 
-            mediaPlayer.setOnErrorListener((player, what, extra) -> {
-                call.reject("Unable to play this audio");
-                return true;
-            });
-
-            mediaPlayer.prepareAsync();
-
-        } catch (Exception e) {
-            call.reject("Unable to start audio playback", e);
-        }
+            } catch (Exception e) {
+                call.reject("Unable to start audio playback", e);
+            }
+        }, androidx.core.content.ContextCompat.getMainExecutor(getContext()));
     }
+
     @PluginMethod
     public void pause(PluginCall call) {
-        if (mediaPlayer != null && mediaPlayer.isPlaying()) {
-            mediaPlayer.pause();
+        try {
+            if (mediaController != null) {
+                mediaController.pause();
+            }
+            call.resolve();
+        } catch (Exception e) {
+            call.reject("Unable to pause audio", e);
         }
-        call.resolve();
     }
 
     @PluginMethod
     public void resume(PluginCall call) {
-        if (mediaPlayer != null) {
-            mediaPlayer.start();
+        try {
+            if (mediaController != null) {
+                mediaController.play();
+            }
+            call.resolve();
+        } catch (Exception e) {
+            call.reject("Unable to resume audio", e);
         }
-        call.resolve();
     }
+
+    @PluginMethod
+    public void getPlaybackState(PluginCall call) {
+        JSObject result = new JSObject();
+
+        try {
+            if (mediaController != null) {
+                result.put("isPlaying", mediaController.isPlaying());
+                result.put("currentTime", mediaController.getCurrentPosition());
+                result.put("duration", mediaController.getDuration());
+            } else {
+                result.put("isPlaying", false);
+                result.put("currentTime", 0);
+                result.put("duration", 0);
+            }
+
+            call.resolve(result);
+        } catch (Exception e) {
+            call.reject("Unable to read playback state", e);
+        }
+    }
+
     @PluginMethod
     public void requestPermission(PluginCall call) {
         if (getPermissionState("music") == com.getcapacitor.PermissionState.GRANTED) {
@@ -152,11 +220,25 @@ public class DeviceMusicPlugin extends Plugin {
 
                 for (int i = 0; i < clipData.getItemCount(); i++) {
                     Uri uri = clipData.getItemAt(i).getUri();
+                    try {
+                        getContext().getContentResolver().takePersistableUriPermission(
+                            uri,
+                            Intent.FLAG_GRANT_READ_URI_PERMISSION
+                        );
+                    } catch (Exception ignored) {
+                    }
                     JSObject song = getAudioMetadata(uri);
                     songs.put(song);
                 }
             } else if (data.getData() != null) {
                 Uri uri = data.getData();
+                try {
+                    getContext().getContentResolver().takePersistableUriPermission(
+                        uri,
+                        Intent.FLAG_GRANT_READ_URI_PERMISSION
+                    );
+                } catch (Exception ignored) {
+                }
                 JSObject song = new JSObject();
                 song.put("title", uri.getLastPathSegment());
                 song.put("artist", "");

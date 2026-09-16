@@ -91,33 +91,48 @@ function App() {
     document.documentElement.setAttribute('data-font-size', fontSize);
 }, [font, fontStyle, fontSize]);
   useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio) return;
+    if (!playing?.uri) return;
 
-    const onTimeUpdate = () => setCurrentTime(audio.currentTime * 1000);
-    const onLoadedMetadata = () => {
-      if (Number.isFinite(audio.duration)) {
-        setDuration(audio.duration * 1000);
+    let timer;
+
+    const updateNativePlayback = async () => {
+      try {
+        const state = await DeviceMusic.getPlaybackState();
+
+        const nextTime = Number(state.currentTime);
+        const nextDuration = Number(state.duration);
+
+        if (Number.isFinite(nextTime) && nextTime >= 0) {
+          setCurrentTime(nextTime);
+        }
+
+        if (Number.isFinite(nextDuration) && nextDuration > 0) {
+          setDuration(nextDuration);
+        }
+
+        setIsPlaying(Boolean(state.isPlaying));
+
+        if (
+          Number.isFinite(nextDuration) &&
+          nextDuration > 0 &&
+          Number.isFinite(nextTime) &&
+          nextTime >= nextDuration
+        ) {
+          setCurrentTime(nextDuration);
+          setIsPlaying(false);
+        }
+      } catch (error) {
+        console.error("Playback state error:", error);
       }
     };
-    const onPlay = () => setIsPlaying(true);
-    const onPause = () => setIsPlaying(false);
-    const onEnded = () => setIsPlaying(false);
 
-    audio.addEventListener("timeupdate", onTimeUpdate);
-    audio.addEventListener("loadedmetadata", onLoadedMetadata);
-    audio.addEventListener("play", onPlay);
-    audio.addEventListener("pause", onPause);
-    audio.addEventListener("ended", onEnded);
+    updateNativePlayback();
+    timer = setInterval(updateNativePlayback, 500);
 
     return () => {
-      audio.removeEventListener("timeupdate", onTimeUpdate);
-      audio.removeEventListener("loadedmetadata", onLoadedMetadata);
-      audio.removeEventListener("play", onPlay);
-      audio.removeEventListener("pause", onPause);
-      audio.removeEventListener("ended", onEnded);
+      clearInterval(timer);
     };
-  }, []);
+  }, [playing?.uri]);
 
   function formatTime(ms) {
     if (!ms || !Number.isFinite(ms)) return "0:00";
@@ -136,7 +151,7 @@ function App() {
 
     if (song?.uri) {
       try {
-        await DeviceMusic.play({ uri: song.uri });
+        await DeviceMusic.play({ uri: song.uri, title: song.title, artist: song.artist, album: song.album });
         setIsPlaying(true);
       } catch (error) {
         setIsPlaying(false);
@@ -782,7 +797,7 @@ function App() {
           <p>{playing.artist || playing.name || 'Unknown Artist'}{playing.country ? ` · ${playing.country}` : ''}</p>
 
           <div className="progress">
-            <span style={{ width: `${duration ? (currentTime / duration) * 100 : 0}%` }}></span>
+            <span style={{ width: `${duration ? Math.min(100, Math.max(0, (currentTime / duration) * 100)) : 0}%` }}></span>
           </div>
 
           <div className="times">
