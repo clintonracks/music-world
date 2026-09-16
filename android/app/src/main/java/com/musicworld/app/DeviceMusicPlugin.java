@@ -46,6 +46,39 @@ public class DeviceMusicPlugin extends Plugin {
         );
         call.resolve(result);
     }
+
+    private JSObject getAudioMetadata(Uri uri) {
+        JSObject song = new JSObject();
+        String fallback = uri.getLastPathSegment();
+
+        try {
+            android.media.MediaMetadataRetriever mmr =
+                    new android.media.MediaMetadataRetriever();
+            mmr.setDataSource(getContext(), uri);
+
+            String title = mmr.extractMetadata(
+                    android.media.MediaMetadataRetriever.METADATA_KEY_TITLE);
+            String artist = mmr.extractMetadata(
+                    android.media.MediaMetadataRetriever.METADATA_KEY_ARTIST);
+            String album = mmr.extractMetadata(
+                    android.media.MediaMetadataRetriever.METADATA_KEY_ALBUM);
+
+            song.put("title", title != null && !title.isEmpty() ? title : fallback);
+            song.put("artist", artist != null ? artist : "");
+            song.put("album", album != null ? album : "");
+            song.put("uri", uri.toString());
+
+            mmr.release();
+        } catch (Exception e) {
+            song.put("title", fallback);
+            song.put("artist", "");
+            song.put("album", "");
+            song.put("uri", uri.toString());
+        }
+
+        return song;
+    }
+
     @PluginMethod
     public void pickAudio(PluginCall call) {
         Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
@@ -68,11 +101,7 @@ public class DeviceMusicPlugin extends Plugin {
 
                 for (int i = 0; i < clipData.getItemCount(); i++) {
                     Uri uri = clipData.getItemAt(i).getUri();
-                    JSObject song = new JSObject();
-                    song.put("title", uri.getLastPathSegment());
-                    song.put("artist", "");
-                    song.put("album", "");
-                    song.put("uri", uri.toString());
+                    JSObject song = getAudioMetadata(uri);
                     songs.put(song);
                 }
             } else if (data.getData() != null) {
