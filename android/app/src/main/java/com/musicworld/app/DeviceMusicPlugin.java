@@ -68,7 +68,7 @@ public class DeviceMusicPlugin extends Plugin {
         try (Cursor cursor = resolver.query(
                 MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
                 projection,
-                MediaStore.Audio.Media.IS_MUSIC + " != 0",
+                null,
                 null,
                 MediaStore.Audio.Media.TITLE + " ASC"
         )) {
