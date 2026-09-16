@@ -28,7 +28,15 @@ function App() {
 
     try {
 
-      const result = await DeviceMusic.pickAudio();
+      const permission = await DeviceMusic.requestPermission();
+      if (!permission.granted) {
+        setDeviceMusic([]);
+        alert('Music permission is required to access music on this phone.');
+        setDeviceMusicLoading(false);
+        return;
+      }
+
+      const result = await DeviceMusic.getSongs();
       setDeviceMusic(result.songs || []);
     } catch (error) {
       console.error('Device Music error:', error);
@@ -41,6 +49,9 @@ function App() {
   const [playing, setPlaying] = useState(null);
   const [expandedPlayer, setExpandedPlayer] = useState(false);
   const audioRef = useRef(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
   const [chart, setChart] = useState('Africa');
   const [searchOpen, setSearchOpen] = useState(false);
   const [search, setSearch] = useState('');
@@ -79,12 +90,74 @@ function App() {
     document.documentElement.setAttribute('data-font-style', fontStyle);
     document.documentElement.setAttribute('data-font-size', fontSize);
 }, [font, fontStyle, fontSize]);
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    const onTimeUpdate = () => setCurrentTime(audio.currentTime * 1000);
+    const onLoadedMetadata = () => {
+      if (Number.isFinite(audio.duration)) {
+        setDuration(audio.duration * 1000);
+      }
+    };
+    const onPlay = () => setIsPlaying(true);
+    const onPause = () => setIsPlaying(false);
+    const onEnded = () => setIsPlaying(false);
+
+    audio.addEventListener("timeupdate", onTimeUpdate);
+    audio.addEventListener("loadedmetadata", onLoadedMetadata);
+    audio.addEventListener("play", onPlay);
+    audio.addEventListener("pause", onPause);
+    audio.addEventListener("ended", onEnded);
+
+    return () => {
+      audio.removeEventListener("timeupdate", onTimeUpdate);
+      audio.removeEventListener("loadedmetadata", onLoadedMetadata);
+      audio.removeEventListener("play", onPlay);
+      audio.removeEventListener("pause", onPause);
+      audio.removeEventListener("ended", onEnded);
+    };
+  }, []);
+
+  function formatTime(ms) {
+    if (!ms || !Number.isFinite(ms)) return "0:00";
+    const totalSeconds = Math.floor(ms / 1000);
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return `${minutes}:${String(seconds).padStart(2, "0")}`;
+  }
+
   function startSong(song) {
     setPlaying(song);
     setExpandedPlayer(false);
+    setCurrentTime(0);
+    setDuration(song?.duration || 0);
+
     if (song?.uri && audioRef.current) {
       audioRef.current.src = song.uri;
-      audioRef.current.play().catch(err => console.error("Audio playback error:", err));
+      audioRef.current.play()
+        .then(() => setIsPlaying(true))
+        .catch(err => {
+          setIsPlaying(false);
+          console.error("Audio playback error:", err);
+        });
+    } else {
+      setIsPlaying(false);
+    }
+  }
+
+  function togglePlayback(e) {
+    if (e) e.stopPropagation();
+
+    if (!audioRef.current || !playing?.uri) return;
+
+    if (audioRef.current.paused) {
+      audioRef.current.play()
+        .then(() => setIsPlaying(true))
+        .catch(err => console.error("Audio playback error:", err));
+    } else {
+      audioRef.current.pause();
+      setIsPlaying(false);
     }
   }
 
@@ -297,10 +370,13 @@ function App() {
           <div className="songRow" key={song.id}>
             <div>
               <b>{song.title || 'Unknown Song'}</b>
-              <small>{song.artist || 'Unknown Artist'}</small>
+              <small>
+                {song.artist || 'Unknown Artist'}
+                {song.duration ? ` · ${Math.floor(song.duration / 60000)}:${String(Math.floor((song.duration % 60000) / 1000)).padStart(2, '0')}` : ''}
+              </small>
             </div>
 
-            <button onClick={() => setPlaying(song)}>
+            <button onClick={() => startSong(song)}>
               ▶
             </button>
           </div>
@@ -655,8 +731,8 @@ function App() {
           <div className="cover">♪</div>
 
           <div className="pmeta">
-            <b>{playing.song}</b>
-            <small>{playing.name}</small>
+            <b>{playing.title || playing.song || 'Unknown Song'}</b>
+            <small>{playing.artist || playing.name || 'Unknown Artist'}</small>
           </div>
 
           <button
@@ -670,9 +746,9 @@ function App() {
 
           <button
             className="play"
-            onClick={e => e.stopPropagation()}
+            onClick={togglePlayback}
           >
-            ▶
+            {isPlaying ? "❚❚" : "▶"}
           </button>
 
           <button
@@ -698,21 +774,21 @@ function App() {
           <div className="largeCover">♪</div>
 
           <p className="eyebrow">NOW PLAYING</p>
-          <h1>{playing.song}</h1>
-          <p>{playing.name} · {playing.country}</p>
+          <h1>{playing.title || playing.song || 'Unknown Song'}</h1>
+          <p>{playing.artist || playing.name || 'Unknown Artist'}{playing.country ? ` · ${playing.country}` : ''}</p>
 
           <div className="progress">
-            <span></span>
+            <span style={{ width: `${duration ? (currentTime / duration) * 100 : 0}%` }}></span>
           </div>
 
           <div className="times">
-            <small>0:00</small>
-            <small>3:24</small>
+            <small>{formatTime(currentTime)}</small>
+            <small>{formatTime(duration)}</small>
           </div>
 
           <div className="controls">
             <button>↶</button>
-            <button>▶</button>
+            <button onClick={togglePlayback}>{isPlaying ? "❚❚" : "▶"}</button>
             <button>↷</button>
           </div>
 

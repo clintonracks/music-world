@@ -121,43 +121,69 @@ public class DeviceMusicPlugin extends Plugin {
 
     @PluginMethod
     public void getSongs(PluginCall call) {
-        ContentResolver resolver = getContext().getContentResolver();
+        if (getPermissionState("music") != com.getcapacitor.PermissionState.GRANTED) {
+            call.reject("Music permission is not granted");
+            return;
+        }
 
-        Uri collection = MediaStore.Files.getContentUri("external");
+        ContentResolver resolver = getContext().getContentResolver();
+        Uri collection = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
 
         String[] projection = {
-            MediaStore.Files.FileColumns._ID,
-            MediaStore.Files.FileColumns.DISPLAY_NAME,
-            MediaStore.Files.FileColumns.MIME_TYPE
+            MediaStore.Audio.Media._ID,
+            MediaStore.Audio.Media.DISPLAY_NAME,
+            MediaStore.Audio.Media.TITLE,
+            MediaStore.Audio.Media.ARTIST,
+            MediaStore.Audio.Media.ALBUM,
+            MediaStore.Audio.Media.DURATION,
+            MediaStore.Audio.Media.MIME_TYPE
         };
 
         JSObject result = new JSObject();
+        org.json.JSONArray songs = new org.json.JSONArray();
 
         try {
             Cursor cursor = resolver.query(
                 collection,
                 projection,
-                MediaStore.Files.FileColumns.MEDIA_TYPE + " = ?",
-                new String[] { String.valueOf(MediaStore.Files.FileColumns.MEDIA_TYPE_AUDIO) },
-                MediaStore.Files.FileColumns.DISPLAY_NAME + " ASC"
+                null,
+                null,
+                MediaStore.Audio.Media.TITLE + " ASC"
             );
 
-            org.json.JSONArray songs = new org.json.JSONArray();
-
             if (cursor != null) {
-                int idColumn =
-                    cursor.getColumnIndexOrThrow(MediaStore.Files.FileColumns._ID);
-                int titleColumn =
-                    cursor.getColumnIndexOrThrow(MediaStore.Files.FileColumns.DISPLAY_NAME);
-                while (cursor.moveToNext()) {
-                    JSObject song = new JSObject();
+                int idColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media._ID);
+                int displayColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DISPLAY_NAME);
+                int titleColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.TITLE);
+                int artistColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ARTIST);
+                int albumColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ALBUM);
+                int durationColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DURATION);
 
+                while (cursor.moveToNext()) {
                     long id = cursor.getLong(idColumn);
 
+                    String displayName = cursor.getString(displayColumn);
+                    String title = cursor.getString(titleColumn);
+                    String artist = cursor.getString(artistColumn);
+                    String album = cursor.getString(albumColumn);
+                    long duration = cursor.getLong(durationColumn);
+
+                    JSObject song = new JSObject();
+
                     song.put("id", id);
-                    song.put("title", cursor.getString(titleColumn));
-                    song.put("artist", "");
-                    song.put("album", "");
+                    song.put(
+                        "title",
+                        title != null && !title.isEmpty() ? title : displayName
+                    );
+                    song.put(
+                        "artist",
+                        artist != null && !artist.equals("<unknown>") ? artist : ""
+                    );
+                    song.put(
+                        "album",
+                        album != null && !album.equals("<unknown>") ? album : ""
+                    );
+                    song.put("duration", duration);
                     song.put(
                         "uri",
                         android.content.ContentUris.withAppendedId(
