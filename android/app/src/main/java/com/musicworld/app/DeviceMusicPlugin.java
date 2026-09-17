@@ -152,6 +152,21 @@ public class DeviceMusicPlugin extends Plugin {
     }
 
     @PluginMethod
+    public void stop(PluginCall call) {
+        getActivity().runOnUiThread(() -> {
+            try {
+                if (mediaController != null) {
+                    mediaController.stop();
+                    mediaController.clearMediaItems();
+                }
+                call.resolve();
+            } catch (Exception e) {
+                call.reject("Unable to stop audio", e);
+            }
+        });
+    }
+
+    @PluginMethod
     public void pause(PluginCall call) {
         getActivity().runOnUiThread(() -> {
             try {

@@ -775,9 +775,19 @@ function formatTime(ms) {
           </div>
 
           <button
-            onClick={e => {
+            onClick={async e => {
               e.stopPropagation();
+
+              try {
+                await DeviceMusic.stop();
+              } catch (error) {
+                console.error("Stop playback error:", error);
+              }
+
               setPlaying(null);
+              setIsPlaying(false);
+              setCurrentTime(0);
+              setDuration(0);
             }}
           >
             ✕
