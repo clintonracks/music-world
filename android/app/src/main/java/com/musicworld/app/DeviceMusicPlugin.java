@@ -89,8 +89,20 @@ public class DeviceMusicPlugin extends Plugin {
 
                 controller.setMediaItem(item);
                 controller.prepare();
-                controller.play();
 
+                controller.addListener(new androidx.media3.common.Player.Listener() {
+                    @Override
+                    public void onPlayerError(androidx.media3.common.PlaybackException error) {
+                        call.reject(
+                            "Media3 playback error: " +
+                            error.errorCodeName +
+                            " - " +
+                            (error.getMessage() != null ? error.getMessage() : "unknown error")
+                        );
+                    }
+                });
+
+                controller.play();
                 call.resolve();
 
             } catch (Exception e) {
