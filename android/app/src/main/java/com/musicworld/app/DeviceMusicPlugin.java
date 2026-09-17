@@ -88,11 +88,25 @@ public class DeviceMusicPlugin extends Plugin {
                     .build();
 
                 controller.setMediaItem(item);
-                controller.prepare();
 
                 controller.addListener(new androidx.media3.common.Player.Listener() {
+                    private boolean finished = false;
+
+                    @Override
+                    public void onPlaybackStateChanged(int state) {
+                        if (finished) return;
+
+                        if (state == androidx.media3.common.Player.STATE_READY) {
+                            finished = true;
+                            call.resolve();
+                        }
+                    }
+
                     @Override
                     public void onPlayerError(androidx.media3.common.PlaybackException error) {
+                        if (finished) return;
+
+                        finished = true;
                         call.reject(
                             "Media3 playback error: " +
                             error.getErrorCodeName() +
@@ -102,8 +116,8 @@ public class DeviceMusicPlugin extends Plugin {
                     }
                 });
 
+                controller.prepare();
                 controller.play();
-                call.resolve();
 
             } catch (Exception e) {
                 call.reject("Unable to start audio playback", e);
