@@ -95,7 +95,7 @@ public class DeviceMusicPlugin extends Plugin {
                     public void onPlayerError(androidx.media3.common.PlaybackException error) {
                         call.reject(
                             "Media3 playback error: " +
-                            error.errorCodeName +
+                            error.getErrorCodeName() +
                             " - " +
                             (error.getMessage() != null ? error.getMessage() : "unknown error")
                         );
