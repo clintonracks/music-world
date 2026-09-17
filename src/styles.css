@@ -618,6 +618,15 @@ section {
   background: #555;
   border-radius: 10px;
   margin-top: 12px;
+  overflow: hidden;
+}
+
+.progress span {
+  display: block;
+  height: 100%;
+  background: #e50914;
+  border-radius: 10px;
+  transition: width 0.25s linear;
 }
 
 .times {
