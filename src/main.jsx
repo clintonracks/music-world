@@ -134,7 +134,27 @@ function App() {
     };
   }, [playing?.uri]);
 
-  function formatTime(ms) {
+  async function seekFromProgress(event) {
+  if (!playing?.uri || !duration || !Number.isFinite(duration)) return;
+
+  const rect = event.currentTarget.getBoundingClientRect();
+  const clientX = event.clientX;
+
+  if (clientX == null) return;
+
+  const percent = Math.min(1, Math.max(0, (clientX - rect.left) / rect.width));
+  const position = percent * duration;
+
+  setCurrentTime(position);
+
+  try {
+    await DeviceMusic.seekTo({ position });
+  } catch (error) {
+    console.error("Seek error:", error);
+  }
+}
+
+function formatTime(ms) {
     if (!ms || !Number.isFinite(ms)) return "0:00";
     const totalSeconds = Math.floor(ms / 1000);
     const minutes = Math.floor(totalSeconds / 60);
@@ -796,7 +816,15 @@ function App() {
           <h1>{playing.title || playing.song || 'Unknown Song'}</h1>
           <p>{playing.artist || playing.name || 'Unknown Artist'}{playing.country ? ` · ${playing.country}` : ''}</p>
 
-          <div className="progress">
+          <div
+            className="progress"
+            onPointerDown={seekFromProgress}
+            role="slider"
+            aria-label="Song progress"
+            aria-valuemin="0"
+            aria-valuemax={duration || 0}
+            aria-valuenow={currentTime}
+          >
             <span style={{ width: `${duration ? Math.min(100, Math.max(0, (currentTime / duration) * 100)) : 0}%` }}></span>
           </div>
 

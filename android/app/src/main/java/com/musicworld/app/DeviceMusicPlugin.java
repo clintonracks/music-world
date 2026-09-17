@@ -128,6 +128,30 @@ public class DeviceMusicPlugin extends Plugin {
     }
 
     @PluginMethod
+    public void seekTo(PluginCall call) {
+        Double position = call.getDouble("position");
+
+        if (position == null || position < 0) {
+            call.reject("Invalid seek position");
+            return;
+        }
+
+        getActivity().runOnUiThread(() -> {
+            try {
+                if (mediaController == null) {
+                    call.reject("Audio player is not ready");
+                    return;
+                }
+
+                mediaController.seekTo(position.longValue());
+                call.resolve();
+            } catch (Exception e) {
+                call.reject("Unable to seek audio", e);
+            }
+        });
+    }
+
+    @PluginMethod
     public void pause(PluginCall call) {
         getActivity().runOnUiThread(() -> {
             try {
