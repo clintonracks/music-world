@@ -68,9 +68,10 @@ public class DeviceMusicPlugin extends Plugin {
             return;
         }
 
-        getController().addListener(() -> {
-            try {
-                MediaController controller = getController().get();
+        getActivity().runOnUiThread(() -> {
+            getController().addListener(() -> {
+                try {
+                    MediaController controller = getController().get();
 
                 String title = call.getString("title", "Unknown Song");
                 String artist = call.getString("artist", "Unknown Artist");
@@ -119,55 +120,62 @@ public class DeviceMusicPlugin extends Plugin {
                 controller.prepare();
                 controller.play();
 
-            } catch (Exception e) {
-                call.reject("Unable to start audio playback: " + e.getClass().getSimpleName() + " - " + (e.getMessage() != null ? e.getMessage() : "no message"));
-            }
-        }, androidx.core.content.ContextCompat.getMainExecutor(getContext()));
+                } catch (Exception e) {
+                    call.reject("Unable to start audio playback: " + e.getClass().getSimpleName() + " - " + (e.getMessage() != null ? e.getMessage() : "no message"));
+                }
+            }, androidx.core.content.ContextCompat.getMainExecutor(getContext()));
+        });
     }
 
     @PluginMethod
     public void pause(PluginCall call) {
-        try {
-            if (mediaController != null) {
-                mediaController.pause();
+        getActivity().runOnUiThread(() -> {
+            try {
+                if (mediaController != null) {
+                    mediaController.pause();
+                }
+                call.resolve();
+            } catch (Exception e) {
+                call.reject("Unable to pause audio", e);
             }
-            call.resolve();
-        } catch (Exception e) {
-            call.reject("Unable to pause audio", e);
-        }
+        });
     }
 
     @PluginMethod
     public void resume(PluginCall call) {
-        try {
-            if (mediaController != null) {
-                mediaController.play();
+        getActivity().runOnUiThread(() -> {
+            try {
+                if (mediaController != null) {
+                    mediaController.play();
+                }
+                call.resolve();
+            } catch (Exception e) {
+                call.reject("Unable to resume audio", e);
             }
-            call.resolve();
-        } catch (Exception e) {
-            call.reject("Unable to resume audio", e);
-        }
+        });
     }
 
     @PluginMethod
     public void getPlaybackState(PluginCall call) {
-        JSObject result = new JSObject();
+        getActivity().runOnUiThread(() -> {
+            JSObject result = new JSObject();
 
-        try {
-            if (mediaController != null) {
-                result.put("isPlaying", mediaController.isPlaying());
-                result.put("currentTime", mediaController.getCurrentPosition());
-                result.put("duration", mediaController.getDuration());
-            } else {
-                result.put("isPlaying", false);
-                result.put("currentTime", 0);
-                result.put("duration", 0);
+            try {
+                if (mediaController != null) {
+                    result.put("isPlaying", mediaController.isPlaying());
+                    result.put("currentTime", mediaController.getCurrentPosition());
+                    result.put("duration", mediaController.getDuration());
+                } else {
+                    result.put("isPlaying", false);
+                    result.put("currentTime", 0);
+                    result.put("duration", 0);
+                }
+
+                call.resolve(result);
+            } catch (Exception e) {
+                call.reject("Unable to read playback state", e);
             }
-
-            call.resolve(result);
-        } catch (Exception e) {
-            call.reject("Unable to read playback state", e);
-        }
+        });
     }
 
     @PluginMethod
