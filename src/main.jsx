@@ -156,7 +156,7 @@ function App() {
       } catch (error) {
         setIsPlaying(false);
         console.error("Native audio playback error:", error);
-        alert("Unable to play this song.");
+        alert("Unable to play this song.\\n\\nDetails: " + (error?.message || String(error)));
       }
     } else {
       setIsPlaying(false);
