@@ -120,7 +120,7 @@ public class DeviceMusicPlugin extends Plugin {
                 controller.play();
 
             } catch (Exception e) {
-                call.reject("Unable to start audio playback", e);
+                call.reject("Unable to start audio playback: " + e.getClass().getSimpleName() + " - " + (e.getMessage() != null ? e.getMessage() : "no message"));
             }
         }, androidx.core.content.ContextCompat.getMainExecutor(getContext()));
     }
