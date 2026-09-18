@@ -66,8 +66,39 @@ function App() {
   const [deviceMusicOpen, setDeviceMusicOpen] = useState(false);
   const [deviceMusicLoading, setDeviceMusicLoading] = useState(false);
   const [deviceMusicSearch, setDeviceMusicSearch] = useState('');
-  const [playlist, setPlaylist] = useState([]);
+  const [playlists, setPlaylists] = useState([]);
   const [playlistOpen, setPlaylistOpen] = useState(false);
+  const [activePlaylistId, setActivePlaylistId] = useState(null);
+  const [addSongsOpen, setAddSongsOpen] = useState(false);
+  const [playlistName, setPlaylistName] = useState('');
+  const [playlistPickerOpen, setPlaylistPickerOpen] = useState(false);
+
+  useEffect(() => {
+    try {
+      const savedPlaylists = localStorage.getItem('musicWorldPlaylists');
+
+      if (savedPlaylists) {
+        const parsed = JSON.parse(savedPlaylists);
+
+        if (Array.isArray(parsed)) {
+          setPlaylists(parsed);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load playlists:', error);
+    }
+  }, []);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        'musicWorldPlaylists',
+        JSON.stringify(playlists)
+      );
+    } catch (error) {
+      console.error('Failed to save playlists:', error);
+    }
+  }, [playlists]);
 
   const filteredSearch = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -263,10 +294,61 @@ function formatTime(ms) {
       await startSong(deviceMusic[currentIndex - 1], true);
     }
   }
-  function addToPlaylist(song) {
-    if (!playlist.some(item => item.rank === song.rank)) {
-      setPlaylist([...playlist, song]);
+  function openPlaylistPicker(song) {
+    if (!song) return;
+
+    if (playlists.length === 0) {
+      const name = window.prompt("Enter playlist name:");
+
+      if (name && name.trim()) {
+        const newPlaylist = {
+          id: Date.now().toString(),
+          name: name.trim(),
+          songs: [song]
+        };
+
+        setPlaylists(current => [...current, newPlaylist]);
+        setActivePlaylistId(newPlaylist.id);
+      }
+
+      return;
     }
+
+    setPlaylistPickerOpen(true);
+  }
+
+  function addToPlaylist(song) {
+    if (!song) return;
+
+    setPlaylists(currentPlaylists => {
+      if (currentPlaylists.length === 0) {
+        const newPlaylist = {
+          id: Date.now().toString(),
+          name: 'My Playlist',
+          songs: [song]
+        };
+
+        setActivePlaylistId(newPlaylist.id);
+        return [newPlaylist];
+      }
+
+      const targetId = activePlaylistId || currentPlaylists[0].id;
+
+      return currentPlaylists.map(pl => {
+        if (pl.id !== targetId) return pl;
+
+        const alreadyAdded = pl.songs.some(
+          item => item?.uri === song?.uri || item?.id === song?.id
+        );
+
+        if (alreadyAdded) return pl;
+
+        return {
+          ...pl,
+          songs: [...pl.songs, song]
+        };
+      });
+    });
   }
 
   function goBack() {
@@ -533,30 +615,73 @@ function formatTime(ms) {
       )
     )}
   </>
-) : !playlistOpen ? (              <>
+) : !playlistOpen ? (
+              <>
+                <Title title="Playlists" />
+
+                <button
+                  className="primary"
+                  onClick={() => {
+                    const name = window.prompt("Enter playlist name:");
+
+                    if (name && name.trim()) {
+                      const newPlaylist = {
+                        id: Date.now().toString(),
+                        name: name.trim(),
+                        songs: []
+                      };
+
+                      setPlaylists(current => [...current, newPlaylist]);
+                    }
+                  }}
+                >
+                  ＋ Create Playlist
+                </button>
+
+                {playlists.length === 0 ? (
+                  <div className="empty">
+                    <div>♫</div>
+                    <h2>No playlists yet.</h2>
+                    <p>Create a playlist and start adding your music.</p>
+                  </div>
+                ) : (
+                  <div className="playlistGrid">
+                    {playlists.map(pl => (
+                      <button
+                        className="playlistCard"
+                        key={pl.id}
+                        onClick={() => {
+                          setActivePlaylistId(pl.id);
+                          setPlaylistOpen(true);
+                        }}
+                      >
+                        <span className="playlistCardIcon">🎶</span>
+
+                        <span className="playlistCardInfo">
+                          <b>{pl.name}</b>
+                          <small>
+                            {pl.songs.length} {pl.songs.length === 1 ? 'song' : 'songs'}
+                          </small>
+                        </span>
+
+                        <span className="folderArrow">›</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+
                 <button
                   className="libraryFolder"
-                  onClick={() => setPlaylistOpen(true)}
+                  onClick={openDeviceMusic}
                 >
-                  <span className="folderIcon">🎶</span>
+                  <span className="folderIcon">📁</span>
                   <span className="folderInfo">
-                    <b>My Playlist</b>
-                    <small>{playlist.length} {playlist.length === 1 ? 'song' : 'songs'}</small>
+                    <b>Device Music</b>
+                    <small>Music on this phone</small>
                   </span>
                   <span className="folderArrow">›</span>
                 </button>
 
-<button
-  className="libraryFolder"
-  onClick={openDeviceMusic}
->
-  <span className="folderIcon">📁</span>
-  <span className="folderInfo">
-    <b>Device Music</b>
-    <small>{deviceMusicOpen ? `${deviceMusic.length} songs` : 'Music on this phone'}</small>
-  </span>
-  <span className="folderArrow">›</span>
-</button>
                 <button
                   className="primary"
                   onClick={() => setTab('Home')}
@@ -568,35 +693,200 @@ function formatTime(ms) {
               <>
                 <button
                   className="backButton"
-                  onClick={() => setPlaylistOpen(false)}
+                  onClick={() => {
+                    setPlaylistOpen(false);
+                    setAddSongsOpen(false);
+                  }}
                 >
-                  ← Your Library
+                  ← Playlists
                 </button>
 
-                <Title title="My Playlist" />
+                {(() => {
+                  const activePlaylist = playlists.find(
+                    pl => pl.id === activePlaylistId
+                  );
 
-                {playlist.length === 0 ? (
-                  <div className="empty">
-                    <div>♫</div>
-                    <h2>Your playlist is empty.</h2>
-                    <p>Add songs from Music World and they will appear here.</p>
-                  </div>
-                ) : (
-                  <div className="chartList">
-                    {playlist.map(a => (
-                      <div className="row" key={a.rank}>
-                        <div className="avatar">{a.name[0]}</div>
-
-                        <div className="meta">
-                          <b>{a.song}</b>
-                          <small>{a.name} · {a.country}</small>
-                        </div>
-
-                        <button onClick={() => startSong(a)}>▶</button>
+                  if (!activePlaylist) {
+                    return (
+                      <div className="empty">
+                        <div>♫</div>
+                        <h2>Playlist not found.</h2>
                       </div>
-                    ))}
-                  </div>
-                )}
+                    );
+                  }
+
+                  return (
+                    <>
+                      <Title title={activePlaylist.name} />
+
+                      <div className="playlistActions">
+                        <button
+                          onClick={() => {
+                            const name = window.prompt(
+                              "Rename playlist:",
+                              activePlaylist.name
+                            );
+
+                            if (name && name.trim()) {
+                              setPlaylists(current =>
+                                current.map(pl =>
+                                  pl.id === activePlaylist.id
+                                    ? { ...pl, name: name.trim() }
+                                    : pl
+                                )
+                              );
+                            }
+                          }}
+                        >
+                          ✏️ Rename
+                        </button>
+
+                        <button
+                          onClick={() => {
+                            const confirmed = window.confirm(
+                              `Delete "${activePlaylist.name}"?`
+                            );
+
+                            if (!confirmed) return;
+
+                            setPlaylists(current =>
+                              current.filter(
+                                pl => pl.id !== activePlaylist.id
+                              )
+                            );
+
+                            setActivePlaylistId(null);
+                            setPlaylistOpen(false);
+                            setAddSongsOpen(false);
+                          }}
+                        >
+                          🗑️ Delete
+                        </button>
+                      </div>
+
+                      <button
+                        className="primary"
+                        onClick={() => setAddSongsOpen(!addSongsOpen)}
+                      >
+                        ＋ Add Songs to Playlist
+                      </button>
+
+                      {addSongsOpen && (
+                        <div className="playlistAddPanel">
+                          <h3>Select Songs</h3>
+
+                          {deviceMusic.length === 0 ? (
+                            <p>No songs found on this device.</p>
+                          ) : (
+                            <div className="playlistSongPicker">
+                              {deviceMusic.map(song => {
+                                const alreadyAdded = activePlaylist.songs.some(
+                                  item =>
+                                    item?.uri === song?.uri ||
+                                    item?.id === song?.id
+                                );
+
+                                return (
+                                  <button
+                                    className="playlistPickerRow"
+                                    key={song.id || song.uri}
+                                    disabled={alreadyAdded}
+                                    onClick={() => {
+                                      setPlaylists(current =>
+                                        current.map(pl => {
+                                          if (pl.id !== activePlaylist.id) return pl;
+
+                                          if (
+                                            pl.songs.some(
+                                              item =>
+                                                item?.uri === song?.uri ||
+                                                item?.id === song?.id
+                                            )
+                                          ) {
+                                            return pl;
+                                          }
+
+                                          return {
+                                            ...pl,
+                                            songs: [...pl.songs, song]
+                                          };
+                                        })
+                                      );
+                                    }}
+                                  >
+                                    <span className="songArtwork">♪</span>
+
+                                    <span className="songInfo">
+                                      <b>{song.title || 'Unknown Song'}</b>
+                                      <small>
+                                        {song.artist || 'Unknown Artist'}
+                                      </small>
+                                    </span>
+
+                                    <span>
+                                      {alreadyAdded ? '✓' : '＋'}
+                                    </span>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {activePlaylist.songs.length === 0 ? (
+                        <div className="empty">
+                          <div>♫</div>
+                          <h2>This playlist is empty.</h2>
+                          <p>Add songs from your phone using the button above.</p>
+                        </div>
+                      ) : (
+                        <div className="playlistSongList">
+                          {activePlaylist.songs.map(song => (
+                            <div
+                              className="playlistSongRow"
+                              key={song.id || song.uri}
+                              onClick={() => startSong(song)}
+                            >
+                              <div className="songArtwork">♪</div>
+
+                              <div className="songInfo">
+                                <b>{song.title || 'Unknown Song'}</b>
+                                <small>
+                                  {song.artist || 'Unknown Artist'}
+                                </small>
+                              </div>
+
+                              <button
+                                onClick={e => {
+                                  e.stopPropagation();
+
+                                  setPlaylists(current =>
+                                    current.map(pl => {
+                                      if (pl.id !== activePlaylist.id) return pl;
+
+                                      return {
+                                        ...pl,
+                                        songs: pl.songs.filter(
+                                          item =>
+                                            item?.uri !== song?.uri &&
+                                            item?.id !== song?.id
+                                        )
+                                      };
+                                    })
+                                  );
+                                }}
+                                aria-label="Remove song"
+                              >
+                                ✕
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </>
+                  );
+                })()}
               </>
             )}
           </>
@@ -642,7 +932,7 @@ function formatTime(ms) {
                   </div>
 
                   <div>
-                    <b>{playlist.length}</b>
+                    <b>{playlists.length}</b>
                     <small>Playlists</small>
                   </div>
                 </div>
@@ -802,6 +1092,102 @@ function formatTime(ms) {
           </div>
         )}
 
+      {playlistPickerOpen && playing && (
+        <div className="playlistPickerOverlay">
+          <div className="playlistPicker">
+            <div className="playlistPickerHeader">
+              <h2>Add to Playlist</h2>
+
+              <button
+                onClick={() => setPlaylistPickerOpen(false)}
+                aria-label="Close playlist picker"
+              >
+                ✕
+              </button>
+            </div>
+
+            <p>
+              {playing.title || playing.song || 'Current song'}
+            </p>
+
+            <div className="playlistPickerList">
+              {playlists.map(pl => {
+                const alreadyAdded = pl.songs.some(
+                  item =>
+                    item?.uri === playing?.uri ||
+                    item?.id === playing?.id
+                );
+
+                return (
+                  <button
+                    key={pl.id}
+                    disabled={alreadyAdded}
+                    onClick={() => {
+                      setPlaylists(current =>
+                        current.map(item => {
+                          if (item.id !== pl.id) return item;
+
+                          if (
+                            item.songs.some(
+                              song =>
+                                song?.uri === playing?.uri ||
+                                song?.id === playing?.id
+                            )
+                          ) {
+                            return item;
+                          }
+
+                          return {
+                            ...item,
+                            songs: [...item.songs, playing]
+                          };
+                        })
+                      );
+
+                      setPlaylistPickerOpen(false);
+                    }}
+                  >
+                    <span className="playlistCardIcon">🎶</span>
+
+                    <span className="playlistCardInfo">
+                      <b>{pl.name}</b>
+                      <small>
+                        {pl.songs.length} {pl.songs.length === 1 ? 'song' : 'songs'}
+                      </small>
+                    </span>
+
+                    <span>
+                      {alreadyAdded ? '✓' : '＋'}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
+            <button
+              className="primary"
+              onClick={() => {
+                const name = window.prompt("Enter playlist name:");
+
+                if (name && name.trim()) {
+                  const newPlaylist = {
+                    id: Date.now().toString(),
+                    name: name.trim(),
+                    songs: [playing]
+                  };
+
+                  setPlaylists(current => [...current, newPlaylist]);
+                  setActivePlaylistId(newPlaylist.id);
+                  setPlaylistPickerOpen(false);
+                }
+              }}
+            >
+              ＋ Create New Playlist
+            </button>
+          </div>
+        </div>
+      )}
+
       </main>
 
       {searchOpen && (
@@ -913,7 +1299,7 @@ function formatTime(ms) {
           <button
             onClick={e => {
               e.stopPropagation();
-              addToPlaylist(playing);
+              openPlaylistPicker(playing);
             }}
           >
             ＋
@@ -963,7 +1349,7 @@ function formatTime(ms) {
 
           <button
             className="primary"
-            onClick={() => addToPlaylist(playing)}
+            onClick={() => openPlaylistPicker(playing)}
           >
             ＋ Add to Playlist
           </button>
