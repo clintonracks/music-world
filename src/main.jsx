@@ -64,6 +64,7 @@ function App() {
   const [artistAnalyticsOpen, setArtistAnalyticsOpen] = useState(false);
   const [artistAudienceOpen, setArtistAudienceOpen] = useState(false);
   const [artistEarningsOpen, setArtistEarningsOpen] = useState(false);
+const [artistReleaseOpen, setArtistReleaseOpen] = useState(false);
 
 function openArtistSection(section) {
   setArtistMusicOpen(section === 'music');
@@ -1233,6 +1234,121 @@ function formatTime(ms) {
   </section>
 )}
 
+{artistReleaseOpen && (
+  <section className="artistReleaseStudio">
+    <div className="artistReleaseHeader">
+      <button
+        className="artistBack"
+        onClick={() => setArtistReleaseOpen(false)}
+      >
+        ← Music Studio
+      </button>
+
+      <span className="artistDashboardLabel">ARTIST STUDIO</span>
+      <h1>New Release</h1>
+      <p>Set up your release before sending your music to listeners.</p>
+    </div>
+
+    <div className="artistReleaseCard">
+      <div className="artistReleaseStep">
+        <span>1</span>
+        <div>
+          <b>Release details</b>
+          <small>Tell us about your music.</small>
+        </div>
+      </div>
+
+      <label>
+        Release title
+        <input
+          type="text"
+          placeholder="Enter your song or release title"
+        />
+      </label>
+
+      <label>
+        Artist name
+        <input
+          type="text"
+          placeholder="Your artist name"
+        />
+      </label>
+
+      <label>
+        Release type
+        <select defaultValue="Single">
+          <option>Single</option>
+          <option>EP</option>
+          <option>Album</option>
+        </select>
+      </label>
+
+      <label>
+        Genre
+        <select defaultValue="">
+          <option value="" disabled>Select a genre</option>
+          <option>Afrobeats</option>
+          <option>Amapiano</option>
+          <option>Hip-Hop</option>
+          <option>R&B</option>
+          <option>Pop</option>
+          <option>Gospel</option>
+          <option>Other</option>
+        </select>
+      </label>
+
+      <div className="artistReleaseArtwork">
+        <span>🖼️</span>
+        <div>
+          <b>Cover artwork</b>
+          <small>Add artwork for your release.</small>
+        </div>
+        <button
+          type="button"
+          className="artistSecondaryButton"
+          onClick={() => alert('Artwork selection will be connected next.')}
+        >
+          Add Artwork
+        </button>
+      </div>
+
+      <div className="artistReleaseAudio">
+        <span>🎵</span>
+        <div>
+          <b>Audio file</b>
+          <small>Select the music file you want to release.</small>
+        </div>
+        <button
+          type="button"
+          className="primary"
+          onClick={() => alert('Android music-file selection will be connected next.')}
+        >
+          Select Music
+        </button>
+      </div>
+
+      <button
+        type="button"
+        className="primary artistReleaseContinue"
+        onClick={() => alert('Release submission will be connected after the upload system is added.')}
+      >
+        Continue →
+      </button>
+    </div>
+
+    <div className="artistReleaseNotice">
+      <span>✦</span>
+      <div>
+        <b>Release setup</b>
+        <small>
+          Your information will be used to prepare your music for Music World.
+          Nothing is published yet.
+        </small>
+      </div>
+    </div>
+  </section>
+)}
+
 {artistMusicOpen && (
           <section className="artistMusicStudio">
             <div className="artistMusicHeader">
@@ -1260,9 +1376,7 @@ function formatTime(ms) {
 
               <button
                 className="primary artistUploadButton"
-                onClick={() => alert(
-                  'Music upload will be connected to the Music World artist system next.'
-                )}
+                onClick={() => setArtistReleaseOpen(true)}
               >
                 ＋ Upload Music
               </button>
@@ -1285,9 +1399,7 @@ function formatTime(ms) {
 
               <button
                 className="artistSecondaryButton"
-                onClick={() => alert(
-                  'The upload workflow is coming next.'
-                )}
+                onClick={() => setArtistReleaseOpen(true)}
               >
                 Start Your First Release
               </button>

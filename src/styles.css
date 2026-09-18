@@ -3654,3 +3654,195 @@ section {
   }
 }
 
+
+/* Artist Release Setup */
+.artistReleaseStudio {
+  width: min(94vw, 900px);
+  margin: 0 auto;
+  padding: 28px 0 120px;
+}
+
+.artistReleaseHeader {
+  margin-bottom: 22px;
+}
+
+.artistReleaseHeader h1 {
+  margin: 6px 0;
+  font-size: clamp(28px, 6vw, 42px);
+  letter-spacing: -1px;
+}
+
+.artistReleaseHeader p {
+  margin: 0;
+  color: #aaa;
+  line-height: 1.6;
+}
+
+.artistReleaseCard {
+  background: linear-gradient(145deg, #1f1f1f, #151515);
+  border: 1px solid #343434;
+  border-radius: 24px;
+  padding: 22px;
+}
+
+.artistReleaseStep {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  margin-bottom: 24px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid #303030;
+}
+
+.artistReleaseStep > span {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #e31b23;
+  color: #fff;
+  font-weight: 800;
+}
+
+.artistReleaseStep div {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.artistReleaseStep small {
+  color: #999;
+}
+
+.artistReleaseCard label {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 18px;
+  color: #ddd;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.artistReleaseCard input,
+.artistReleaseCard select {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 48px;
+  padding: 12px 14px;
+  border: 1px solid #3a3a3a;
+  border-radius: 13px;
+  background: #101010;
+  color: #fff;
+  font: inherit;
+  outline: none;
+}
+
+.artistReleaseCard input:focus,
+.artistReleaseCard select:focus {
+  border-color: #e31b23;
+}
+
+.artistReleaseArtwork,
+.artistReleaseAudio {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px;
+  margin-top: 10px;
+  margin-bottom: 14px;
+  border: 1px solid #333;
+  border-radius: 17px;
+  background: #181818;
+}
+
+.artistReleaseArtwork > span,
+.artistReleaseAudio > span {
+  font-size: 27px;
+}
+
+.artistReleaseArtwork div,
+.artistReleaseAudio div {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.artistReleaseArtwork small,
+.artistReleaseAudio small {
+  color: #999;
+  line-height: 1.4;
+}
+
+.artistReleaseArtwork button,
+.artistReleaseAudio button {
+  white-space: nowrap;
+}
+
+.artistReleaseContinue {
+  width: 100%;
+  min-height: 52px;
+  margin-top: 10px;
+  border-radius: 15px;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.artistReleaseNotice {
+  display: flex;
+  gap: 13px;
+  margin-top: 18px;
+  padding: 16px;
+  border: 1px solid #303030;
+  border-radius: 17px;
+  background: #191919;
+}
+
+.artistReleaseNotice > span {
+  color: #e31b23;
+  font-size: 20px;
+}
+
+.artistReleaseNotice div {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.artistReleaseNotice small {
+  color: #999;
+  line-height: 1.5;
+}
+
+@media (max-width: 600px) {
+  .artistReleaseStudio {
+    width: calc(100vw - 28px);
+    padding-top: 20px;
+  }
+
+  .artistReleaseCard {
+    padding: 17px;
+    border-radius: 20px;
+  }
+
+  .artistReleaseArtwork,
+  .artistReleaseAudio {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .artistReleaseArtwork div,
+  .artistReleaseAudio div {
+    flex: 1 1 calc(100% - 55px);
+  }
+
+  .artistReleaseArtwork button,
+  .artistReleaseAudio button {
+    width: 100%;
+  }
+}
+
