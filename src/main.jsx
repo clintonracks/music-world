@@ -444,6 +444,30 @@ function formatTime(ms) {
               </div>
             </Section>
 
+            <Section title="AI Music">
+              <div className="aiMusicCard">
+                <div className="aiMusicGlow"></div>
+
+                <div className="aiMusicIcon">✦</div>
+
+                <div className="aiMusicContent">
+                  <div className="aiMusicLabel">MUSIC WORLD AI</div>
+                  <b>Create beyond the ordinary.</b>
+                  <p>
+                    Explore AI-generated, AI-assisted and experimental music
+                    made for a new generation of sound.
+                  </p>
+
+                  <button
+                    className="aiMusicButton"
+                    onClick={() => setTab('Charts')}
+                  >
+                    Explore AI Music <span>→</span>
+                  </button>
+                </div>
+              </div>
+            </Section>
+
             <Section title="For Artists">
               <div className="forArtistsCard">
                 <div className="forArtistsIcon">🎤</div>
@@ -465,14 +489,6 @@ function formatTime(ms) {
                     Enter For Artists →
                   </button>
                 </div>
-              </div>
-            </Section>
-
-            <Section title="AI Music">
-              <div className="ai">
-                <b>🤖 AI Music</b>
-                <span>Explore AI-generated, AI-assisted and experimental music.</span>
-                <button onClick={() => setTab('Charts')}>Explore →</button>
               </div>
             </Section>
           </>

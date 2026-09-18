@@ -2016,3 +2016,117 @@ section {
     grid-template-columns: 1fr 1fr;
   }
 }
+
+/* Modern AI Music card */
+.aiMusicCard {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 22px;
+  overflow: hidden;
+  border: 1px solid #3a3a3a;
+  border-radius: 20px;
+  background:
+    radial-gradient(circle at 85% 15%, rgba(227, 27, 35, 0.22), transparent 34%),
+    linear-gradient(135deg, #242424, #151515);
+}
+
+.aiMusicGlow {
+  position: absolute;
+  width: 150px;
+  height: 150px;
+  right: -55px;
+  top: -65px;
+  border-radius: 50%;
+  background: rgba(227, 27, 35, 0.12);
+  filter: blur(20px);
+  pointer-events: none;
+}
+
+.aiMusicIcon {
+  position: relative;
+  width: 58px;
+  height: 58px;
+  flex: 0 0 58px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 18px;
+  background: #e31b23;
+  color: #fff;
+  font-size: 29px;
+  font-weight: 700;
+  box-shadow: 0 8px 22px rgba(227, 27, 35, 0.25);
+}
+
+.aiMusicContent {
+  position: relative;
+  min-width: 0;
+  flex: 1;
+}
+
+.aiMusicLabel {
+  margin-bottom: 5px;
+  color: #e31b23;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 1.4px;
+}
+
+.aiMusicContent b {
+  display: block;
+  font-size: 19px;
+  margin-bottom: 6px;
+}
+
+.aiMusicContent p {
+  margin: 0 0 14px;
+  color: #aaa;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.aiMusicButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 42px;
+  padding: 0 15px;
+  border: 1px solid #444;
+  border-radius: 12px;
+  background: #292929;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
+}
+
+.aiMusicButton:hover {
+  background: #333;
+  border-color: #555;
+}
+
+.aiMusicButton:active {
+  transform: scale(0.97);
+}
+
+@media (max-width: 480px) {
+  .aiMusicCard {
+    align-items: flex-start;
+    padding: 18px;
+  }
+
+  .aiMusicIcon {
+    width: 50px;
+    height: 50px;
+    flex-basis: 50px;
+    border-radius: 15px;
+    font-size: 25px;
+  }
+
+  .aiMusicContent b {
+    font-size: 17px;
+  }
+}
