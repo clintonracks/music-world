@@ -57,6 +57,8 @@ function App() {
   const [search, setSearch] = useState('');
   const [signedIn, setSignedIn] = useState(false);
   const [showSignIn, setShowSignIn] = useState(false);
+  const [artistOpen, setArtistOpen] = useState(false);
+  const [artistAuth, setArtistAuth] = useState(null);
   const [settings, setSettings] = useState(false);
   const [theme, setTheme] = useState('dark');
   const [font, setFont] = useState('system');
@@ -372,6 +374,12 @@ function formatTime(ms) {
       return;
     }
 
+    if (artistOpen) {
+      setArtistOpen(false);
+      setArtistAuth(null);
+      return;
+    }
+
     setTab('Home');
   }
 
@@ -436,6 +444,30 @@ function formatTime(ms) {
               </div>
             </Section>
 
+            <Section title="For Artists">
+              <div className="forArtistsCard">
+                <div className="forArtistsIcon">🎤</div>
+
+                <div className="forArtistsContent">
+                  <b>Build your music career</b>
+                  <p>
+                    Join Music World as an artist. Create your artist profile,
+                    manage your music and reach listeners around the world.
+                  </p>
+
+                  <button
+                    className="primary"
+                    onClick={() => {
+                      setArtistOpen(true);
+                      setArtistAuth(null);
+                    }}
+                  >
+                    Enter For Artists →
+                  </button>
+                </div>
+              </div>
+            </Section>
+
             <Section title="AI Music">
               <div className="ai">
                 <b>🤖 AI Music</b>
@@ -444,6 +476,107 @@ function formatTime(ms) {
               </div>
             </Section>
           </>
+        )}
+
+        {artistOpen && (
+          <section className="artistPortal">
+            <div className="artistPortalHero">
+              <div className="artistPortalIcon">🎤</div>
+              <p className="eyebrow">MUSIC WORLD FOR ARTISTS</p>
+              <h1>Turn your music<br /><em>into a journey.</em></h1>
+              <p className="sub">
+                Create your artist presence, manage your music and connect
+                with listeners through Music World.
+              </p>
+            </div>
+
+            {!artistAuth ? (
+              <div className="artistAuthChoices">
+                <button
+                  className="artistAuthCard"
+                  onClick={() => setArtistAuth('signin')}
+                >
+                  <span className="artistAuthIcon">→</span>
+                  <span>
+                    <b>Artist Sign In</b>
+                    <small>Already have an artist account?</small>
+                  </span>
+                </button>
+
+                <button
+                  className="artistAuthCard"
+                  onClick={() => setArtistAuth('create')}
+                >
+                  <span className="artistAuthIcon">＋</span>
+                  <span>
+                    <b>Create Artist Account</b>
+                    <small>Start your journey on Music World.</small>
+                  </span>
+                </button>
+              </div>
+            ) : (
+              <div className="artistAuthPanel">
+                <button
+                  className="artistBack"
+                  onClick={() => setArtistAuth(null)}
+                >
+                  ← For Artists
+                </button>
+
+                <h2>
+                  {artistAuth === 'signin'
+                    ? 'Artist Sign In'
+                    : 'Create Artist Account'}
+                </h2>
+
+                <p>
+                  {artistAuth === 'signin'
+                    ? 'Sign in to manage your Music World artist profile.'
+                    : 'Create your artist account and start building your presence.'}
+                </p>
+
+                <label>
+                  Email
+                  <input type="email" placeholder="artist@email.com" />
+                </label>
+
+                <label>
+                  Password
+                  <input type="password" placeholder="Enter password" />
+                </label>
+
+                {artistAuth === 'create' && (
+                  <label>
+                    Artist Name
+                    <input type="text" placeholder="Your artist name" />
+                  </label>
+                )}
+
+                <button
+                  className="primary artistContinue"
+                  onClick={() => alert(
+                    artistAuth === 'signin'
+                      ? 'Artist sign in will be connected to the Music World account system next.'
+                      : 'Artist account creation will be connected to the Music World account system next.'
+                  )}
+                >
+                  {artistAuth === 'signin'
+                    ? 'Sign In'
+                    : 'Create Artist Account'}
+                </button>
+              </div>
+            )}
+
+            <div className="artistFuture">
+              <b>Coming to the Artist Dashboard</b>
+              <div className="artistFutureGrid">
+                <span>🎵 Music</span>
+                <span>👤 Profile</span>
+                <span>📊 Analytics</span>
+                <span>👥 Audience</span>
+              </div>
+            </div>
+          </section>
         )}
 
         {tab === 'Discover' && (
@@ -1235,6 +1368,8 @@ function formatTime(ms) {
               setTab(x);
               setSettings(false);
               setShowSignIn(false);
+              setArtistOpen(false);
+              setArtistAuth(null);
             }}
             key={x}
           >
@@ -1252,7 +1387,7 @@ function formatTime(ms) {
         ))}
       </nav>
 
-      {(settings || showSignIn || searchOpen || expandedPlayer) && (
+      {(settings || showSignIn || searchOpen || expandedPlayer || artistOpen) && (
         <button className="backButton" onClick={goBack}>
           ← Back
         </button>
