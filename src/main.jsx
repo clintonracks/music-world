@@ -60,6 +60,10 @@ function App() {
   const [artistOpen, setArtistOpen] = useState(false);
   const [artistAuth, setArtistAuth] = useState(null);
   const [artistMusicOpen, setArtistMusicOpen] = useState(false);
+  const [artistProfileOpen, setArtistProfileOpen] = useState(false);
+  const [artistAnalyticsOpen, setArtistAnalyticsOpen] = useState(false);
+  const [artistAudienceOpen, setArtistAudienceOpen] = useState(false);
+  const [artistEarningsOpen, setArtistEarningsOpen] = useState(false);
   const [settings, setSettings] = useState(false);
   const [theme, setTheme] = useState('dark');
   const [font, setFont] = useState('system');
@@ -375,6 +379,31 @@ function formatTime(ms) {
       return;
     }
 
+    if (artistMusicOpen) {
+      setArtistMusicOpen(false);
+      return;
+    }
+
+    if (artistProfileOpen) {
+      setArtistProfileOpen(false);
+      return;
+    }
+
+    if (artistAnalyticsOpen) {
+      setArtistAnalyticsOpen(false);
+      return;
+    }
+
+    if (artistAudienceOpen) {
+      setArtistAudienceOpen(false);
+      return;
+    }
+
+    if (artistEarningsOpen) {
+      setArtistEarningsOpen(false);
+      return;
+    }
+
     if (artistOpen) {
       setArtistOpen(false);
       setArtistAuth(null);
@@ -634,7 +663,10 @@ function formatTime(ms) {
                   <strong>→</strong>
                 </button>
 
-                <button className="artistDashboardCard">
+                <button
+                  className="artistDashboardCard"
+                  onClick={() => setArtistProfileOpen(true)}
+                >
                   <span className="artistDashboardCardIcon">👤</span>
                   <span>
                     <b>Artist Profile</b>
@@ -643,7 +675,10 @@ function formatTime(ms) {
                   <strong>→</strong>
                 </button>
 
-                <button className="artistDashboardCard">
+                <button
+                  className="artistDashboardCard"
+                  onClick={() => setArtistAnalyticsOpen(true)}
+                >
                   <span className="artistDashboardCardIcon">📊</span>
                   <span>
                     <b>Analytics</b>
@@ -652,7 +687,10 @@ function formatTime(ms) {
                   <strong>→</strong>
                 </button>
 
-                <button className="artistDashboardCard">
+                <button
+                  className="artistDashboardCard"
+                  onClick={() => setArtistAudienceOpen(true)}
+                >
                   <span className="artistDashboardCardIcon">👥</span>
                   <span>
                     <b>Audience</b>
@@ -661,7 +699,10 @@ function formatTime(ms) {
                   <strong>→</strong>
                 </button>
 
-                <button className="artistDashboardCard">
+                <button
+                  className="artistDashboardCard"
+                  onClick={() => setArtistEarningsOpen(true)}
+                >
                   <span className="artistDashboardCardIcon">💰</span>
                   <span>
                     <b>Earnings</b>
@@ -685,7 +726,504 @@ function formatTime(ms) {
           </section>
         )}
 
-        {artistMusicOpen && (
+        {artistEarningsOpen && (
+  <section className="artistEarningsStudio">
+    <div className="artistEarningsHeader">
+      <button
+        className="artistBack"
+        onClick={() => setArtistEarningsOpen(false)}
+      >
+        ← Artist Dashboard
+      </button>
+
+      <span className="artistDashboardLabel">ARTIST STUDIO</span>
+      <h1>Earnings</h1>
+      <p>
+        Track future royalties and revenue from your Music World releases.
+      </p>
+    </div>
+
+    <div className="artistEarningsHero">
+      <div>
+        <span className="artistEarningsLabel">AVAILABLE EARNINGS</span>
+        <strong>ZMW 0.00</strong>
+        <small>No earnings available yet</small>
+      </div>
+
+      <div className="artistEarningsIcon">💰</div>
+    </div>
+
+    <div className="artistEarningsStats">
+      <div>
+        <span>💵</span>
+        <b>ZMW 0.00</b>
+        <small>Total Earnings</small>
+      </div>
+
+      <div>
+        <span>⏳</span>
+        <b>ZMW 0.00</b>
+        <small>Pending</small>
+      </div>
+
+      <div>
+        <span>🎵</span>
+        <b>0</b>
+        <small>Releases</small>
+      </div>
+
+      <div>
+        <span>▶</span>
+        <b>0</b>
+        <small>Plays</small>
+      </div>
+    </div>
+
+    <div className="artistEarningsSection">
+      <div className="artistEarningsSectionTitle">
+        <div>
+          <h2>Revenue Overview</h2>
+          <small>Your Music World earnings activity</small>
+        </div>
+      </div>
+
+      <div className="artistRevenueChart">
+        <div className="artistRevenueBars">
+          <span style={{ height: '12%' }}></span>
+          <span style={{ height: '20%' }}></span>
+          <span style={{ height: '9%' }}></span>
+          <span style={{ height: '16%' }}></span>
+          <span style={{ height: '25%' }}></span>
+          <span style={{ height: '14%' }}></span>
+          <span style={{ height: '18%' }}></span>
+        </div>
+
+        <div className="artistRevenueEmpty">
+          <b>No revenue data yet</b>
+          <small>
+            Earnings activity will appear once your releases begin
+            generating eligible revenue.
+          </small>
+        </div>
+      </div>
+    </div>
+
+    <div className="artistEarningsSection">
+      <div className="artistEarningsSectionTitle">
+        <div>
+          <h2>Payment Information</h2>
+          <small>Manage future payout details</small>
+        </div>
+      </div>
+
+      <div className="artistPaymentCard">
+        <span>🏦</span>
+        <div>
+          <b>Payment method</b>
+          <small>No payment method connected</small>
+        </div>
+        <strong>→</strong>
+      </div>
+    </div>
+
+    <div className="artistEarningsNotice">
+      <span>✦</span>
+      <div>
+        <b>Earnings will activate with the artist system.</b>
+        <small>
+          Revenue tracking, royalty calculations and payout management
+          will be connected when Music World artist accounts and
+          distribution are implemented.
+        </small>
+      </div>
+    </div>
+  </section>
+)}
+
+{artistAudienceOpen && (
+  <section className="artistAudienceStudio">
+    <div className="artistAudienceHeader">
+      <button
+        className="artistBack"
+        onClick={() => setArtistAudienceOpen(false)}
+      >
+        ← Artist Dashboard
+      </button>
+
+      <span className="artistDashboardLabel">ARTIST STUDIO</span>
+      <h1>Audience</h1>
+      <p>
+        Learn where your listeners come from and how they discover your music.
+      </p>
+    </div>
+
+    <div className="artistAudienceStats">
+      <div>
+        <span>👥</span>
+        <b>0</b>
+        <small>Total Listeners</small>
+      </div>
+
+      <div>
+        <span>↗</span>
+        <b>0%</b>
+        <small>Growth</small>
+      </div>
+
+      <div>
+        <span>▶</span>
+        <b>0</b>
+        <small>Total Plays</small>
+      </div>
+
+      <div>
+        <span>🌍</span>
+        <b>0</b>
+        <small>Countries</small>
+      </div>
+    </div>
+
+    <div className="artistAudienceCard">
+      <div className="artistAudienceCardHeader">
+        <div>
+          <h2>Listener Growth</h2>
+          <small>Audience over time</small>
+        </div>
+        <span>0 listeners</span>
+      </div>
+
+      <div className="artistAudienceGraph">
+        <div className="artistAudienceGraphLines"></div>
+
+        <div className="artistAudienceEmpty">
+          <span>👥</span>
+          <b>No audience data yet</b>
+          <small>
+            Listener growth will appear here after your music starts
+            reaching people.
+          </small>
+        </div>
+      </div>
+    </div>
+
+    <div className="artistAudienceSection">
+      <div className="artistAudienceSectionTitle">
+        <div>
+          <h2>Top Countries</h2>
+          <small>Where your listeners are located</small>
+        </div>
+      </div>
+
+      <div className="artistAudienceList">
+        <div>
+          <span className="artistAudienceFlag">🌍</span>
+          <div>
+            <b>No listener data yet</b>
+            <small>Countries will appear as your audience grows.</small>
+          </div>
+          <strong>—</strong>
+        </div>
+      </div>
+    </div>
+
+    <div className="artistAudienceSection">
+      <div className="artistAudienceSectionTitle">
+        <div>
+          <h2>How Listeners Discover You</h2>
+          <small>Music World discovery sources</small>
+        </div>
+      </div>
+
+      <div className="artistDiscoveryGrid">
+        <div>
+          <span>🔎</span>
+          <b>Search</b>
+          <small>0 listeners</small>
+        </div>
+
+        <div>
+          <span>🎵</span>
+          <b>Music</b>
+          <small>0 listeners</small>
+        </div>
+
+        <div>
+          <span>📈</span>
+          <b>Charts</b>
+          <small>0 listeners</small>
+        </div>
+
+        <div>
+          <span>✨</span>
+          <b>Discover</b>
+          <small>0 listeners</small>
+        </div>
+      </div>
+    </div>
+
+    <div className="artistAudienceNotice">
+      <span>✦</span>
+      <div>
+        <b>Your audience will grow with your music.</b>
+        <small>
+          Listener locations, discovery sources and audience trends
+          will become available once the artist system is connected.
+        </small>
+      </div>
+    </div>
+  </section>
+)}
+
+{artistAnalyticsOpen && (
+  <section className="artistAnalyticsStudio">
+    <div className="artistAnalyticsHeader">
+      <button
+        className="artistBack"
+        onClick={() => setArtistAnalyticsOpen(false)}
+      >
+        ← Artist Dashboard
+      </button>
+
+      <span className="artistDashboardLabel">ARTIST STUDIO</span>
+      <h1>Analytics</h1>
+      <p>
+        Understand how listeners discover and engage with your music.
+      </p>
+    </div>
+
+    <div className="artistAnalyticsRange">
+      <button className="artistAnalyticsRangeActive">Overview</button>
+      <button>7 Days</button>
+      <button>30 Days</button>
+      <button>All Time</button>
+    </div>
+
+    <div className="artistAnalyticsStats">
+      <div>
+        <span>▶</span>
+        <b>0</b>
+        <small>Total Plays</small>
+      </div>
+
+      <div>
+        <span>👥</span>
+        <b>0</b>
+        <small>Listeners</small>
+      </div>
+
+      <div>
+        <span>⏱</span>
+        <b>0</b>
+        <small>Listening Time</small>
+      </div>
+
+      <div>
+        <span>🎵</span>
+        <b>0</b>
+        <small>Releases</small>
+      </div>
+    </div>
+
+    <div className="artistAnalyticsChart">
+      <div className="artistAnalyticsChartHeader">
+        <div>
+          <h2>Music Performance</h2>
+          <small>Plays over time</small>
+        </div>
+        <span>0 plays</span>
+      </div>
+
+      <div className="artistAnalyticsGraph">
+        <div className="artistGraphLine lineOne"></div>
+        <div className="artistGraphLine lineTwo"></div>
+        <div className="artistGraphLine lineThree"></div>
+
+        <div className="artistGraphEmpty">
+          <span>📈</span>
+          <b>No data yet</b>
+          <small>
+            Your performance data will appear after your music
+            starts reaching listeners.
+          </small>
+        </div>
+      </div>
+    </div>
+
+    <div className="artistAnalyticsSection">
+      <div className="artistAnalyticsSectionTitle">
+        <div>
+          <h2>Top Releases</h2>
+          <small>Your most-played music</small>
+        </div>
+      </div>
+
+      <div className="artistAnalyticsEmpty">
+        <span>🎵</span>
+        <div>
+          <b>No releases yet</b>
+          <small>Upload music to start tracking performance.</small>
+        </div>
+      </div>
+    </div>
+
+    <div className="artistAnalyticsSection">
+      <div className="artistAnalyticsSectionTitle">
+        <div>
+          <h2>Listener Insights</h2>
+          <small>Understand your audience</small>
+        </div>
+      </div>
+
+      <div className="artistInsightGrid">
+        <div>
+          <span>🌍</span>
+          <b>Top Countries</b>
+          <small>No listener data yet</small>
+        </div>
+
+        <div>
+          <span>📱</span>
+          <b>Discovery</b>
+          <small>No discovery data yet</small>
+        </div>
+
+        <div>
+          <span>❤️</span>
+          <b>Engagement</b>
+          <small>No engagement data yet</small>
+        </div>
+      </div>
+    </div>
+
+    <div className="artistAnalyticsNotice">
+      <span>✦</span>
+      <div>
+        <b>Analytics will grow with your music.</b>
+        <small>
+          Real-time plays, listener insights and performance trends
+          will become available once the artist music system is connected.
+        </small>
+      </div>
+    </div>
+  </section>
+)}
+
+{artistProfileOpen && (
+  <section className="artistProfileStudio">
+    <div className="artistProfileHeader">
+      <button
+        className="artistBack"
+        onClick={() => setArtistProfileOpen(false)}
+      >
+        ← Artist Dashboard
+      </button>
+
+      <span className="artistDashboardLabel">ARTIST STUDIO</span>
+      <h1>Artist Profile</h1>
+      <p>
+        Build the public identity listeners will see on Music World.
+      </p>
+    </div>
+
+    <div className="artistProfilePreview">
+      <div className="artistProfileAvatar">🎤</div>
+
+      <div className="artistProfileIdentity">
+        <span className="artistProfileTag">ARTIST</span>
+        <h2>Your Artist Name</h2>
+        <p>Your country • Your genre</p>
+      </div>
+
+      <button
+        className="artistProfileEdit"
+        onClick={() => alert(
+          'Profile editing will be connected to the artist account system next.'
+        )}
+      >
+        Edit Profile
+      </button>
+    </div>
+
+    <div className="artistProfileSection">
+      <div className="artistProfileSectionTitle">
+        <div>
+          <h2>Public Profile</h2>
+          <small>How listeners discover you</small>
+        </div>
+      </div>
+
+      <div className="artistProfileFields">
+        <div>
+          <span>Artist Name</span>
+          <b>Your Artist Name</b>
+        </div>
+
+        <div>
+          <span>Genre</span>
+          <b>Not set yet</b>
+        </div>
+
+        <div>
+          <span>Country</span>
+          <b>Not set yet</b>
+        </div>
+
+        <div>
+          <span>Bio</span>
+          <b>Add your artist story</b>
+        </div>
+      </div>
+    </div>
+
+    <div className="artistProfileSection">
+      <div className="artistProfileSectionTitle">
+        <div>
+          <h2>Artist Presence</h2>
+          <small>Complete your public identity</small>
+        </div>
+      </div>
+
+      <div className="artistProfileChecklist">
+        <div>
+          <span>○</span>
+          <b>Artist photo</b>
+          <small>Add a recognizable profile image.</small>
+        </div>
+
+        <div>
+          <span>○</span>
+          <b>Artist bio</b>
+          <small>Tell listeners your story and sound.</small>
+        </div>
+
+        <div>
+          <span>○</span>
+          <b>Genre & country</b>
+          <small>Help listeners understand your music.</small>
+        </div>
+
+        <div>
+          <span>○</span>
+          <b>Social links</b>
+          <small>Connect your other music platforms.</small>
+        </div>
+      </div>
+    </div>
+
+    <div className="artistProfileNotice">
+      <span>✦</span>
+      <div>
+        <b>Your artist identity starts here.</b>
+        <small>
+          Profile editing, verification and public artist pages will
+          be connected when the artist account system is added.
+        </small>
+      </div>
+    </div>
+  </section>
+)}
+
+{artistMusicOpen && (
           <section className="artistMusicStudio">
             <div className="artistMusicHeader">
               <button
@@ -1558,6 +2096,11 @@ function formatTime(ms) {
               setShowSignIn(false);
               setArtistOpen(false);
               setArtistAuth(null);
+              setArtistMusicOpen(false);
+              setArtistProfileOpen(false);
+              setArtistAnalyticsOpen(false);
+              setArtistAudienceOpen(false);
+              setArtistEarningsOpen(false);
             }}
             key={x}
           >
@@ -1575,7 +2118,7 @@ function formatTime(ms) {
         ))}
       </nav>
 
-      {(settings || showSignIn || searchOpen || expandedPlayer || artistOpen) && (
+      {(settings || showSignIn || searchOpen || expandedPlayer || artistOpen || artistMusicOpen || artistProfileOpen || artistAnalyticsOpen || artistAudienceOpen || artistEarningsOpen) && (
         <button className="backButton" onClick={goBack}>
           ← Back
         </button>

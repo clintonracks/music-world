@@ -2527,3 +2527,1130 @@ section {
     padding: 28px 16px;
   }
 }
+
+/* Artist Profile Studio */
+.artistProfileStudio {
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 24px 0 120px;
+}
+
+.artistProfileHeader {
+  padding: 0 4px 22px;
+}
+
+.artistProfileHeader .artistBack {
+  margin-bottom: 20px;
+}
+
+.artistProfileHeader h1 {
+  margin: 4px 0 6px;
+  font-size: 30px;
+}
+
+.artistProfileHeader p {
+  margin: 0;
+  color: #999;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.artistProfilePreview {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  padding: 20px;
+  border: 1px solid #363636;
+  border-radius: 20px;
+  background:
+    radial-gradient(circle at 100% 0%, rgba(227, 27, 35, 0.18), transparent 38%),
+    linear-gradient(145deg, #242424, #171717);
+}
+
+.artistProfileAvatar {
+  width: 68px;
+  height: 68px;
+  flex: 0 0 68px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 21px;
+  background: #e31b23;
+  font-size: 30px;
+  box-shadow: 0 9px 24px rgba(227, 27, 35, 0.24);
+}
+
+.artistProfileIdentity {
+  min-width: 0;
+  flex: 1;
+}
+
+.artistProfileTag {
+  display: block;
+  margin-bottom: 5px;
+  color: #e31b23;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 1.3px;
+}
+
+.artistProfileIdentity h2 {
+  margin: 0 0 4px;
+  font-size: 20px;
+}
+
+.artistProfileIdentity p {
+  margin: 0;
+  color: #999;
+  font-size: 12px;
+}
+
+.artistProfileEdit {
+  min-height: 40px;
+  padding: 0 13px;
+  border: 1px solid #3d3d3d;
+  border-radius: 11px;
+  background: #292929;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.artistProfileEdit:active {
+  transform: scale(0.97);
+}
+
+.artistProfileSection {
+  margin-top: 22px;
+}
+
+.artistProfileSectionTitle {
+  margin: 0 2px 10px;
+}
+
+.artistProfileSectionTitle h2 {
+  margin: 0 0 3px;
+  font-size: 18px;
+}
+
+.artistProfileSectionTitle small {
+  color: #777;
+  font-size: 11px;
+}
+
+.artistProfileFields {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 9px;
+}
+
+.artistProfileFields > div {
+  min-width: 0;
+  padding: 15px;
+  border: 1px solid #303030;
+  border-radius: 15px;
+  background: #1b1b1b;
+}
+
+.artistProfileFields span {
+  display: block;
+  margin-bottom: 7px;
+  color: #777;
+  font-size: 10px;
+}
+
+.artistProfileFields b {
+  display: block;
+  overflow: hidden;
+  color: #ddd;
+  font-size: 12px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.artistProfileChecklist {
+  display: grid;
+  gap: 9px;
+}
+
+.artistProfileChecklist > div {
+  display: grid;
+  grid-template-columns: 30px 1fr;
+  column-gap: 10px;
+  padding: 14px;
+  border: 1px solid #303030;
+  border-radius: 15px;
+  background: #1b1b1b;
+}
+
+.artistProfileChecklist span {
+  grid-row: span 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 10px;
+  background: #282828;
+  color: #777;
+  font-size: 17px;
+}
+
+.artistProfileChecklist b {
+  align-self: end;
+  font-size: 12px;
+}
+
+.artistProfileChecklist small {
+  margin-top: 3px;
+  color: #888;
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+.artistProfileNotice {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 12px;
+  padding: 13px;
+  border: 1px solid #303030;
+  border-radius: 14px;
+  background: #191919;
+}
+
+.artistProfileNotice > span {
+  color: #e31b23;
+  font-size: 17px;
+}
+
+.artistProfileNotice b {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 12px;
+}
+
+.artistProfileNotice small {
+  display: block;
+  color: #888;
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+@media (max-width: 600px) {
+  .artistProfilePreview {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .artistProfileEdit {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .artistProfileStudio {
+    padding-top: 18px;
+  }
+
+  .artistProfilePreview {
+    padding: 17px;
+  }
+
+  .artistProfileAvatar {
+    width: 58px;
+    height: 58px;
+    flex-basis: 58px;
+    border-radius: 18px;
+    font-size: 26px;
+  }
+
+  .artistProfileFields {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+/* Artist Analytics Studio */
+.artistAnalyticsStudio {
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 24px 0 120px;
+}
+
+.artistAnalyticsHeader {
+  padding: 0 4px 18px;
+}
+
+.artistAnalyticsHeader .artistBack {
+  margin-bottom: 20px;
+}
+
+.artistAnalyticsHeader h1 {
+  margin: 4px 0 6px;
+  font-size: 30px;
+}
+
+.artistAnalyticsHeader p {
+  margin: 0;
+  color: #999;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.artistAnalyticsRange {
+  display: flex;
+  gap: 7px;
+  margin: 0 2px 14px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.artistAnalyticsRange::-webkit-scrollbar {
+  display: none;
+}
+
+.artistAnalyticsRange button {
+  min-height: 36px;
+  padding: 0 12px;
+  flex: 0 0 auto;
+  border: 1px solid #353535;
+  border-radius: 10px;
+  background: #202020;
+  color: #999;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.artistAnalyticsRange button:active {
+  transform: scale(0.97);
+}
+
+.artistAnalyticsRangeActive {
+  border-color: #e31b23 !important;
+  background: #e31b23 !important;
+  color: #fff !important;
+}
+
+.artistAnalyticsStats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.artistAnalyticsStats > div {
+  min-width: 0;
+  padding: 14px 10px;
+  border: 1px solid #303030;
+  border-radius: 15px;
+  background: #1b1b1b;
+}
+
+.artistAnalyticsStats span {
+  display: block;
+  margin-bottom: 8px;
+  color: #e31b23;
+  font-size: 13px;
+}
+
+.artistAnalyticsStats b {
+  display: block;
+  font-size: 17px;
+}
+
+.artistAnalyticsStats small {
+  display: block;
+  margin-top: 4px;
+  color: #888;
+  font-size: 9px;
+  line-height: 1.3;
+}
+
+.artistAnalyticsChart {
+  margin-top: 12px;
+  padding: 18px;
+  border: 1px solid #303030;
+  border-radius: 19px;
+  background: #1b1b1b;
+}
+
+.artistAnalyticsChartHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.artistAnalyticsChartHeader h2 {
+  margin: 0 0 3px;
+  font-size: 17px;
+}
+
+.artistAnalyticsChartHeader small {
+  color: #777;
+  font-size: 10px;
+}
+
+.artistAnalyticsChartHeader > span {
+  color: #e31b23;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.artistAnalyticsGraph {
+  position: relative;
+  height: 190px;
+  margin-top: 16px;
+  overflow: hidden;
+  border-radius: 13px;
+  background:
+    linear-gradient(to bottom, transparent 24%, #2a2a2a 25%, transparent 26%),
+    linear-gradient(to bottom, transparent 49%, #2a2a2a 50%, transparent 51%),
+    linear-gradient(to bottom, transparent 74%, #2a2a2a 75%, transparent 76%),
+    #171717;
+}
+
+.artistGraphLine {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: #292929;
+}
+
+.artistGraphLine.lineOne { top: 25%; }
+.artistGraphLine.lineTwo { top: 50%; }
+.artistGraphLine.lineThree { top: 75%; }
+
+.artistGraphEmpty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  text-align: center;
+}
+
+.artistGraphEmpty span {
+  margin-bottom: 8px;
+  font-size: 23px;
+}
+
+.artistGraphEmpty b {
+  margin-bottom: 4px;
+  font-size: 13px;
+}
+
+.artistGraphEmpty small {
+  max-width: 280px;
+  color: #777;
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+.artistAnalyticsSection {
+  margin-top: 22px;
+}
+
+.artistAnalyticsSectionTitle {
+  margin: 0 2px 10px;
+}
+
+.artistAnalyticsSectionTitle h2 {
+  margin: 0 0 3px;
+  font-size: 18px;
+}
+
+.artistAnalyticsSectionTitle small {
+  color: #777;
+  font-size: 11px;
+}
+
+.artistAnalyticsEmpty {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 15px;
+  border: 1px solid #303030;
+  border-radius: 15px;
+  background: #1b1b1b;
+}
+
+.artistAnalyticsEmpty > span {
+  width: 42px;
+  height: 42px;
+  flex: 0 0 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 13px;
+  background: #282828;
+  font-size: 19px;
+}
+
+.artistAnalyticsEmpty b {
+  display: block;
+  margin-bottom: 3px;
+  font-size: 12px;
+}
+
+.artistAnalyticsEmpty small {
+  color: #888;
+  font-size: 10px;
+}
+
+.artistInsightGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 9px;
+}
+
+.artistInsightGrid > div {
+  min-width: 0;
+  padding: 15px;
+  border: 1px solid #303030;
+  border-radius: 15px;
+  background: #1b1b1b;
+}
+
+.artistInsightGrid span {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 18px;
+}
+
+.artistInsightGrid b {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 11px;
+}
+
+.artistInsightGrid small {
+  display: block;
+  color: #888;
+  font-size: 9px;
+  line-height: 1.4;
+}
+
+.artistAnalyticsNotice {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 12px;
+  padding: 13px;
+  border: 1px solid #303030;
+  border-radius: 14px;
+  background: #191919;
+}
+
+.artistAnalyticsNotice > span {
+  color: #e31b23;
+  font-size: 17px;
+}
+
+.artistAnalyticsNotice b {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 12px;
+}
+
+.artistAnalyticsNotice small {
+  display: block;
+  color: #888;
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+@media (max-width: 600px) {
+  .artistAnalyticsStats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .artistInsightGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .artistAnalyticsStudio {
+    padding-top: 18px;
+  }
+
+  .artistAnalyticsChart {
+    padding: 15px;
+  }
+
+  .artistAnalyticsGraph {
+    height: 170px;
+  }
+}
+
+
+/* Artist Audience Studio */
+.artistAudienceStudio {
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 24px 0 120px;
+}
+
+.artistAudienceHeader {
+  padding: 0 4px 18px;
+}
+
+.artistAudienceHeader .artistBack {
+  margin-bottom: 20px;
+}
+
+.artistAudienceHeader h1 {
+  margin: 4px 0 6px;
+  font-size: 30px;
+}
+
+.artistAudienceHeader p {
+  margin: 0;
+  color: #999;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.artistAudienceStats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.artistAudienceStats > div {
+  min-width: 0;
+  padding: 14px 10px;
+  border: 1px solid #303030;
+  border-radius: 15px;
+  background: #1b1b1b;
+}
+
+.artistAudienceStats span {
+  display: block;
+  margin-bottom: 8px;
+  color: #e31b23;
+  font-size: 13px;
+}
+
+.artistAudienceStats b {
+  display: block;
+  font-size: 17px;
+}
+
+.artistAudienceStats small {
+  display: block;
+  margin-top: 4px;
+  color: #888;
+  font-size: 9px;
+  line-height: 1.3;
+}
+
+.artistAudienceCard {
+  margin-top: 12px;
+  padding: 18px;
+  border: 1px solid #303030;
+  border-radius: 19px;
+  background: #1b1b1b;
+}
+
+.artistAudienceCardHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.artistAudienceCardHeader h2 {
+  margin: 0 0 3px;
+  font-size: 17px;
+}
+
+.artistAudienceCardHeader small {
+  color: #777;
+  font-size: 10px;
+}
+
+.artistAudienceCardHeader > span {
+  color: #e31b23;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.artistAudienceGraph {
+  position: relative;
+  height: 190px;
+  margin-top: 16px;
+  overflow: hidden;
+  border-radius: 13px;
+  background: #171717;
+}
+
+.artistAudienceGraphLines {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(to bottom, transparent 24%, #292929 25%, transparent 26%),
+    linear-gradient(to bottom, transparent 49%, #292929 50%, transparent 51%),
+    linear-gradient(to bottom, transparent 74%, #292929 75%, transparent 76%);
+}
+
+.artistAudienceEmpty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  text-align: center;
+}
+
+.artistAudienceEmpty span {
+  margin-bottom: 8px;
+  font-size: 23px;
+}
+
+.artistAudienceEmpty b {
+  margin-bottom: 4px;
+  font-size: 13px;
+}
+
+.artistAudienceEmpty small {
+  max-width: 280px;
+  color: #777;
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+.artistAudienceSection {
+  margin-top: 22px;
+}
+
+.artistAudienceSectionTitle {
+  margin: 0 2px 10px;
+}
+
+.artistAudienceSectionTitle h2 {
+  margin: 0 0 3px;
+  font-size: 18px;
+}
+
+.artistAudienceSectionTitle small {
+  color: #777;
+  font-size: 11px;
+}
+
+.artistAudienceList > div {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 15px;
+  border: 1px solid #303030;
+  border-radius: 15px;
+  background: #1b1b1b;
+}
+
+.artistAudienceFlag {
+  width: 42px;
+  height: 42px;
+  flex: 0 0 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 13px;
+  background: #282828;
+  font-size: 19px;
+}
+
+.artistAudienceList > div > div {
+  min-width: 0;
+  flex: 1;
+}
+
+.artistAudienceList b {
+  display: block;
+  margin-bottom: 3px;
+  font-size: 12px;
+}
+
+.artistAudienceList small {
+  color: #888;
+  font-size: 10px;
+}
+
+.artistAudienceList strong {
+  color: #666;
+  font-size: 15px;
+}
+
+.artistDiscoveryGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 9px;
+}
+
+.artistDiscoveryGrid > div {
+  min-width: 0;
+  padding: 15px;
+  border: 1px solid #303030;
+  border-radius: 15px;
+  background: #1b1b1b;
+}
+
+.artistDiscoveryGrid span {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 18px;
+}
+
+.artistDiscoveryGrid b {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 12px;
+}
+
+.artistDiscoveryGrid small {
+  color: #888;
+  font-size: 10px;
+}
+
+.artistAudienceNotice {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 12px;
+  padding: 13px;
+  border: 1px solid #303030;
+  border-radius: 14px;
+  background: #191919;
+}
+
+.artistAudienceNotice > span {
+  color: #e31b23;
+  font-size: 17px;
+}
+
+.artistAudienceNotice b {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 12px;
+}
+
+.artistAudienceNotice small {
+  display: block;
+  color: #888;
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+@media (max-width: 600px) {
+  .artistAudienceStats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .artistAudienceStudio {
+    padding-top: 18px;
+  }
+
+  .artistAudienceCard {
+    padding: 15px;
+  }
+
+  .artistAudienceGraph {
+    height: 170px;
+  }
+}
+
+
+/* Artist Earnings Studio */
+.artistEarningsStudio {
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 24px 0 120px;
+}
+
+.artistEarningsHeader {
+  padding: 0 4px 18px;
+}
+
+.artistEarningsHeader .artistBack {
+  margin-bottom: 20px;
+}
+
+.artistEarningsHeader h1 {
+  margin: 4px 0 6px;
+  font-size: 30px;
+}
+
+.artistEarningsHeader p {
+  margin: 0;
+  color: #999;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.artistEarningsHero {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 22px;
+  border: 1px solid #363636;
+  border-radius: 20px;
+  background:
+    radial-gradient(circle at 100% 0%, rgba(227, 27, 35, 0.18), transparent 38%),
+    linear-gradient(145deg, #242424, #171717);
+}
+
+.artistEarningsLabel {
+  display: block;
+  margin-bottom: 7px;
+  color: #e31b23;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 1.4px;
+}
+
+.artistEarningsHero strong {
+  display: block;
+  font-size: 29px;
+  line-height: 1.1;
+}
+
+.artistEarningsHero small {
+  display: block;
+  margin-top: 6px;
+  color: #999;
+  font-size: 10px;
+}
+
+.artistEarningsIcon {
+  width: 62px;
+  height: 62px;
+  flex: 0 0 62px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 19px;
+  background: #e31b23;
+  font-size: 27px;
+  box-shadow: 0 9px 24px rgba(227, 27, 35, 0.24);
+}
+
+.artistEarningsStats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.artistEarningsStats > div {
+  min-width: 0;
+  padding: 14px 10px;
+  border: 1px solid #303030;
+  border-radius: 15px;
+  background: #1b1b1b;
+}
+
+.artistEarningsStats span {
+  display: block;
+  margin-bottom: 8px;
+  color: #e31b23;
+  font-size: 13px;
+}
+
+.artistEarningsStats b {
+  display: block;
+  overflow: hidden;
+  font-size: 14px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.artistEarningsStats small {
+  display: block;
+  margin-top: 4px;
+  color: #888;
+  font-size: 9px;
+  line-height: 1.3;
+}
+
+.artistEarningsSection {
+  margin-top: 22px;
+}
+
+.artistEarningsSectionTitle {
+  margin: 0 2px 10px;
+}
+
+.artistEarningsSectionTitle h2 {
+  margin: 0 0 3px;
+  font-size: 18px;
+}
+
+.artistEarningsSectionTitle small {
+  color: #777;
+  font-size: 11px;
+}
+
+.artistRevenueChart {
+  position: relative;
+  height: 210px;
+  overflow: hidden;
+  border: 1px solid #303030;
+  border-radius: 19px;
+  background: #1b1b1b;
+}
+
+.artistRevenueBars {
+  position: absolute;
+  inset: 28px 20px 20px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 9px;
+  opacity: 0.22;
+}
+
+.artistRevenueBars span {
+  width: 100%;
+  max-width: 42px;
+  min-height: 5px;
+  border-radius: 7px 7px 2px 2px;
+  background: #e31b23;
+}
+
+.artistRevenueEmpty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  text-align: center;
+}
+
+.artistRevenueEmpty b {
+  margin-bottom: 5px;
+  font-size: 13px;
+}
+
+.artistRevenueEmpty small {
+  max-width: 280px;
+  color: #777;
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+.artistPaymentCard {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 15px;
+  border: 1px solid #303030;
+  border-radius: 15px;
+  background: #1b1b1b;
+}
+
+.artistPaymentCard > span {
+  width: 42px;
+  height: 42px;
+  flex: 0 0 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 13px;
+  background: #282828;
+  font-size: 19px;
+}
+
+.artistPaymentCard > div {
+  min-width: 0;
+  flex: 1;
+}
+
+.artistPaymentCard b {
+  display: block;
+  margin-bottom: 3px;
+  font-size: 12px;
+}
+
+.artistPaymentCard small {
+  color: #888;
+  font-size: 10px;
+}
+
+.artistPaymentCard strong {
+  color: #777;
+  font-size: 17px;
+}
+
+.artistEarningsNotice {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 12px;
+  padding: 13px;
+  border: 1px solid #303030;
+  border-radius: 14px;
+  background: #191919;
+}
+
+.artistEarningsNotice > span {
+  color: #e31b23;
+  font-size: 17px;
+}
+
+.artistEarningsNotice b {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 12px;
+}
+
+.artistEarningsNotice small {
+  display: block;
+  color: #888;
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+@media (max-width: 600px) {
+  .artistEarningsStats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .artistEarningsStudio {
+    padding-top: 18px;
+  }
+
+  .artistEarningsHero {
+    padding: 18px;
+  }
+
+  .artistEarningsHero strong {
+    font-size: 25px;
+  }
+
+  .artistEarningsIcon {
+    width: 54px;
+    height: 54px;
+    flex-basis: 54px;
+    border-radius: 17px;
+  }
+
+  .artistRevenueChart {
+    height: 185px;
+  }
+}
+
