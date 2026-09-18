@@ -1400,9 +1400,20 @@ function formatTime(ms) {
         onClick={() => {
           if (artistReleaseStep < 2) {
             setArtistReleaseStep(2);
-          } else {
-            alert('Release submission will be connected after the upload system is added.');
+            return;
           }
+
+          if (!artistReleaseAudio) {
+            alert('Please select an audio file before submitting.');
+            return;
+          }
+
+          if (!artistReleaseArtwork) {
+            alert('Please add cover artwork before submitting.');
+            return;
+          }
+
+          alert('Release is ready for submission. The upload system will be connected next.');
         }}
       >
         {artistReleaseStep === 1 ? 'Continue →' : 'Submit Release'}
