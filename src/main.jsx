@@ -1227,10 +1227,10 @@ function formatTime(ms) {
         </div>
       )}
 
-      <nav>
+      <nav className="bottomNav">
         {['Home', 'Discover', 'Charts', 'Library', 'Profile'].map(x => (
           <button
-            className={tab === x && !settings && !showSignIn ? 'active' : ''}
+            className={`navItem ${tab === x && !settings && !showSignIn ? 'active' : ''}`}
             onClick={() => {
               setTab(x);
               setSettings(false);
@@ -1238,7 +1238,7 @@ function formatTime(ms) {
             }}
             key={x}
           >
-            <span>
+            <span className="navIcon">
               {{
                 Home: '⌂',
                 Discover: '◉',
@@ -1247,7 +1247,7 @@ function formatTime(ms) {
                 Profile: '●'
               }[x]}
             </span>
-            {x}
+            <span className="navLabel">{x}</span>
           </button>
         ))}
       </nav>
