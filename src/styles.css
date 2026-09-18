@@ -2331,3 +2331,199 @@ section {
     padding: 12px;
   }
 }
+
+/* Artist Music Studio */
+.artistMusicStudio {
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 24px 0 120px;
+}
+
+.artistMusicHeader {
+  padding: 0 4px 22px;
+}
+
+.artistMusicHeader .artistBack {
+  margin-bottom: 20px;
+}
+
+.artistMusicHeader h1 {
+  margin: 4px 0 6px;
+  font-size: 30px;
+}
+
+.artistMusicHeader p {
+  margin: 0;
+  color: #999;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.artistMusicHero {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 20px;
+  border: 1px solid #363636;
+  border-radius: 20px;
+  background:
+    radial-gradient(circle at 100% 0%, rgba(227, 27, 35, 0.18), transparent 40%),
+    linear-gradient(145deg, #242424, #171717);
+}
+
+.artistMusicSmallLabel {
+  display: block;
+  margin-bottom: 6px;
+  color: #e31b23;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 1.4px;
+}
+
+.artistMusicHero h2 {
+  margin: 0 0 7px;
+  font-size: 19px;
+}
+
+.artistMusicHero p {
+  max-width: 390px;
+  margin: 0;
+  color: #aaa;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.artistUploadButton {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.artistMusicSectionTitle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 24px 2px 10px;
+}
+
+.artistMusicSectionTitle h2 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.artistMusicSectionTitle small {
+  color: #777;
+  font-size: 11px;
+}
+
+.artistEmptyMusic {
+  padding: 32px 20px;
+  border: 1px dashed #3b3b3b;
+  border-radius: 20px;
+  background: #1a1a1a;
+  text-align: center;
+}
+
+.artistEmptyMusicIcon {
+  width: 58px;
+  height: 58px;
+  margin: 0 auto 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 18px;
+  background: #292929;
+  color: #e31b23;
+  font-size: 25px;
+}
+
+.artistEmptyMusic h3 {
+  margin: 0 0 7px;
+  font-size: 17px;
+}
+
+.artistEmptyMusic p {
+  max-width: 390px;
+  margin: 0 auto 18px;
+  color: #888;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.artistSecondaryButton {
+  min-height: 42px;
+  padding: 0 16px;
+  border: 1px solid #3d3d3d;
+  border-radius: 12px;
+  background: #252525;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.artistSecondaryButton:active {
+  transform: scale(0.97);
+}
+
+.artistMusicFeatures {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 9px;
+  margin-top: 12px;
+}
+
+.artistMusicFeatures > div {
+  padding: 15px;
+  border: 1px solid #303030;
+  border-radius: 15px;
+  background: #1b1b1b;
+}
+
+.artistMusicFeatures span {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 18px;
+}
+
+.artistMusicFeatures b {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 12px;
+}
+
+.artistMusicFeatures small {
+  display: block;
+  color: #888;
+  font-size: 9px;
+  line-height: 1.4;
+}
+
+@media (max-width: 600px) {
+  .artistMusicHero {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .artistUploadButton {
+    width: 100%;
+  }
+
+  .artistMusicFeatures {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .artistMusicStudio {
+    padding-top: 18px;
+  }
+
+  .artistMusicHero {
+    padding: 17px;
+  }
+
+  .artistEmptyMusic {
+    padding: 28px 16px;
+  }
+}

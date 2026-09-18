@@ -59,6 +59,7 @@ function App() {
   const [showSignIn, setShowSignIn] = useState(false);
   const [artistOpen, setArtistOpen] = useState(false);
   const [artistAuth, setArtistAuth] = useState(null);
+  const [artistMusicOpen, setArtistMusicOpen] = useState(false);
   const [settings, setSettings] = useState(false);
   const [theme, setTheme] = useState('dark');
   const [font, setFont] = useState('system');
@@ -621,7 +622,10 @@ function formatTime(ms) {
               </div>
 
               <div className="artistDashboardGrid">
-                <button className="artistDashboardCard">
+                <button
+                  className="artistDashboardCard"
+                  onClick={() => setArtistMusicOpen(true)}
+                >
                   <span className="artistDashboardCardIcon">🎵</span>
                   <span>
                     <b>Music</b>
@@ -676,6 +680,88 @@ function formatTime(ms) {
                     will become available as the artist system is connected.
                   </small>
                 </div>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {artistMusicOpen && (
+          <section className="artistMusicStudio">
+            <div className="artistMusicHeader">
+              <button
+                className="artistBack"
+                onClick={() => setArtistMusicOpen(false)}
+              >
+                ← Artist Dashboard
+              </button>
+
+              <span className="artistDashboardLabel">ARTIST STUDIO</span>
+              <h1>Music</h1>
+              <p>Manage your releases and build your catalog on Music World.</p>
+            </div>
+
+            <div className="artistMusicHero">
+              <div>
+                <span className="artistMusicSmallLabel">YOUR CATALOG</span>
+                <h2>Ready for your first release?</h2>
+                <p>
+                  Upload your music, add release details and prepare your
+                  songs for listeners around the world.
+                </p>
+              </div>
+
+              <button
+                className="primary artistUploadButton"
+                onClick={() => alert(
+                  'Music upload will be connected to the Music World artist system next.'
+                )}
+              >
+                ＋ Upload Music
+              </button>
+            </div>
+
+            <div className="artistMusicSectionTitle">
+              <div>
+                <h2>Your Releases</h2>
+                <small>0 releases</small>
+              </div>
+            </div>
+
+            <div className="artistEmptyMusic">
+              <div className="artistEmptyMusicIcon">🎵</div>
+              <h3>No releases yet</h3>
+              <p>
+                Your published songs and releases will appear here once
+                your artist music system is connected.
+              </p>
+
+              <button
+                className="artistSecondaryButton"
+                onClick={() => alert(
+                  'The upload workflow is coming next.'
+                )}
+              >
+                Start Your First Release
+              </button>
+            </div>
+
+            <div className="artistMusicFeatures">
+              <div>
+                <span>🎼</span>
+                <b>Releases</b>
+                <small>Manage singles and albums.</small>
+              </div>
+
+              <div>
+                <span>📝</span>
+                <b>Details</b>
+                <small>Add artwork, titles and metadata.</small>
+              </div>
+
+              <div>
+                <span>🌍</span>
+                <b>Distribution</b>
+                <small>Prepare music for Music World listeners.</small>
               </div>
             </div>
           </section>
