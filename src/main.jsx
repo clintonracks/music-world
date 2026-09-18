@@ -120,6 +120,15 @@ function App() {
         ) {
           setCurrentTime(nextDuration);
           setIsPlaying(false);
+
+          const currentIndex = deviceMusic.findIndex(
+            song => song?.uri === playing?.uri
+          );
+
+          if (currentIndex >= 0 && currentIndex < deviceMusic.length - 1) {
+            const nextSong = deviceMusic[currentIndex + 1];
+            await startSong(nextSong);
+          }
         }
       } catch (error) {
         console.error("Playback state error:", error);
@@ -198,6 +207,44 @@ function formatTime(ms) {
       }
     } catch (error) {
       console.error("Native playback error:", error);
+    }
+  }
+
+  async function playNext(e) {
+    if (e) e.stopPropagation();
+
+    if (!playing?.uri || !deviceMusic.length) return;
+
+    const currentIndex = deviceMusic.findIndex(
+      song => song?.uri === playing?.uri
+    );
+
+    if (currentIndex >= 0 && currentIndex < deviceMusic.length - 1) {
+      await startSong(deviceMusic[currentIndex + 1]);
+    }
+  }
+
+  async function playPrevious(e) {
+    if (e) e.stopPropagation();
+
+    if (!playing?.uri || !deviceMusic.length) return;
+
+    if (currentTime > 3000) {
+      try {
+        await DeviceMusic.seekTo({ position: 0 });
+        setCurrentTime(0);
+      } catch (error) {
+        console.error("Previous seek error:", error);
+      }
+      return;
+    }
+
+    const currentIndex = deviceMusic.findIndex(
+      song => song?.uri === playing?.uri
+    );
+
+    if (currentIndex > 0) {
+      await startSong(deviceMusic[currentIndex - 1]);
     }
   }
   function addToPlaylist(song) {
@@ -844,9 +891,9 @@ function formatTime(ms) {
           </div>
 
           <div className="controls">
-            <button>↶</button>
+            <button onClick={playPrevious}>↶</button>
             <button onClick={togglePlayback}>{isPlaying ? "❚❚" : "▶"}</button>
-            <button>↷</button>
+            <button onClick={playNext}>↷</button>
           </div>
 
           <button
