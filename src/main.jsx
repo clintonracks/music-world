@@ -65,6 +65,7 @@ function App() {
   const [artistAudienceOpen, setArtistAudienceOpen] = useState(false);
   const [artistEarningsOpen, setArtistEarningsOpen] = useState(false);
 const [artistReleaseOpen, setArtistReleaseOpen] = useState(false);
+const [artistReleaseStep, setArtistReleaseStep] = useState(1);
 const [artistReleaseAudio, setArtistReleaseAudio] = useState(null);
 const [artistReleaseArtwork, setArtistReleaseArtwork] = useState(null);
 
@@ -1366,12 +1367,45 @@ function formatTime(ms) {
         </button>
       </div>
 
+      {artistReleaseStep === 2 && (
+        <div className="artistReleaseReview">
+          <div className="artistReleaseStep">
+            <span>2</span>
+            <div>
+              <b>Review release</b>
+              <small>Check your release details before submitting.</small>
+            </div>
+          </div>
+
+          <div className="artistReleaseReviewItem">
+            <b>Release</b>
+            <span>Review the title, artist name, genre and selected media.</span>
+          </div>
+
+          <div className="artistReleaseReviewItem">
+            <b>Audio</b>
+            <span>{artistReleaseAudio?.title || 'No audio selected'}</span>
+          </div>
+
+          <div className="artistReleaseReviewItem">
+            <b>Artwork</b>
+            <span>{artistReleaseArtwork?.name || 'No artwork selected'}</span>
+          </div>
+        </div>
+      )}
+
       <button
         type="button"
         className="primary artistReleaseContinue"
-        onClick={() => alert('Release submission will be connected after the upload system is added.')}
+        onClick={() => {
+          if (artistReleaseStep < 2) {
+            setArtistReleaseStep(2);
+          } else {
+            alert('Release submission will be connected after the upload system is added.');
+          }
+        }}
       >
-        Continue →
+        {artistReleaseStep === 1 ? 'Continue →' : 'Submit Release'}
       </button>
     </div>
 
