@@ -284,6 +284,43 @@ public class DeviceMusicPlugin extends Plugin {
         startActivityForResult(call, intent, "audioPickerResult");
     }
 
+    @PluginMethod
+    public void pickArtwork(PluginCall call) {
+        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+        intent.addCategory(Intent.CATEGORY_OPENABLE);
+        intent.setType("image/*");
+        intent.addFlags(
+            Intent.FLAG_GRANT_READ_URI_PERMISSION |
+            Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION
+        );
+        startActivityForResult(call, intent, "artworkPickerResult");
+    }
+
+    @com.getcapacitor.annotation.ActivityCallback
+    private void artworkPickerResult(PluginCall call, ActivityResult result) {
+        JSObject response = new JSObject();
+
+        if (result.getResultCode() == android.app.Activity.RESULT_OK
+                && result.getData() != null
+                && result.getData().getData() != null) {
+
+            Uri uri = result.getData().getData();
+
+            try {
+                getContext().getContentResolver().takePersistableUriPermission(
+                    uri,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION
+                );
+            } catch (Exception ignored) {
+            }
+
+            response.put("uri", uri.toString());
+            response.put("name", uri.getLastPathSegment());
+        }
+
+        call.resolve(response);
+    }
+
     @com.getcapacitor.annotation.ActivityCallback
     private void audioPickerResult(PluginCall call, ActivityResult result) {
         JSObject response = new JSObject();

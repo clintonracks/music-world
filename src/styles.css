@@ -3846,3 +3846,12 @@ section {
   }
 }
 
+
+
+.artistArtworkPreview {
+  width: 56px;
+  height: 56px;
+  border-radius: 10px;
+  object-fit: cover;
+  flex-shrink: 0;
+}

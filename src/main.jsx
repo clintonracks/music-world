@@ -66,6 +66,7 @@ function App() {
   const [artistEarningsOpen, setArtistEarningsOpen] = useState(false);
 const [artistReleaseOpen, setArtistReleaseOpen] = useState(false);
 const [artistReleaseAudio, setArtistReleaseAudio] = useState(null);
+const [artistReleaseArtwork, setArtistReleaseArtwork] = useState(null);
 
 function openArtistSection(section) {
   setArtistMusicOpen(section === 'music');
@@ -1299,17 +1300,38 @@ function formatTime(ms) {
       </label>
 
       <div className="artistReleaseArtwork">
-        <span>🖼️</span>
+        {artistReleaseArtwork?.uri ? (
+          <img
+            src={artistReleaseArtwork.uri}
+            alt="Selected cover artwork"
+            className="artistArtworkPreview"
+          />
+        ) : (
+          <span>🖼️</span>
+        )}
         <div>
           <b>Cover artwork</b>
-          <small>Add artwork for your release.</small>
+          <small>
+            {artistReleaseArtwork?.name || 'Add artwork for your release.'}
+          </small>
         </div>
         <button
           type="button"
           className="artistSecondaryButton"
-          onClick={() => alert('Artwork selection will be connected next.')}
+          onClick={async () => {
+            try {
+              const result = await DeviceMusic.pickArtwork();
+              if (result?.uri) {
+                setArtistReleaseArtwork(result);
+              } else {
+                alert('No artwork was selected.');
+              }
+            } catch (error) {
+              alert('Unable to select artwork.\n\nDetails: ' + (error?.message || String(error)));
+            }
+          }}
         >
-          Add Artwork
+          {artistReleaseArtwork ? 'Change Artwork' : 'Add Artwork'}
         </button>
       </div>
 
