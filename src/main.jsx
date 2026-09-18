@@ -65,6 +65,7 @@ function App() {
   const [deviceMusic, setDeviceMusic] = useState([]);
   const [deviceMusicOpen, setDeviceMusicOpen] = useState(false);
   const [deviceMusicLoading, setDeviceMusicLoading] = useState(false);
+  const [deviceMusicSearch, setDeviceMusicSearch] = useState('');
   const [playlist, setPlaylist] = useState([]);
   const [playlistOpen, setPlaylistOpen] = useState(false);
 
@@ -80,6 +81,18 @@ function App() {
   }, [search]);
 
   const continentArtists = artists.filter(a => a.continent === chart);
+
+  const filteredDeviceMusic = useMemo(() => {
+    const q = deviceMusicSearch.trim().toLowerCase();
+
+    if (!q) return deviceMusic;
+
+    return deviceMusic.filter(song =>
+      `${song.title || ''} ${song.artist || ''}`
+        .toLowerCase()
+        .includes(q)
+    );
+  }, [deviceMusic, deviceMusicSearch]);
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
@@ -172,9 +185,12 @@ function formatTime(ms) {
   }
 
 
-  async function startSong(song) {
+  async function startSong(song, keepExpanded = false) {
     setPlaying(song);
-    setExpandedPlayer(false);
+
+    if (!keepExpanded) {
+      setExpandedPlayer(false);
+    }
     setCurrentTime(0);
     setDuration(song?.duration || 0);
 
@@ -220,7 +236,7 @@ function formatTime(ms) {
     );
 
     if (currentIndex >= 0 && currentIndex < deviceMusic.length - 1) {
-      await startSong(deviceMusic[currentIndex + 1]);
+      await startSong(deviceMusic[currentIndex + 1], true);
     }
   }
 
@@ -244,7 +260,7 @@ function formatTime(ms) {
     );
 
     if (currentIndex > 0) {
-      await startSong(deviceMusic[currentIndex - 1]);
+      await startSong(deviceMusic[currentIndex - 1], true);
     }
   }
   function addToPlaylist(song) {
@@ -446,28 +462,75 @@ function formatTime(ms) {
 
     <Title title="Device Music" />
 
+    <div className="deviceMusicHeader">
+      <p className="deviceMusicSubtitle">Songs stored on your phone</p>
+
+      <div className="deviceMusicSearch">
+        <span>⌕</span>
+        <input
+          type="search"
+          placeholder="Search your music..."
+          value={deviceMusicSearch}
+          onChange={e => setDeviceMusicSearch(e.target.value)}
+        />
+        {deviceMusicSearch && (
+          <button
+            className="clearDeviceSearch"
+            onClick={() => setDeviceMusicSearch('')}
+            aria-label="Clear music search"
+          >
+            ✕
+          </button>
+        )}
+      </div>
+    </div>
+
     {deviceMusicLoading ? (
       <p>Loading music from your phone...</p>
     ) : deviceMusic.length === 0 ? (
       <p>No music files were found on this device.</p>
     ) : (
+      filteredDeviceMusic.length === 0 ? (
+        <p className="noMusicResults">No matching songs found.</p>
+      ) : (
       <div className="songList">
-        {deviceMusic.map(song => (
-          <div className="songRow" key={song.id}>
-            <div>
-              <b>{song.title || 'Unknown Song'}</b>
-              <small>
-                {song.artist || 'Unknown Artist'}
-                {song.duration ? ` · ${Math.floor(song.duration / 60000)}:${String(Math.floor((song.duration % 60000) / 1000)).padStart(2, '0')}` : ''}
-              </small>
-            </div>
+        {filteredDeviceMusic.map(song => {
+          const isCurrentSong = playing?.uri === song?.uri;
 
-            <button onClick={() => startSong(song)}>
-              ▶
-            </button>
-          </div>
-        ))}
+          return (
+            <div
+              className={`songRow ${isCurrentSong ? 'playingSong' : ''}`}
+              key={song.id}
+              onClick={() => startSong(song)}
+              role="button"
+              tabIndex="0"
+              onKeyDown={e => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  startSong(song);
+                }
+              }}
+            >
+              <div className="songArtwork">
+                {isCurrentSong && isPlaying ? '🔊' : '♪'}
+              </div>
+
+              <div className="songInfo">
+                <b>{song.title || 'Unknown Song'}</b>
+                <small>
+                  {song.artist || 'Unknown Artist'}
+                  {song.duration ? ` · ${Math.floor(song.duration / 60000)}:${String(Math.floor((song.duration % 60000) / 1000)).padStart(2, '0')}` : ''}
+                </small>
+              </div>
+
+              <span className="songPlayIcon">
+                {isCurrentSong && isPlaying ? '❚❚' : '▶'}
+              </span>
+            </div>
+          );
+        })}
       </div>
+      )
     )}
   </>
 ) : !playlistOpen ? (              <>
@@ -891,9 +954,11 @@ function formatTime(ms) {
           </div>
 
           <div className="controls">
-            <button onClick={playPrevious}>↶</button>
-            <button onClick={togglePlayback}>{isPlaying ? "❚❚" : "▶"}</button>
-            <button onClick={playNext}>↷</button>
+            <button className="skipButton" onClick={playPrevious} aria-label="Previous song">⏮</button>
+            <button className="playButton" onClick={togglePlayback} aria-label={isPlaying ? "Pause" : "Play"}>
+              {isPlaying ? "❚❚" : "▶"}
+            </button>
+            <button className="skipButton" onClick={playNext} aria-label="Next song">⏭</button>
           </div>
 
           <button
