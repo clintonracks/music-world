@@ -65,6 +65,7 @@ function App() {
   const [artistAudienceOpen, setArtistAudienceOpen] = useState(false);
   const [artistEarningsOpen, setArtistEarningsOpen] = useState(false);
 const [artistReleaseOpen, setArtistReleaseOpen] = useState(false);
+const [artistReleaseAudio, setArtistReleaseAudio] = useState(null);
 
 function openArtistSection(section) {
   setArtistMusicOpen(section === 'music');
@@ -1316,14 +1317,30 @@ function formatTime(ms) {
         <span>🎵</span>
         <div>
           <b>Audio file</b>
-          <small>Select the music file you want to release.</small>
+          <small>
+            {artistReleaseAudio
+              ? `${artistReleaseAudio.title || 'Selected audio'}${artistReleaseAudio.artist ? ' • ' + artistReleaseAudio.artist : ''}`
+              : 'Select the music file you want to release.'}
+          </small>
         </div>
         <button
           type="button"
           className="primary"
-          onClick={() => alert('Android music-file selection will be connected next.')}
+          onClick={async () => {
+          try {
+            const result = await DeviceMusic.pickAudio();
+            const selected = result?.songs?.[0] || null;
+            setArtistReleaseAudio(selected);
+
+            if (!selected) {
+              alert('No music file was selected.');
+            }
+          } catch (error) {
+            alert('Unable to select music file.\n\nDetails: ' + (error?.message || String(error)));
+          }
+        }}
         >
-          Select Music
+          {artistReleaseAudio ? 'Change Music' : 'Select Music'}
         </button>
       </div>
 
