@@ -583,13 +583,99 @@ function formatTime(ms) {
               </div>
             )}
 
-            <div className="artistFuture">
-              <b>Coming to the Artist Dashboard</b>
-              <div className="artistFutureGrid">
-                <span>🎵 Music</span>
-                <span>👤 Profile</span>
-                <span>📊 Analytics</span>
-                <span>👥 Audience</span>
+            <div className="artistDashboardPreview">
+              <div className="artistDashboardHeader">
+                <div>
+                  <span className="artistDashboardLabel">ARTIST STUDIO</span>
+                  <h2>Your Music World</h2>
+                  <p>Everything you need to build your music journey.</p>
+                </div>
+
+                <div className="artistDashboardAvatar">🎤</div>
+              </div>
+
+              <div className="artistStatsGrid">
+                <div className="artistStatCard">
+                  <span>▶</span>
+                  <b>0</b>
+                  <small>Total Plays</small>
+                </div>
+
+                <div className="artistStatCard">
+                  <span>👥</span>
+                  <b>0</b>
+                  <small>Listeners</small>
+                </div>
+
+                <div className="artistStatCard">
+                  <span>🎵</span>
+                  <b>0</b>
+                  <small>Releases</small>
+                </div>
+
+                <div className="artistStatCard">
+                  <span>💰</span>
+                  <b>ZMW 0.00</b>
+                  <small>Earnings</small>
+                </div>
+              </div>
+
+              <div className="artistDashboardGrid">
+                <button className="artistDashboardCard">
+                  <span className="artistDashboardCardIcon">🎵</span>
+                  <span>
+                    <b>Music</b>
+                    <small>Upload and manage your releases.</small>
+                  </span>
+                  <strong>→</strong>
+                </button>
+
+                <button className="artistDashboardCard">
+                  <span className="artistDashboardCardIcon">👤</span>
+                  <span>
+                    <b>Artist Profile</b>
+                    <small>Build your public artist presence.</small>
+                  </span>
+                  <strong>→</strong>
+                </button>
+
+                <button className="artistDashboardCard">
+                  <span className="artistDashboardCardIcon">📊</span>
+                  <span>
+                    <b>Analytics</b>
+                    <small>Understand how your music is performing.</small>
+                  </span>
+                  <strong>→</strong>
+                </button>
+
+                <button className="artistDashboardCard">
+                  <span className="artistDashboardCardIcon">👥</span>
+                  <span>
+                    <b>Audience</b>
+                    <small>See how listeners discover your music.</small>
+                  </span>
+                  <strong>→</strong>
+                </button>
+
+                <button className="artistDashboardCard">
+                  <span className="artistDashboardCardIcon">💰</span>
+                  <span>
+                    <b>Earnings</b>
+                    <small>Track future royalties and revenue.</small>
+                  </span>
+                  <strong>→</strong>
+                </button>
+              </div>
+
+              <div className="artistDashboardNotice">
+                <span>✦</span>
+                <div>
+                  <b>Your artist journey starts here.</b>
+                  <small>
+                    Music uploads, analytics, audience insights and earnings
+                    will become available as the artist system is connected.
+                  </small>
+                </div>
               </div>
             </div>
           </section>
