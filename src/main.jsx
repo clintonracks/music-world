@@ -59,6 +59,16 @@ function App() {
   const [showSignIn, setShowSignIn] = useState(false);
   const [artistOpen, setArtistOpen] = useState(false);
   const [artistAuth, setArtistAuth] = useState(null);
+  const [artistAccount, setArtistAccount] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('musicWorldArtistAccount') || 'null');
+    } catch {
+      return null;
+    }
+  });
+  const [artistAuthEmail, setArtistAuthEmail] = useState('');
+  const [artistAuthPassword, setArtistAuthPassword] = useState('');
+  const [artistAuthName, setArtistAuthName] = useState('');
   const [artistMusicOpen, setArtistMusicOpen] = useState(false);
   const [artistProfileOpen, setArtistProfileOpen] = useState(false);
   const [artistAnalyticsOpen, setArtistAnalyticsOpen] = useState(false);
@@ -403,6 +413,11 @@ function formatTime(ms) {
       return;
     }
 
+    if (artistReleaseOpen) {
+      setArtistReleaseOpen(false);
+      return;
+    }
+
     if (artistMusicOpen) {
       setArtistMusicOpen(false);
       return;
@@ -562,7 +577,7 @@ function formatTime(ms) {
               </p>
             </div>
 
-            {!artistAuth ? (
+            {!artistAuth && !artistAccount ? (
               <div className="artistAuthChoices">
                 <button
                   className="artistAuthCard"
@@ -609,12 +624,22 @@ function formatTime(ms) {
 
                 <label>
                   Email
-                  <input type="email" placeholder="artist@email.com" />
+                  <input
+      type="email"
+      placeholder="artist@email.com"
+      value={artistAuthEmail}
+      onChange={(e) => setArtistAuthEmail(e.target.value)}
+    />
                 </label>
 
                 <label>
                   Password
-                  <input type="password" placeholder="Enter password" />
+                  <input
+      type="password"
+      placeholder="Enter password"
+      value={artistAuthPassword}
+      onChange={(e) => setArtistAuthPassword(e.target.value)}
+    />
                 </label>
 
                 {artistAuth === 'create' && (
@@ -623,19 +648,88 @@ function formatTime(ms) {
                     <input
   type="text"
   placeholder="Your artist name"
-  value={artistReleaseArtist}
-  onChange={(e) => setArtistReleaseArtist(e.target.value)}
+  value={artistAuthName}
+  onChange={(e) => setArtistAuthName(e.target.value)}
 />
                   </label>
                 )}
 
                 <button
                   className="primary artistContinue"
-                  onClick={() => alert(
-                    artistAuth === 'signin'
-                      ? 'Artist sign in will be connected to the Music World account system next.'
-                      : 'Artist account creation will be connected to the Music World account system next.'
-                  )}
+                  onClick={() => {
+                    const email = artistAuthEmail.trim().toLowerCase();
+                    const password = artistAuthPassword;
+                    const name = artistAuthName.trim();
+
+                    if (!email || !password) {
+                      alert('Please enter your email and password.');
+                      return;
+                    }
+
+                    if (artistAuth === 'create') {
+                      if (!name) {
+                        alert('Please enter your artist name.');
+                        return;
+                      }
+
+                      if (password.length < 6) {
+                        alert('Password must be at least 6 characters.');
+                        return;
+                      }
+
+                      const account = {
+                        email,
+                        artistName: name,
+                        createdAt: new Date().toISOString()
+                      };
+
+                      localStorage.setItem(
+                        'musicWorldArtistAccount',
+                        JSON.stringify({
+                          ...account,
+                          password
+                        })
+                      );
+
+                      setArtistAccount(account);
+                      setArtistAuthEmail('');
+                      setArtistAuthPassword('');
+                      setArtistAuthName('');
+                      setArtistAuth(null);
+
+                      alert('Artist account created successfully.');
+                      return;
+                    }
+
+                    const savedAccount = JSON.parse(
+                      localStorage.getItem('musicWorldArtistAccount') || 'null'
+                    );
+
+                    if (!savedAccount) {
+                      alert('No artist account found. Please create an artist account first.');
+                      return;
+                    }
+
+                    if (
+                      savedAccount.email !== email ||
+                      savedAccount.password !== password
+                    ) {
+                      alert('Incorrect email or password.');
+                      return;
+                    }
+
+                    setArtistAccount({
+                      email: savedAccount.email,
+                      artistName: savedAccount.artistName,
+                      createdAt: savedAccount.createdAt
+                    });
+
+                    setArtistAuthEmail('');
+                    setArtistAuthPassword('');
+                    setArtistAuth(null);
+
+                    alert('Artist sign in successful.');
+                  }}
                 >
                   {artistAuth === 'signin'
                     ? 'Sign In'
@@ -648,8 +742,12 @@ function formatTime(ms) {
               <div className="artistDashboardHeader">
                 <div>
                   <span className="artistDashboardLabel">ARTIST STUDIO</span>
-                  <h2>Your Music World</h2>
-                  <p>Everything you need to build your music journey.</p>
+                  <h2>{artistAccount?.artistName || 'Your Music World'}</h2>
+                  <p>
+                    {artistAccount?.email
+                      ? artistAccount.email
+                      : 'Everything you need to build your music journey.'}
+                  </p>
                 </div>
 
                 <div className="artistDashboardAvatar">🎤</div>
@@ -1478,6 +1576,7 @@ function formatTime(ms) {
           setArtistReleaseArtwork(null);
           setArtistReleaseStep(1);
           setArtistReleaseOpen(false);
+          setArtistMusicOpen(true);
 
           alert('Release saved successfully.');
         }}
@@ -2421,7 +2520,7 @@ function formatTime(ms) {
         </nav>
       )}
 
-      {(settings || showSignIn || searchOpen || expandedPlayer || artistOpen || artistMusicOpen || artistProfileOpen || artistAnalyticsOpen || artistAudienceOpen || artistEarningsOpen) && (
+      {(settings || showSignIn || searchOpen || expandedPlayer || artistOpen || artistReleaseOpen || artistMusicOpen || artistProfileOpen || artistAnalyticsOpen || artistAudienceOpen || artistEarningsOpen) && (
         <button className="backButton" onClick={goBack}>
           ← Back
         </button>
