@@ -68,6 +68,18 @@ const [artistReleaseOpen, setArtistReleaseOpen] = useState(false);
 const [artistReleaseStep, setArtistReleaseStep] = useState(1);
 const [artistReleaseAudio, setArtistReleaseAudio] = useState(null);
 const [artistReleaseArtwork, setArtistReleaseArtwork] = useState(null);
+const [artistReleases, setArtistReleases] = useState(() => {
+  try {
+    return JSON.parse(localStorage.getItem('musicWorldArtistReleases') || '[]');
+  } catch {
+    return [];
+  }
+});
+const [artistReleaseTitle, setArtistReleaseTitle] = useState('');
+const [artistReleaseArtist, setArtistReleaseArtist] = useState('');
+const [artistReleaseType, setArtistReleaseType] = useState('Single');
+const [artistReleaseGenre, setArtistReleaseGenre] = useState('');
+
 
 function openArtistSection(section) {
   setArtistMusicOpen(section === 'music');
@@ -608,7 +620,12 @@ function formatTime(ms) {
                 {artistAuth === 'create' && (
                   <label>
                     Artist Name
-                    <input type="text" placeholder="Your artist name" />
+                    <input
+  type="text"
+  placeholder="Your artist name"
+  value={artistReleaseArtist}
+  onChange={(e) => setArtistReleaseArtist(e.target.value)}
+/>
                   </label>
                 )}
 
@@ -1279,7 +1296,10 @@ function formatTime(ms) {
 
       <label>
         Release type
-        <select defaultValue="Single">
+        <select
+  value={artistReleaseType}
+  onChange={(e) => setArtistReleaseType(e.target.value)}
+>
           <option>Single</option>
           <option>EP</option>
           <option>Album</option>
@@ -1288,7 +1308,10 @@ function formatTime(ms) {
 
       <label>
         Genre
-        <select defaultValue="">
+        <select
+  value={artistReleaseGenre}
+  onChange={(e) => setArtistReleaseGenre(e.target.value)}
+>
           <option value="" disabled>Select a genre</option>
           <option>Afrobeats</option>
           <option>Amapiano</option>
@@ -1413,7 +1436,50 @@ function formatTime(ms) {
             return;
           }
 
-          alert('Release is ready for submission. The upload system will be connected next.');
+          if (!artistReleaseTitle.trim()) {
+            alert('Please enter a release title.');
+            return;
+          }
+
+          if (!artistReleaseArtist.trim()) {
+            alert('Please enter your artist name.');
+            return;
+          }
+
+          if (!artistReleaseGenre) {
+            alert('Please select a genre.');
+            return;
+          }
+
+          const newRelease = {
+            id: Date.now().toString(),
+            title: artistReleaseTitle.trim(),
+            artist: artistReleaseArtist.trim(),
+            type: artistReleaseType,
+            genre: artistReleaseGenre,
+            audio: artistReleaseAudio,
+            artwork: artistReleaseArtwork,
+            status: 'Draft',
+            createdAt: new Date().toISOString()
+          };
+
+          const updatedReleases = [newRelease, ...artistReleases];
+          setArtistReleases(updatedReleases);
+          localStorage.setItem(
+            'musicWorldArtistReleases',
+            JSON.stringify(updatedReleases)
+          );
+
+          setArtistReleaseTitle('');
+          setArtistReleaseArtist('');
+          setArtistReleaseType('Single');
+          setArtistReleaseGenre('');
+          setArtistReleaseAudio(null);
+          setArtistReleaseArtwork(null);
+          setArtistReleaseStep(1);
+          setArtistReleaseOpen(false);
+
+          alert('Release saved successfully.');
         }}
       >
         {artistReleaseStep === 1 ? 'Continue →' : 'Submit Release'}
@@ -1469,25 +1535,54 @@ function formatTime(ms) {
             <div className="artistMusicSectionTitle">
               <div>
                 <h2>Your Releases</h2>
-                <small>0 releases</small>
+                <small>
+                  {artistReleases.length} {artistReleases.length === 1 ? 'release' : 'releases'}
+                </small>
               </div>
             </div>
 
-            <div className="artistEmptyMusic">
-              <div className="artistEmptyMusicIcon">🎵</div>
-              <h3>No releases yet</h3>
-              <p>
-                Your published songs and releases will appear here once
-                your artist music system is connected.
-              </p>
+            {artistReleases.length === 0 ? (
+              <div className="artistEmptyMusic">
+                <div className="artistEmptyMusicIcon">🎵</div>
+                <h3>No releases yet</h3>
+                <p>
+                  Your saved releases will appear here once you submit your first release.
+                </p>
 
-              <button
-                className="artistSecondaryButton"
-                onClick={() => setArtistReleaseOpen(true)}
-              >
-                Start Your First Release
-              </button>
-            </div>
+                <button
+                  className="artistSecondaryButton"
+                  onClick={() => setArtistReleaseOpen(true)}
+                >
+                  Start Your First Release
+                </button>
+              </div>
+            ) : (
+              <div className="artistReleaseList">
+                {artistReleases.map((release) => (
+                  <div className="artistReleaseItem" key={release.id}>
+                    {release.artwork?.uri ? (
+                      <img
+                        src={release.artwork.uri}
+                        alt={release.title}
+                        className="artistReleaseCover"
+                      />
+                    ) : (
+                      <div className="artistReleaseCover artistReleaseCoverFallback">
+                        🎵
+                      </div>
+                    )}
+
+                    <div className="artistReleaseInfo">
+                      <h3>{release.title}</h3>
+                      <p>
+                        {release.artist} • {release.type} • {release.genre}
+                      </p>
+                      <span>{release.status}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
 
             <div className="artistMusicFeatures">
               <div>
