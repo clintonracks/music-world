@@ -64,6 +64,14 @@ function App() {
   const [artistAnalyticsOpen, setArtistAnalyticsOpen] = useState(false);
   const [artistAudienceOpen, setArtistAudienceOpen] = useState(false);
   const [artistEarningsOpen, setArtistEarningsOpen] = useState(false);
+
+function openArtistSection(section) {
+  setArtistMusicOpen(section === 'music');
+  setArtistProfileOpen(section === 'profile');
+  setArtistAnalyticsOpen(section === 'analytics');
+  setArtistAudienceOpen(section === 'audience');
+  setArtistEarningsOpen(section === 'earnings');
+}
   const [settings, setSettings] = useState(false);
   const [theme, setTheme] = useState('dark');
   const [font, setFont] = useState('system');
@@ -417,15 +425,17 @@ function formatTime(ms) {
     <div className="app">
       <audio ref={audioRef} />
 
-      <header>
-        <div className="logo">
-          MUSIC<span>WORLD</span>
-        </div>
+      {!artistOpen && (
+        <header>
+          <div className="logo">
+            MUSIC<span>WORLD</span>
+          </div>
 
-        <button className="search" onClick={() => setSearchOpen(true)}>
-          ⌕ <span>Search artists, songs...</span>
-        </button>
-      </header>
+          <button className="search" onClick={() => setSearchOpen(true)}>
+            ⌕ <span>Search artists, songs...</span>
+          </button>
+        </header>
+      )}
 
       <main>
 
@@ -645,7 +655,7 @@ function formatTime(ms) {
 
                 <div className="artistStatCard">
                   <span>💰</span>
-                  <b>ZMW 0.00</b>
+                  <b>$0.00</b>
                   <small>Earnings</small>
                 </div>
               </div>
@@ -653,7 +663,7 @@ function formatTime(ms) {
               <div className="artistDashboardGrid">
                 <button
                   className="artistDashboardCard"
-                  onClick={() => setArtistMusicOpen(true)}
+                  onClick={() => openArtistSection('music')}
                 >
                   <span className="artistDashboardCardIcon">🎵</span>
                   <span>
@@ -665,7 +675,7 @@ function formatTime(ms) {
 
                 <button
                   className="artistDashboardCard"
-                  onClick={() => setArtistProfileOpen(true)}
+                  onClick={() => openArtistSection('profile')}
                 >
                   <span className="artistDashboardCardIcon">👤</span>
                   <span>
@@ -677,7 +687,7 @@ function formatTime(ms) {
 
                 <button
                   className="artistDashboardCard"
-                  onClick={() => setArtistAnalyticsOpen(true)}
+                  onClick={() => openArtistSection('analytics')}
                 >
                   <span className="artistDashboardCardIcon">📊</span>
                   <span>
@@ -689,7 +699,7 @@ function formatTime(ms) {
 
                 <button
                   className="artistDashboardCard"
-                  onClick={() => setArtistAudienceOpen(true)}
+                  onClick={() => openArtistSection('audience')}
                 >
                   <span className="artistDashboardCardIcon">👥</span>
                   <span>
@@ -701,7 +711,7 @@ function formatTime(ms) {
 
                 <button
                   className="artistDashboardCard"
-                  onClick={() => setArtistEarningsOpen(true)}
+                  onClick={() => openArtistSection('earnings')}
                 >
                   <span className="artistDashboardCardIcon">💰</span>
                   <span>
@@ -746,7 +756,7 @@ function formatTime(ms) {
     <div className="artistEarningsHero">
       <div>
         <span className="artistEarningsLabel">AVAILABLE EARNINGS</span>
-        <strong>ZMW 0.00</strong>
+        <strong>$0.00</strong>
         <small>No earnings available yet</small>
       </div>
 
@@ -756,13 +766,13 @@ function formatTime(ms) {
     <div className="artistEarningsStats">
       <div>
         <span>💵</span>
-        <b>ZMW 0.00</b>
+        <b>$0.00</b>
         <small>Total Earnings</small>
       </div>
 
       <div>
         <span>⏳</span>
-        <b>ZMW 0.00</b>
+        <b>$0.00</b>
         <small>Pending</small>
       </div>
 
@@ -2086,8 +2096,9 @@ function formatTime(ms) {
         </div>
       )}
 
-      <nav className="bottomNav">
-        {['Home', 'Discover', 'Charts', 'Library', 'Profile'].map(x => (
+      {!artistOpen && (
+        <nav className="bottomNav">
+          {['Home', 'Discover', 'Charts', 'Library', 'Profile'].map(x => (
           <button
             className={`navItem ${tab === x && !settings && !showSignIn ? 'active' : ''}`}
             onClick={() => {
@@ -2115,8 +2126,9 @@ function formatTime(ms) {
             </span>
             <span className="navLabel">{x}</span>
           </button>
-        ))}
-      </nav>
+          ))}
+        </nav>
+      )}
 
       {(settings || showSignIn || searchOpen || expandedPlayer || artistOpen || artistMusicOpen || artistProfileOpen || artistAnalyticsOpen || artistAudienceOpen || artistEarningsOpen) && (
         <button className="backButton" onClick={goBack}>
