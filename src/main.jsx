@@ -439,7 +439,7 @@ function formatTime(ms) {
 
       <main>
 
-        {tab === 'Home' && (
+        {tab === 'Home' && !artistOpen && (
           <>
             <section className="hero">
               <div>
