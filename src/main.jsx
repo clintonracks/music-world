@@ -840,27 +840,32 @@ function formatTime(ms) {
                       return;
                     }
 
-                    const savedAccount = JSON.parse(
-                      localStorage.getItem('musicWorldArtistAccount') || 'null'
-                    );
+                    const { data, error } =
+                      await supabase.auth.signInWithPassword({
+                        email,
+                        password
+                      });
 
-                    if (!savedAccount) {
-                      alert('No artist account found. Please create an artist account first.');
+                    if (error) {
+                      alert(error.message);
                       return;
                     }
 
-                    if (
-                      savedAccount.email !== email ||
-                      savedAccount.password !== password
-                    ) {
-                      alert('Incorrect email or password.');
+                    const user = data?.user;
+
+                    if (!user) {
+                      alert('Artist sign in could not be completed.');
                       return;
                     }
 
                     setArtistAccount({
-                      email: savedAccount.email,
-                      artistName: savedAccount.artistName,
-                      createdAt: savedAccount.createdAt
+                      email: user.email || email,
+                      artistName:
+                        user.user_metadata?.artistName ||
+                        'Music World Artist',
+                      createdAt:
+                        user.created_at ||
+                        new Date().toISOString()
                     });
 
                     setArtistAuthEmail('');
