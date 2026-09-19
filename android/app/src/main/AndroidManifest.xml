@@ -42,7 +42,20 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths"></meta-data>
         </provider>
-    </application>
+    <activity
+            android:name=".MainActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="musicworld"
+                    android:host="auth"
+                    android:path="/callback" />
+            </intent-filter>
+        </activity>
+        </application>
 
     <!-- Permissions -->
 

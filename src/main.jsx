@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { App as CapacitorApp } from '@capacitor/app';
 import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { createRoot } from 'react-dom/client';
 import { registerPlugin } from '@capacitor/core';
@@ -85,6 +86,33 @@ function App() {
   const [artistAuthEmail, setArtistAuthEmail] = useState('');
   const [artistAuthPassword, setArtistAuthPassword] = useState('');
   const [artistAuthName, setArtistAuthName] = useState('');
+
+  useEffect(() => {
+    const handleAuthUrl = ({ url }) => {
+      if (!url || !url.startsWith('musicworld://auth/callback')) {
+        return;
+      }
+
+      const hash = url.split('#')[1] || '';
+      const params = new URLSearchParams(hash);
+
+      const accessToken = params.get('access_token');
+      const refreshToken = params.get('refresh_token');
+
+      if (accessToken && refreshToken) {
+        supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken
+        });
+      }
+    };
+
+    CapacitorApp.addListener('appUrlOpen', handleAuthUrl);
+
+    return () => {
+      CapacitorApp.removeAllListeners('appUrlOpen');
+    };
+  }, []);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -772,6 +800,7 @@ function formatTime(ms) {
                         email,
                         password,
                         options: {
+                          emailRedirectTo: 'musicworld://auth/callback',
                           data: {
                             artistName: name,
                             accountType: 'artist'
