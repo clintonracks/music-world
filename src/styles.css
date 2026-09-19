@@ -3917,3 +3917,107 @@ section {
   object-fit: cover;
   flex-shrink: 0;
 }
+
+/* Artist Profile Edit Mode */
+.artistProfileSection:has(.artistProfileFields label) {
+  padding: 20px;
+  border: 1px solid #333;
+  border-radius: 20px;
+  background:
+    linear-gradient(145deg, rgba(255,255,255,0.035), rgba(255,255,255,0.012)),
+    #171717;
+}
+
+.artistProfileSection:has(.artistProfileFields label) .artistProfileSectionTitle {
+  margin-bottom: 18px;
+}
+
+.artistProfileSection:has(.artistProfileFields label) .artistProfileFields {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 15px;
+}
+
+.artistProfileSection:has(.artistProfileFields label) label {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  color: #aaa;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+}
+
+.artistProfileSection:has(.artistProfileFields label) input,
+.artistProfileSection:has(.artistProfileFields label) textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 14px 15px;
+  border: 1px solid #363636;
+  border-radius: 13px;
+  outline: none;
+  background: #101010;
+  color: #fff;
+  font: inherit;
+  font-size: 13px;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.artistProfileSection:has(.artistProfileFields label) textarea {
+  min-height: 120px;
+  resize: vertical;
+  line-height: 1.5;
+}
+
+.artistProfileSection:has(.artistProfileFields label) input::placeholder,
+.artistProfileSection:has(.artistProfileFields label) textarea::placeholder {
+  color: #555;
+}
+
+.artistProfileSection:has(.artistProfileFields label) input:focus,
+.artistProfileSection:has(.artistProfileFields label) textarea:focus {
+  border-color: #e31b23;
+  background: #141414;
+}
+
+.artistProfileActions {
+  display: flex;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.artistProfileActions button {
+  flex: 1;
+  min-height: 46px;
+}
+
+.artistProfileActions .artistBack {
+  border: 1px solid #363636;
+  border-radius: 12px;
+  background: #242424;
+  color: #ddd;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.artistProfileActions .primary {
+  border-radius: 12px;
+  font-weight: 800;
+}
+
+@media (max-width: 480px) {
+  .artistProfileSection:has(.artistProfileFields label) {
+    padding: 16px;
+    border-radius: 18px;
+  }
+
+  .artistProfileActions {
+    flex-direction: column-reverse;
+  }
+
+  .artistProfileActions button {
+    width: 100%;
+  }
+}
+
