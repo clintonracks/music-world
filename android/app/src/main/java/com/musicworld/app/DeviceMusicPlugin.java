@@ -272,6 +272,68 @@ public class DeviceMusicPlugin extends Plugin {
     }
 
     @PluginMethod
+    public void copyFileToCache(PluginCall call) {
+        String uriString = call.getString("uri");
+
+        if (uriString == null || uriString.isEmpty()) {
+            call.reject("No file URI provided");
+            return;
+        }
+
+        Uri uri = Uri.parse(uriString);
+
+        try {
+            ContentResolver resolver = getContext().getContentResolver();
+            java.io.InputStream input = resolver.openInputStream(uri);
+
+            if (input == null) {
+                call.reject("Unable to open selected file");
+                return;
+            }
+
+            String fileName = uri.getLastPathSegment();
+
+            if (fileName == null || fileName.isEmpty()) {
+                fileName = "musicworld-upload-file";
+            }
+
+            fileName = fileName.replaceAll("[^a-zA-Z0-9._-]", "_");
+
+            java.io.File cacheDir = getContext().getCacheDir();
+            java.io.File outputFile = new java.io.File(
+                cacheDir,
+                System.currentTimeMillis() + "-" + fileName
+            );
+
+            java.io.OutputStream output =
+                new java.io.FileOutputStream(outputFile);
+
+            byte[] buffer = new byte[8192];
+            int bytesRead;
+
+            while ((bytesRead = input.read(buffer)) != -1) {
+                output.write(buffer, 0, bytesRead);
+            }
+
+            output.flush();
+            output.close();
+            input.close();
+
+            JSObject response = new JSObject();
+            response.put("path", outputFile.getAbsolutePath());
+            response.put("name", fileName);
+
+            call.resolve(response);
+
+        } catch (Exception e) {
+            call.reject(
+                "Unable to copy selected file: " +
+                (e.getMessage() != null ? e.getMessage() : "Unknown error")
+            );
+        }
+    }
+
+    @PluginMethod
     public void pickAudio(PluginCall call) {
         Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
         intent.addCategory(Intent.CATEGORY_OPENABLE);
