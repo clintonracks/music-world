@@ -1326,6 +1326,100 @@ function formatTime(ms) {
       </button>
     </div>
 
+    {artistProfileEditOpen ? (
+      <div className="artistProfileSection">
+        <div className="artistProfileSectionTitle">
+          <div>
+            <h2>Edit Profile</h2>
+            <small>Update your public artist identity</small>
+          </div>
+        </div>
+
+        <div className="artistProfileFields">
+          <label>
+            Artist Name
+            <input
+              type="text"
+              value={artistProfileName}
+              onChange={(e) => setArtistProfileName(e.target.value)}
+              placeholder="Your artist name"
+            />
+          </label>
+
+          <label>
+            Genre
+            <input
+              type="text"
+              value={artistProfileGenre}
+              onChange={(e) => setArtistProfileGenre(e.target.value)}
+              placeholder="Afrobeats, Amapiano, Hip-Hop..."
+            />
+          </label>
+
+          <label>
+            Country
+            <input
+              type="text"
+              value={artistProfileCountry}
+              onChange={(e) => setArtistProfileCountry(e.target.value)}
+              placeholder="Your country"
+            />
+          </label>
+
+          <label>
+            Bio
+            <textarea
+              value={artistProfileBio}
+              onChange={(e) => setArtistProfileBio(e.target.value)}
+              placeholder="Tell listeners about yourself and your music..."
+              rows="5"
+            />
+          </label>
+        </div>
+
+        <div className="artistProfileActions">
+          <button
+            className="artistBack"
+            onClick={() => setArtistProfileEditOpen(false)}
+          >
+            Cancel
+          </button>
+
+          <button
+            className="primary"
+            onClick={() => {
+              const name = artistProfileName.trim();
+
+              if (!name) {
+                alert('Please enter your artist name.');
+                return;
+              }
+
+              const profile = {
+                name,
+                genre: artistProfileGenre.trim(),
+                country: artistProfileCountry.trim(),
+                bio: artistProfileBio.trim(),
+                updatedAt: new Date().toISOString()
+              };
+
+              setArtistProfile(profile);
+              localStorage.setItem(
+                'musicWorldArtistProfile',
+                JSON.stringify(profile)
+              );
+
+              setArtistProfileEditOpen(false);
+              alert('Artist profile updated successfully.');
+            }}
+          >
+            Save Profile
+          </button>
+        </div>
+      </div>
+    ) : null}
+
+    {!artistProfileEditOpen && (
     <div className="artistProfileSection">
       <div className="artistProfileSectionTitle">
         <div>
@@ -1356,7 +1450,9 @@ function formatTime(ms) {
         </div>
       </div>
     </div>
+    )}
 
+    {!artistProfileEditOpen && (
     <div className="artistProfileSection">
       <div className="artistProfileSectionTitle">
         <div>
@@ -1391,7 +1487,9 @@ function formatTime(ms) {
         </div>
       </div>
     </div>
+    )}
 
+    {!artistProfileEditOpen && (
     <div className="artistProfileNotice">
       <span>✦</span>
       <div>
@@ -1402,105 +1500,7 @@ function formatTime(ms) {
         </small>
       </div>
     </div>
-  </section>
-)}
-
-{artistProfileEditOpen && (
-  <section className="artistProfileStudio">
-    <div className="artistProfileHeader">
-      <button
-        className="artistBack"
-        onClick={() => setArtistProfileEditOpen(false)}
-      >
-        ← Artist Profile
-      </button>
-
-      <span className="artistDashboardLabel">ARTIST STUDIO</span>
-      <h1>Edit Artist Profile</h1>
-      <p>Update the information listeners will see on your profile.</p>
-    </div>
-
-    <div className="artistProfileSection">
-      <div className="artistProfileSectionTitle">
-        <div>
-          <h2>Public Information</h2>
-          <small>Your artist identity on Music World</small>
-        </div>
-      </div>
-
-      <div className="artistProfileFields">
-        <label>
-          Artist Name
-          <input
-            type="text"
-            value={artistProfileName}
-            onChange={(e) => setArtistProfileName(e.target.value)}
-            placeholder="Your artist name"
-          />
-        </label>
-
-        <label>
-          Genre
-          <input
-            type="text"
-            value={artistProfileGenre}
-            onChange={(e) => setArtistProfileGenre(e.target.value)}
-            placeholder="Afrobeats, Amapiano, Hip-Hop..."
-          />
-        </label>
-
-        <label>
-          Country
-          <input
-            type="text"
-            value={artistProfileCountry}
-            onChange={(e) => setArtistProfileCountry(e.target.value)}
-            placeholder="Your country"
-          />
-        </label>
-
-        <label>
-          Bio
-          <textarea
-            value={artistProfileBio}
-            onChange={(e) => setArtistProfileBio(e.target.value)}
-            placeholder="Tell listeners about yourself and your music..."
-            rows="5"
-          />
-        </label>
-      </div>
-
-      <button
-        className="primary"
-        onClick={() => {
-          const name = artistProfileName.trim();
-
-          if (!name) {
-            alert('Please enter your artist name.');
-            return;
-          }
-
-          const profile = {
-            name,
-            genre: artistProfileGenre.trim(),
-            country: artistProfileCountry.trim(),
-            bio: artistProfileBio.trim(),
-            updatedAt: new Date().toISOString()
-          };
-
-          setArtistProfile(profile);
-          localStorage.setItem(
-            'musicWorldArtistProfile',
-            JSON.stringify(profile)
-          );
-
-          setArtistProfileEditOpen(false);
-          alert('Artist profile updated successfully.');
-        }}
-      >
-        Save Profile
-      </button>
-    </div>
+    )}
   </section>
 )}
 
