@@ -1,7 +1,23 @@
+import { supabase } from './supabase';
 import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { createRoot } from 'react-dom/client';
 import { registerPlugin } from '@capacitor/core';
 import './styles.css';
+
+async function testSupabaseConnection() {
+  const { error } = await supabase.auth.getSession();
+
+  if (error) {
+    console.error('Supabase connection test failed:', error.message);
+    return false;
+  }
+
+  console.log('Supabase connection test passed.');
+  return true;
+}
+
+testSupabaseConnection();
+
 
 const DeviceMusic = registerPlugin('DeviceMusic');	
 const artists = [
@@ -69,6 +85,39 @@ function App() {
   const [artistAuthEmail, setArtistAuthEmail] = useState('');
   const [artistAuthPassword, setArtistAuthPassword] = useState('');
   const [artistAuthName, setArtistAuthName] = useState('');
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      const user = data?.session?.user;
+
+      if (user) {
+        setArtistAccount({
+          email: user.email || '',
+          artistName: user.user_metadata?.artistName || 'Music World Artist',
+          createdAt: user.created_at || new Date().toISOString()
+        });
+      }
+    });
+
+    const { data: listener } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        const user = session?.user;
+
+        if (user) {
+          setArtistAccount({
+            email: user.email || '',
+            artistName: user.user_metadata?.artistName || 'Music World Artist',
+            createdAt: user.created_at || new Date().toISOString()
+          });
+        }
+      }
+    );
+
+    return () => {
+      listener?.subscription?.unsubscribe();
+    };
+  }, []);
+
 
   const [artistProfile, setArtistProfile] = useState(() => {
     try {
@@ -698,7 +747,7 @@ function formatTime(ms) {
 
                 <button
                   className="primary artistContinue"
-                  onClick={() => {
+                  onClick={async () => {
                     const email = artistAuthEmail.trim().toLowerCase();
                     const password = artistAuthPassword;
                     const name = artistAuthName.trim();
@@ -719,19 +768,34 @@ function formatTime(ms) {
                         return;
                       }
 
-                      const account = {
+                      const { data, error } = await supabase.auth.signUp({
                         email,
-                        artistName: name,
-                        createdAt: new Date().toISOString()
-                      };
+                        password,
+                        options: {
+                          data: {
+                            artistName: name,
+                            accountType: 'artist'
+                          }
+                        }
+                      });
 
-                      localStorage.setItem(
-                        'musicWorldArtistAccount',
-                        JSON.stringify({
-                          ...account,
-                          password
-                        })
-                      );
+                      if (error) {
+                        alert(error.message);
+                        return;
+                      }
+
+                      const user = data?.user;
+
+                      if (!user) {
+                        alert('Account creation could not be completed.');
+                        return;
+                      }
+
+                      const account = {
+                        email: user.email || email,
+                        artistName: name,
+                        createdAt: user.created_at || new Date().toISOString()
+                      };
 
                       setArtistAccount(account);
                       setArtistAuthEmail('');
@@ -739,7 +803,11 @@ function formatTime(ms) {
                       setArtistAuthName('');
                       setArtistAuth(null);
 
-                      alert('Artist account created successfully.');
+                      alert(
+                        data.session
+                          ? 'Artist account created successfully.'
+                          : 'Artist account created. Please check your email to confirm your account.'
+                      );
                       return;
                     }
 
