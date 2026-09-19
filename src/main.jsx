@@ -185,6 +185,55 @@ const [artistReleaseArtist, setArtistReleaseArtist] = useState('');
 const [artistReleaseType, setArtistReleaseType] = useState('Single');
 const [artistReleaseGenre, setArtistReleaseGenre] = useState('');
 
+const [artistReleaseDraft, setArtistReleaseDraft] = useState(() => {
+  try {
+    return JSON.parse(
+      localStorage.getItem('musicWorldArtistReleaseDraft') || 'null'
+    );
+  } catch {
+    return null;
+  }
+});
+
+
+useEffect(() => {
+  const hasDraft =
+    artistReleaseTitle.trim() ||
+    artistReleaseArtist.trim() ||
+    artistReleaseGenre ||
+    artistReleaseAudio ||
+    artistReleaseArtwork;
+
+  if (!hasDraft) {
+    return;
+  }
+
+  const draft = {
+    title: artistReleaseTitle,
+    artist: artistReleaseArtist,
+    type: artistReleaseType,
+    genre: artistReleaseGenre,
+    audio: artistReleaseAudio,
+    artwork: artistReleaseArtwork,
+    step: artistReleaseStep,
+    savedAt: new Date().toISOString()
+  };
+
+  setArtistReleaseDraft(draft);
+  localStorage.setItem(
+    'musicWorldArtistReleaseDraft',
+    JSON.stringify(draft)
+  );
+}, [
+  artistReleaseTitle,
+  artistReleaseArtist,
+  artistReleaseType,
+  artistReleaseGenre,
+  artistReleaseAudio,
+  artistReleaseArtwork,
+  artistReleaseStep
+]);
+
 
 function openArtistSection(section) {
   setArtistMusicOpen(section === 'music');
@@ -1899,6 +1948,9 @@ function formatTime(ms) {
             JSON.stringify(updatedReleases)
           );
 
+          localStorage.removeItem('musicWorldArtistReleaseDraft');
+          setArtistReleaseDraft(null);
+
           setArtistReleaseTitle('');
           setArtistReleaseArtist('');
           setArtistReleaseType('Single');
@@ -1956,7 +2008,18 @@ function formatTime(ms) {
 
               <button
                 className="primary artistUploadButton"
-                onClick={() => setArtistReleaseOpen(true)}
+                onClick={() => {
+                  if (artistReleaseDraft) {
+                    setArtistReleaseTitle(artistReleaseDraft.title || '');
+                    setArtistReleaseArtist(artistReleaseDraft.artist || '');
+                    setArtistReleaseType(artistReleaseDraft.type || 'Single');
+                    setArtistReleaseGenre(artistReleaseDraft.genre || '');
+                    setArtistReleaseAudio(artistReleaseDraft.audio || null);
+                    setArtistReleaseArtwork(artistReleaseDraft.artwork || null);
+                    setArtistReleaseStep(artistReleaseDraft.step || 1);
+                  }
+                  setArtistReleaseOpen(true);
+                }}
               >
                 ＋ Upload Music
               </button>
@@ -1981,7 +2044,18 @@ function formatTime(ms) {
 
                 <button
                   className="artistSecondaryButton"
-                  onClick={() => setArtistReleaseOpen(true)}
+                  onClick={() => {
+                  if (artistReleaseDraft) {
+                    setArtistReleaseTitle(artistReleaseDraft.title || '');
+                    setArtistReleaseArtist(artistReleaseDraft.artist || '');
+                    setArtistReleaseType(artistReleaseDraft.type || 'Single');
+                    setArtistReleaseGenre(artistReleaseDraft.genre || '');
+                    setArtistReleaseAudio(artistReleaseDraft.audio || null);
+                    setArtistReleaseArtwork(artistReleaseDraft.artwork || null);
+                    setArtistReleaseStep(artistReleaseDraft.step || 1);
+                  }
+                  setArtistReleaseOpen(true);
+                }}
                 >
                   Start Your First Release
                 </button>
