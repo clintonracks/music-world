@@ -69,9 +69,27 @@ function App() {
   const [artistAuthEmail, setArtistAuthEmail] = useState('');
   const [artistAuthPassword, setArtistAuthPassword] = useState('');
   const [artistAuthName, setArtistAuthName] = useState('');
+
+  const [artistProfile, setArtistProfile] = useState(() => {
+    try {
+      return JSON.parse(
+        localStorage.getItem('musicWorldArtistProfile') || '{}'
+      );
+    } catch {
+      return {};
+    }
+  });
+
+  const [artistProfileEditOpen, setArtistProfileEditOpen] = useState(false);
+  const [artistProfileName, setArtistProfileName] = useState('');
+  const [artistProfileGenre, setArtistProfileGenre] = useState('');
+  const [artistProfileCountry, setArtistProfileCountry] = useState('');
+  const [artistProfileBio, setArtistProfileBio] = useState('');
+
   const [artistMusicOpen, setArtistMusicOpen] = useState(false);
   const [artistProfileOpen, setArtistProfileOpen] = useState(false);
   const [artistAnalyticsOpen, setArtistAnalyticsOpen] = useState(false);
+  const [artistAnalyticsRange, setArtistAnalyticsRange] = useState('Overview');
   const [artistAudienceOpen, setArtistAudienceOpen] = useState(false);
   const [artistEarningsOpen, setArtistEarningsOpen] = useState(false);
 const [artistReleaseOpen, setArtistReleaseOpen] = useState(false);
@@ -99,6 +117,11 @@ function openArtistSection(section) {
   setArtistEarningsOpen(section === 'earnings');
 }
   const [settings, setSettings] = useState(false);
+  const [changePasswordOpen, setChangePasswordOpen] = useState(false);
+const [accountInfoOpen, setAccountInfoOpen] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmNewPassword, setConfirmNewPassword] = useState('');
   const [theme, setTheme] = useState('dark');
   const [font, setFont] = useState('system');
   const [fontStyle, setFontStyle] = useState('normal');
@@ -393,6 +416,11 @@ function formatTime(ms) {
   }
 
   function goBack() {
+    if (accountInfoOpen) {
+      setAccountInfoOpen(false);
+      return;
+    }
+
     if (expandedPlayer) {
       setExpandedPlayer(false);
       return;
@@ -403,6 +431,11 @@ function formatTime(ms) {
       return;
     }
 
+    if (changePasswordOpen) {
+      setChangePasswordOpen(false);
+      return;
+    }
+
     if (settings) {
       setSettings(false);
       return;
@@ -410,6 +443,11 @@ function formatTime(ms) {
 
     if (showSignIn) {
       setShowSignIn(false);
+      return;
+    }
+
+    if (artistProfileEditOpen) {
+      setArtistProfileEditOpen(false);
       return;
     }
 
@@ -493,7 +531,11 @@ function formatTime(ms) {
               </div>
             </section>
 
-            <Section title="Global Top 10" action="View all">
+            <Section
+              title="Global Top 10"
+              action="View all"
+              onAction={() => setTab('Charts')}
+            >
               <div className="cards">
                 {artists.slice(0, 4).map(a => (
                   <Track
@@ -1121,10 +1163,15 @@ function formatTime(ms) {
     </div>
 
     <div className="artistAnalyticsRange">
-      <button className="artistAnalyticsRangeActive">Overview</button>
-      <button>7 Days</button>
-      <button>30 Days</button>
-      <button>All Time</button>
+      {['Overview', '7 Days', '30 Days', 'All Time'].map((range) => (
+        <button
+          key={range}
+          className={artistAnalyticsRange === range ? 'artistAnalyticsRangeActive' : ''}
+          onClick={() => setArtistAnalyticsRange(range)}
+        >
+          {range}
+        </button>
+      ))}
     </div>
 
     <div className="artistAnalyticsStats">
@@ -1265,9 +1312,15 @@ function formatTime(ms) {
 
       <button
         className="artistProfileEdit"
-        onClick={() => alert(
-          'Profile editing will be connected to the artist account system next.'
-        )}
+        onClick={() => {
+          setArtistProfileName(
+            artistProfile.name || artistAccount?.artistName || ''
+          );
+          setArtistProfileGenre(artistProfile.genre || '');
+          setArtistProfileCountry(artistProfile.country || '');
+          setArtistProfileBio(artistProfile.bio || '');
+          setArtistProfileEditOpen(true);
+        }}
       >
         Edit Profile
       </button>
@@ -1352,6 +1405,105 @@ function formatTime(ms) {
   </section>
 )}
 
+{artistProfileEditOpen && (
+  <section className="artistProfileStudio">
+    <div className="artistProfileHeader">
+      <button
+        className="artistBack"
+        onClick={() => setArtistProfileEditOpen(false)}
+      >
+        ← Artist Profile
+      </button>
+
+      <span className="artistDashboardLabel">ARTIST STUDIO</span>
+      <h1>Edit Artist Profile</h1>
+      <p>Update the information listeners will see on your profile.</p>
+    </div>
+
+    <div className="artistProfileSection">
+      <div className="artistProfileSectionTitle">
+        <div>
+          <h2>Public Information</h2>
+          <small>Your artist identity on Music World</small>
+        </div>
+      </div>
+
+      <div className="artistProfileFields">
+        <label>
+          Artist Name
+          <input
+            type="text"
+            value={artistProfileName}
+            onChange={(e) => setArtistProfileName(e.target.value)}
+            placeholder="Your artist name"
+          />
+        </label>
+
+        <label>
+          Genre
+          <input
+            type="text"
+            value={artistProfileGenre}
+            onChange={(e) => setArtistProfileGenre(e.target.value)}
+            placeholder="Afrobeats, Amapiano, Hip-Hop..."
+          />
+        </label>
+
+        <label>
+          Country
+          <input
+            type="text"
+            value={artistProfileCountry}
+            onChange={(e) => setArtistProfileCountry(e.target.value)}
+            placeholder="Your country"
+          />
+        </label>
+
+        <label>
+          Bio
+          <textarea
+            value={artistProfileBio}
+            onChange={(e) => setArtistProfileBio(e.target.value)}
+            placeholder="Tell listeners about yourself and your music..."
+            rows="5"
+          />
+        </label>
+      </div>
+
+      <button
+        className="primary"
+        onClick={() => {
+          const name = artistProfileName.trim();
+
+          if (!name) {
+            alert('Please enter your artist name.');
+            return;
+          }
+
+          const profile = {
+            name,
+            genre: artistProfileGenre.trim(),
+            country: artistProfileCountry.trim(),
+            bio: artistProfileBio.trim(),
+            updatedAt: new Date().toISOString()
+          };
+
+          setArtistProfile(profile);
+          localStorage.setItem(
+            'musicWorldArtistProfile',
+            JSON.stringify(profile)
+          );
+
+          setArtistProfileEditOpen(false);
+          alert('Artist profile updated successfully.');
+        }}
+      >
+        Save Profile
+      </button>
+    </div>
+  </section>
+)}
+
 {artistReleaseOpen && (
   <section className="artistReleaseStudio">
     <div className="artistReleaseHeader">
@@ -1381,6 +1533,8 @@ function formatTime(ms) {
         <input
           type="text"
           placeholder="Enter your song or release title"
+          value={artistReleaseTitle}
+          onChange={(e) => setArtistReleaseTitle(e.target.value)}
         />
       </label>
 
@@ -1389,6 +1543,8 @@ function formatTime(ms) {
         <input
           type="text"
           placeholder="Your artist name"
+          value={artistReleaseArtist}
+          onChange={(e) => setArtistReleaseArtist(e.target.value)}
         />
       </label>
 
@@ -2244,7 +2400,223 @@ function formatTime(ms) {
           </div>
         )}
 
-        {settings && (
+        {changePasswordOpen && (
+          <section className="artistProfileStudio">
+            <div className="artistProfileHeader">
+              <button
+                className="artistBack"
+                onClick={() => setChangePasswordOpen(false)}
+              >
+                ← Account Settings
+              </button>
+
+              <span className="artistDashboardLabel">ACCOUNT</span>
+              <h1>Change Password</h1>
+              <p>Update your password for this device.</p>
+            </div>
+
+            <div className="artistProfileSection">
+              <div className="artistProfileSectionTitle">
+                <div>
+                  <h2>Password</h2>
+                  <small>For the current offline account</small>
+                </div>
+              </div>
+
+              <div className="artistProfileFields">
+                <label>
+                  Current Password
+                  <input
+                    type="password"
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                    placeholder="Enter current password"
+                  />
+                </label>
+
+                <label>
+                  New Password
+                  <input
+                    type="password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="Enter new password"
+                  />
+                </label>
+
+                <label>
+                  Confirm New Password
+                  <input
+                    type="password"
+                    value={confirmNewPassword}
+                    onChange={(e) => setConfirmNewPassword(e.target.value)}
+                    placeholder="Confirm new password"
+                  />
+                </label>
+              </div>
+
+              <button
+                className="primary"
+                onClick={() => {
+                  const savedAccount = JSON.parse(
+                    localStorage.getItem('musicWorldArtistAccount') || 'null'
+                  );
+
+                  if (!savedAccount) {
+                    alert('No artist account found.');
+                    return;
+                  }
+
+                  if (savedAccount.password !== currentPassword) {
+                    alert('Current password is incorrect.');
+                    return;
+                  }
+
+                  if (newPassword.length < 6) {
+                    alert('New password must be at least 6 characters.');
+                    return;
+                  }
+
+                  if (newPassword !== confirmNewPassword) {
+                    alert('New passwords do not match.');
+                    return;
+                  }
+
+                  const updatedAccount = {
+                    ...savedAccount,
+                    password: newPassword
+                  };
+
+                  localStorage.setItem(
+                    'musicWorldArtistAccount',
+                    JSON.stringify(updatedAccount)
+                  );
+
+                  setCurrentPassword('');
+                  setNewPassword('');
+                  setConfirmNewPassword('');
+                  setChangePasswordOpen(false);
+
+                  alert('Password changed successfully.');
+                }}
+              >
+                Save New Password
+              </button>
+            </div>
+          </section>
+        )}
+
+        {accountInfoOpen && (
+  <section className="artistProfileStudio">
+    <div className="artistProfileHeader">
+      <button
+        className="artistBack"
+        onClick={() => setAccountInfoOpen(false)}
+      >
+        ← Account Settings
+      </button>
+
+      <span className="artistDashboardLabel">ACCOUNT</span>
+      <h1>Account Information</h1>
+      <p>View the account information saved on this device.</p>
+    </div>
+
+    <div className="artistProfileSection">
+      <div className="artistProfileSectionTitle">
+        <div>
+          <h2>Your Account</h2>
+          <small>Music World account details</small>
+        </div>
+      </div>
+
+      <div className="artistProfileFields">
+        <label>
+          Account Type
+          <input
+            type="text"
+            value={artistAccount ? "Artist Account" : "Listener Account"}
+            readOnly
+          />
+        </label>
+
+        <label>
+          Email
+          <input
+            type="text"
+            value={artistAccount?.email || "Not available"}
+            readOnly
+          />
+        </label>
+
+        <label>
+          Artist Name
+          <input
+            type="text"
+            value={artistAccount?.artistName || "Not available"}
+            readOnly
+          />
+        </label>
+      </div>
+    </div>
+  </section>
+)}
+
+{accountInfoOpen && (
+  <section className="artistProfileStudio">
+    <div className="artistProfileHeader">
+      <button
+        className="artistBack"
+        onClick={() => setAccountInfoOpen(false)}
+      >
+        ← Account Settings
+      </button>
+
+      <span className="artistDashboardLabel">ACCOUNT</span>
+      <h1>Account Information</h1>
+      <p>View the account information saved on this device.</p>
+    </div>
+
+    <div className="artistProfileSection">
+      <div className="artistProfileSectionTitle">
+        <div>
+          <h2>Your Account</h2>
+          <small>Music World account details</small>
+        </div>
+      </div>
+
+      <div className="artistProfileFields">
+        <label>
+          Account Type
+          <input
+            type="text"
+            value={artistAccount ? "Artist Account" : "Listener Account"}
+            readOnly
+          />
+        </label>
+
+        <label>
+          Email
+          <input
+            type="text"
+            value={artistAccount?.email || "Not available"}
+            readOnly
+          />
+        </label>
+
+        <label>
+          Artist Name
+          <input
+            type="text"
+            value={artistAccount?.artistName || "Not available"}
+            readOnly
+          />
+        </label>
+      </div>
+    </div>
+  </section>
+)}
+
+{settings && (
           <div className="settings">
             <Title title="Settings" />
 
@@ -2323,11 +2695,20 @@ function formatTime(ms) {
             <section>
               <h2>Account</h2>
 
-              <button>
+              <button onClick={() => {
+                setSettings(false);
+                setChangePasswordOpen(true);
+                setCurrentPassword('');
+                setNewPassword('');
+                setConfirmNewPassword('');
+              }}>
                 🔐 Change Password
               </button>
 
-              <button>
+              <button onClick={() => {
+                setSettings(false);
+                setAccountInfoOpen(true);
+              }}>
                 📧 Account Information
               </button>
             </section>
@@ -2339,8 +2720,11 @@ function formatTime(ms) {
                 🎶 My Playlist
               </button>
 
-              <button>
-                📁 Device Music — Coming Soon
+              <button onClick={() => {
+                setSettings(false);
+                openDeviceMusic();
+              }}>
+                📁 Device Music
               </button>
             </section>
 
@@ -2494,6 +2878,8 @@ function formatTime(ms) {
             onClick={() => {
               setTab(x);
               setSettings(false);
+              setChangePasswordOpen(false);
+              setAccountInfoOpen(false);
               setShowSignIn(false);
               setArtistOpen(false);
               setArtistAuth(null);
@@ -2520,7 +2906,7 @@ function formatTime(ms) {
         </nav>
       )}
 
-      {(settings || showSignIn || searchOpen || expandedPlayer || artistOpen || artistReleaseOpen || artistMusicOpen || artistProfileOpen || artistAnalyticsOpen || artistAudienceOpen || artistEarningsOpen) && (
+      {(settings || changePasswordOpen || accountInfoOpen || showSignIn || searchOpen || expandedPlayer || artistOpen || artistProfileEditOpen || artistReleaseOpen || artistMusicOpen || artistProfileOpen || artistAnalyticsOpen || artistAudienceOpen || artistEarningsOpen) && (
         <button className="backButton" onClick={goBack}>
           ← Back
         </button>
@@ -2638,12 +3024,16 @@ function formatTime(ms) {
   );
 }
 
-function Section({ title, action, children }) {
+function Section({ title, action, onAction, children }) {
   return (
     <section>
       <div className="sectionHead">
         <h2>{title}</h2>
-        {action && <button>{action} →</button>}
+        {action && (
+          <button onClick={onAction}>
+            {action} →
+          </button>
+        )}
       </div>
       {children}
     </section>
