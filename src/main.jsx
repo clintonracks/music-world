@@ -1567,13 +1567,86 @@ function formatTime(ms) {
   onChange={(e) => setArtistReleaseGenre(e.target.value)}
 >
           <option value="" disabled>Select a genre</option>
-          <option>Afrobeats</option>
-          <option>Amapiano</option>
-          <option>Hip-Hop</option>
-          <option>R&B</option>
-          <option>Pop</option>
-          <option>Gospel</option>
-          <option>Other</option>
+          <optgroup label="African Music">
+            <option>Afrobeats</option>
+            <option>Afro-Piano</option>
+            <option>Amapiano</option>
+            <option>Afro-pop</option>
+            <option>Afro-house</option>
+            <option>Afro-fusion</option>
+            <option>Afro-soul</option>
+            <option>Highlife</option>
+            <option>Hiplife</option>
+            <option>Dancehall</option>
+            <option>Reggae</option>
+            <option>Traditional/Cultural</option>
+          </optgroup>
+
+          <optgroup label="Hip-Hop & Rap">
+            <option>Hip-Hop</option>
+            <option>Rap</option>
+            <option>Trap</option>
+            <option>Drill</option>
+          </optgroup>
+
+          <optgroup label="Pop & Alternative">
+            <option>Pop</option>
+            <option>Alternative</option>
+            <option>Indie</option>
+            <option>Rock</option>
+          </optgroup>
+
+          <optgroup label="R&B & Soul">
+            <option>R&B</option>
+            <option>Soul</option>
+          </optgroup>
+
+          <optgroup label="Gospel & Inspirational">
+            <option>Gospel</option>
+            <option>Spoken Word</option>
+          </optgroup>
+
+          <optgroup label="Electronic & Dance">
+            <option>Electronic/EDM</option>
+            <option>House</option>
+            <option>Deep House</option>
+            <option>Techno</option>
+            <option>Dance</option>
+          </optgroup>
+
+          <optgroup label="Acoustic & Instrumental">
+            <option>Lo-fi</option>
+            <option>Instrumental</option>
+            <option>Acoustic</option>
+          </optgroup>
+
+          <optgroup label="Jazz & Blues">
+            <option>Jazz</option>
+            <option>Blues</option>
+          </optgroup>
+
+          <optgroup label="Country & Folk">
+            <option>Country</option>
+            <option>Folk</option>
+          </optgroup>
+
+          <optgroup label="Classical">
+            <option>Classical</option>
+          </optgroup>
+
+          <optgroup label="Asian Music">
+            <option>K-Pop</option>
+            <option>J-Pop</option>
+          </optgroup>
+
+          <optgroup label="Latin Music">
+            <option>Latin</option>
+            <option>Reggaeton</option>
+          </optgroup>
+
+          <optgroup label="Other">
+            <option>Other</option>
+          </optgroup>
         </select>
       </label>
 
