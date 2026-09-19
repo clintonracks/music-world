@@ -1,5 +1,6 @@
 import { supabase } from './supabase';
 import { App as CapacitorApp } from '@capacitor/app';
+import { Filesystem } from '@capacitor/filesystem';
 import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { createRoot } from 'react-dom/client';
 import { registerPlugin } from '@capacitor/core';
@@ -20,7 +21,59 @@ async function testSupabaseConnection() {
 testSupabaseConnection();
 
 
-const DeviceMusic = registerPlugin('DeviceMusic');	
+const DeviceMusic = registerPlugin('DeviceMusic');
+
+async function copySelectedFileToCache(uri) {
+  if (!uri) {
+    throw new Error('No file URI provided.');
+  }
+
+  const result = await DeviceMusic.copyFileToCache({ uri });
+
+  if (!result?.path) {
+    throw new Error('The selected file could not be prepared for upload.');
+  }
+
+  return result;
+}	
+async function uploadCachedFile(cachePath, objectPath, contentType) {
+  if (!cachePath) {
+    throw new Error('No cached file is available for upload.');
+  }
+
+  const file = await Filesystem.readFile({
+    path: cachePath
+  });
+
+  if (!file?.data) {
+    throw new Error('Unable to read the cached file.');
+  }
+
+  const byteCharacters = atob(file.data);
+  const byteNumbers = new Uint8Array(byteCharacters.length);
+
+  for (let i = 0; i < byteCharacters.length; i++) {
+    byteNumbers[i] = byteCharacters.charCodeAt(i);
+  }
+
+  const blob = new Blob([byteNumbers], {
+    type: contentType || 'application/octet-stream'
+  });
+
+  const { data, error } = await supabase.storage
+    .from('Music')
+    .upload(objectPath, blob, {
+      contentType: contentType || 'application/octet-stream',
+      upsert: false
+    });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return data;
+}
+
 const artists = [
   { rank: 1, name: 'Luna Ray', country: 'Nigeria', continent: 'Africa', song: 'After Midnight', plays: '2.8M' },
   { rank: 2, name: 'Jay K', country: 'Zambia', continent: 'Africa', song: 'No Limits', plays: '2.4M' },
@@ -1823,11 +1876,19 @@ function formatTime(ms) {
           onClick={async () => {
             try {
               const result = await DeviceMusic.pickArtwork();
-              if (result?.uri) {
-                setArtistReleaseArtwork(result);
-              } else {
+
+              if (!result?.uri) {
                 alert('No artwork was selected.');
+                return;
               }
+
+              const cached = await copySelectedFileToCache(result.uri);
+
+              setArtistReleaseArtwork({
+                ...result,
+                cachePath: cached.path,
+                cacheName: cached.name
+              });
             } catch (error) {
               alert('Unable to select artwork.\n\nDetails: ' + (error?.message || String(error)));
             }
@@ -1854,11 +1915,19 @@ function formatTime(ms) {
           try {
             const result = await DeviceMusic.pickAudio();
             const selected = result?.songs?.[0] || null;
-            setArtistReleaseAudio(selected);
 
             if (!selected) {
               alert('No music file was selected.');
+              return;
             }
+
+            const cached = await copySelectedFileToCache(selected.uri);
+
+            setArtistReleaseAudio({
+              ...selected,
+              cachePath: cached.path,
+              cacheName: cached.name
+            });
           } catch (error) {
             alert('Unable to select music file.\n\nDetails: ' + (error?.message || String(error)));
           }
@@ -1898,7 +1967,7 @@ function formatTime(ms) {
       <button
         type="button"
         className="primary artistReleaseContinue"
-        onClick={() => {
+        onClick={async () => {
           if (artistReleaseStep < 2) {
             setArtistReleaseStep(2);
             return;
@@ -1929,39 +1998,129 @@ function formatTime(ms) {
             return;
           }
 
-          const newRelease = {
-            id: Date.now().toString(),
-            title: artistReleaseTitle.trim(),
-            artist: artistReleaseArtist.trim(),
-            type: artistReleaseType,
-            genre: artistReleaseGenre,
-            audio: artistReleaseAudio,
-            artwork: artistReleaseArtwork,
-            status: 'Draft',
-            createdAt: new Date().toISOString()
-          };
+          try {
+            const { data: sessionData, error: sessionError } =
+              await supabase.auth.getSession();
 
-          const updatedReleases = [newRelease, ...artistReleases];
-          setArtistReleases(updatedReleases);
-          localStorage.setItem(
-            'musicWorldArtistReleases',
-            JSON.stringify(updatedReleases)
-          );
+            if (sessionError) {
+              throw new Error(sessionError.message);
+            }
 
-          localStorage.removeItem('musicWorldArtistReleaseDraft');
-          setArtistReleaseDraft(null);
+            const user = sessionData?.session?.user;
 
-          setArtistReleaseTitle('');
-          setArtistReleaseArtist('');
-          setArtistReleaseType('Single');
-          setArtistReleaseGenre('');
-          setArtistReleaseAudio(null);
-          setArtistReleaseArtwork(null);
-          setArtistReleaseStep(1);
-          setArtistReleaseOpen(false);
-          setArtistMusicOpen(true);
+            if (!user) {
+              alert('Please sign in to your artist account first.');
+              return;
+            }
 
-          alert('Release saved successfully.');
+            if (!artistReleaseAudio.cachePath) {
+              throw new Error('The selected audio file is not ready for upload.');
+            }
+
+            if (!artistReleaseArtwork.cachePath) {
+              throw new Error('The selected artwork is not ready for upload.');
+            }
+
+            const timestamp = Date.now();
+
+            const audioName =
+              artistReleaseAudio.cacheName ||
+              artistReleaseAudio.title ||
+              'audio-file';
+
+            const artworkName =
+              artistReleaseArtwork.cacheName ||
+              artistReleaseArtwork.name ||
+              'artwork-file';
+
+            const safeAudioName = audioName.replace(
+              /[^a-zA-Z0-9._-]/g,
+              '_'
+            );
+
+            const safeArtworkName = artworkName.replace(
+              /[^a-zA-Z0-9._-]/g,
+              '_'
+            );
+
+            const audioPath =
+              `${user.id}/audio/${timestamp}-${safeAudioName}`;
+
+            const artworkPath =
+              `${user.id}/artwork/${timestamp}-${safeArtworkName}`;
+
+            await uploadCachedFile(
+              artistReleaseAudio.cachePath,
+              audioPath,
+              artistReleaseAudio.mimeType || 'audio/mpeg'
+            );
+
+            await uploadCachedFile(
+              artistReleaseArtwork.cachePath,
+              artworkPath,
+              artistReleaseArtwork.mimeType || 'image/jpeg'
+            );
+
+            const { data: song, error: songError } =
+              await supabase
+                .from('songs')
+                .insert({
+                  title: artistReleaseTitle.trim(),
+                  artist: artistReleaseArtist.trim(),
+                  genre: artistReleaseGenre,
+                  audio_url: audioPath,
+                  artwork_url: artworkPath,
+                  artist_id: user.id
+                })
+                .select()
+                .single();
+
+            if (songError) {
+              throw new Error(songError.message);
+            }
+
+            const newRelease = {
+              id: song.id,
+              title: song.title,
+              artist: song.artist,
+              type: artistReleaseType,
+              genre: song.genre,
+              audio: artistReleaseAudio,
+              artwork: artistReleaseArtwork,
+              audioPath,
+              artworkPath,
+              status: 'Published',
+              createdAt: song.created_at
+            };
+
+            const updatedReleases = [newRelease, ...artistReleases];
+            setArtistReleases(updatedReleases);
+
+            localStorage.setItem(
+              'musicWorldArtistReleases',
+              JSON.stringify(updatedReleases)
+            );
+
+            localStorage.removeItem('musicWorldArtistReleaseDraft');
+            setArtistReleaseDraft(null);
+
+            setArtistReleaseTitle('');
+            setArtistReleaseArtist('');
+            setArtistReleaseType('Single');
+            setArtistReleaseGenre('');
+            setArtistReleaseAudio(null);
+            setArtistReleaseArtwork(null);
+            setArtistReleaseStep(1);
+            setArtistReleaseOpen(false);
+            setArtistMusicOpen(true);
+
+            alert('Release uploaded successfully.');
+          } catch (error) {
+            alert(
+              'Unable to upload release.\n\nDetails: ' +
+              (error?.message || String(error))
+            );
+          }
         }}
       >
         {artistReleaseStep === 1 ? 'Continue →' : 'Submit Release'}
