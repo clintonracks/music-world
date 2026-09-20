@@ -2392,9 +2392,33 @@ function formatTime(ms) {
               ) : onlineSongs.length > 0 ? (
                 <div className="chartList">
                   {onlineSongs.map(song => (
-                    <div className="row" key={song.id}>
-                      <strong>♫</strong>
+                    <div
+                      className="row onlineSongRow"
+                      key={song.id}
+                      onClick={() => {
+                        if (!song.audioUrl) {
+                          alert('This song is not available for playback yet.');
+                          return;
+                        }
 
+                        startSong({
+                          ...song,
+                          uri: song.audioUrl,
+                          title: song.title,
+                          artist: song.artist,
+                          album: 'Music World',
+                          artwork: song.artworkUrl
+                        });
+                      }}
+                      role="button"
+                      tabIndex="0"
+                      onKeyDown={e => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          e.currentTarget.click();
+                        }
+                      }}
+                    >
                       <div className="avatar">
                         {song.artworkUrl ? (
                           <img
@@ -2408,31 +2432,8 @@ function formatTime(ms) {
 
                       <div className="meta">
                         <b>{song.title}</b>
-                        <small>
-                          {song.artist}
-                          {song.genre ? ` · ${song.genre}` : ''}
-                        </small>
+                        <small>{song.artist}</small>
                       </div>
-
-                      <button
-                        onClick={() => {
-                          if (!song.audioUrl) {
-                            alert('This song is not available for playback yet.');
-                            return;
-                          }
-
-                          startSong({
-                            ...song,
-                            uri: song.audioUrl,
-                            title: song.title,
-                            artist: song.artist,
-                            album: song.genre || 'Music World',
-                            artwork: song.artworkUrl
-                          });
-                        }}
-                      >
-                        ▶
-                      </button>
                     </div>
                   ))}
                 </div>
