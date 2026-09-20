@@ -3534,7 +3534,16 @@ function formatTime(ms) {
           className="player"
           onClick={() => setExpandedPlayer(true)}
         >
-          <div className="cover">♪</div>
+          <div className="cover">
+            {playing.artwork ? (
+              <img
+                src={playing.artwork}
+                alt=""
+              />
+            ) : (
+              '♪'
+            )}
+          </div>
 
           <div className="pmeta">
             <b>{playing.title || playing.song || 'Unknown Song'}</b>
@@ -3587,7 +3596,16 @@ function formatTime(ms) {
             ↓
           </button>
 
-          <div className="largeCover">♪</div>
+          <div className="largeCover">
+            {playing.artwork ? (
+              <img
+                src={playing.artwork}
+                alt=""
+              />
+            ) : (
+              '♪'
+            )}
+          </div>
 
           <p className="eyebrow">NOW PLAYING</p>
           <h1>{playing.title || playing.song || 'Unknown Song'}</h1>

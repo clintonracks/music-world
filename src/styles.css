@@ -4114,3 +4114,26 @@ section {
   white-space: nowrap;
 }
 
+
+/* Streaming player artwork */
+.player .cover img,
+.fullPlayer .largeCover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.player .cover {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.fullPlayer .largeCover {
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
