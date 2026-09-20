@@ -331,10 +331,14 @@ const [accountInfoOpen, setAccountInfoOpen] = useState(false);
           let artworkUrl = null;
 
           if (song.audio_url) {
-            const { data: audioData } =
+            const { data: audioData, error: audioError } =
               await supabase.storage
                 .from('music')
                 .createSignedUrl(song.audio_url, 3600);
+
+            if (audioError) {
+              throw new Error(`Audio signed URL error: ${audioError.message}`);
+            }
 
             audioUrl = audioData?.signedUrl || null;
           }
