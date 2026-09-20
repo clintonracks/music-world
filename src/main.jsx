@@ -309,6 +309,66 @@ const [accountInfoOpen, setAccountInfoOpen] = useState(false);
   const [deviceMusicOpen, setDeviceMusicOpen] = useState(false);
   const [deviceMusicLoading, setDeviceMusicLoading] = useState(false);
   const [deviceMusicSearch, setDeviceMusicSearch] = useState('');
+  const [onlineSongs, setOnlineSongs] = useState([]);
+  const [onlineMusicLoading, setOnlineMusicLoading] = useState(false);
+
+  async function loadOnlineSongs() {
+    setOnlineMusicLoading(true);
+
+    try {
+      const { data, error } = await supabase
+        .from('songs')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      const songsWithUrls = await Promise.all(
+        (data || []).map(async (song) => {
+          let audioUrl = null;
+          let artworkUrl = null;
+
+          if (song.audio_url) {
+            const { data: audioData } =
+              await supabase.storage
+                .from('music')
+                .createSignedUrl(song.audio_url, 3600);
+
+            audioUrl = audioData?.signedUrl || null;
+          }
+
+          if (song.artwork_url) {
+            const { data: artworkData } =
+              await supabase.storage
+                .from('music')
+                .createSignedUrl(song.artwork_url, 3600);
+
+            artworkUrl = artworkData?.signedUrl || null;
+          }
+
+          return {
+            ...song,
+            audioUrl,
+            artworkUrl
+          };
+        })
+      );
+
+      setOnlineSongs(songsWithUrls);
+    } catch (error) {
+      console.error('Unable to load online songs:', error);
+    } finally {
+      setOnlineMusicLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    loadOnlineSongs();
+  }, []);
+
+
   const [playlists, setPlaylists] = useState([]);
   const [playlistOpen, setPlaylistOpen] = useState(false);
   const [activePlaylistId, setActivePlaylistId] = useState(null);
@@ -503,21 +563,44 @@ function formatTime(ms) {
   async function playNext(e) {
     if (e) e.stopPropagation();
 
-    if (!playing?.uri || !deviceMusic.length) return;
+    if (!playing?.uri) return;
 
-    const currentIndex = deviceMusic.findIndex(
-      song => song?.uri === playing?.uri
+    const isOnlineSong = onlineSongs.some(
+      song => song?.audioUrl === playing?.uri
     );
 
-    if (currentIndex >= 0 && currentIndex < deviceMusic.length - 1) {
-      await startSong(deviceMusic[currentIndex + 1], true);
+    const currentList = isOnlineSong ? onlineSongs : deviceMusic;
+
+    if (!currentList.length) return;
+
+    const currentIndex = currentList.findIndex(song =>
+      isOnlineSong
+        ? song?.audioUrl === playing?.uri
+        : song?.uri === playing?.uri
+    );
+
+    if (currentIndex >= 0 && currentIndex < currentList.length - 1) {
+      const nextSong = currentList[currentIndex + 1];
+
+      if (isOnlineSong) {
+        await startSong({
+          ...nextSong,
+          uri: nextSong.audioUrl,
+          title: nextSong.title,
+          artist: nextSong.artist,
+          album: nextSong.genre || 'Music World',
+          artwork: nextSong.artworkUrl
+        }, true);
+      } else {
+        await startSong(nextSong, true);
+      }
     }
   }
 
   async function playPrevious(e) {
     if (e) e.stopPropagation();
 
-    if (!playing?.uri || !deviceMusic.length) return;
+    if (!playing?.uri) return;
 
     if (currentTime > 3000) {
       try {
@@ -529,12 +612,35 @@ function formatTime(ms) {
       return;
     }
 
-    const currentIndex = deviceMusic.findIndex(
-      song => song?.uri === playing?.uri
+    const isOnlineSong = onlineSongs.some(
+      song => song?.audioUrl === playing?.uri
+    );
+
+    const currentList = isOnlineSong ? onlineSongs : deviceMusic;
+
+    if (!currentList.length) return;
+
+    const currentIndex = currentList.findIndex(song =>
+      isOnlineSong
+        ? song?.audioUrl === playing?.uri
+        : song?.uri === playing?.uri
     );
 
     if (currentIndex > 0) {
-      await startSong(deviceMusic[currentIndex - 1], true);
+      const previousSong = currentList[currentIndex - 1];
+
+      if (isOnlineSong) {
+        await startSong({
+          ...previousSong,
+          uri: previousSong.audioUrl,
+          title: previousSong.title,
+          artist: previousSong.artist,
+          album: previousSong.genre || 'Music World',
+          artwork: previousSong.artworkUrl
+        }, true);
+      } else {
+        await startSong(previousSong, true);
+      }
     }
   }
   function openPlaylistPicker(song) {
@@ -2272,6 +2378,68 @@ function formatTime(ms) {
         {tab === 'Discover' && (
           <>
             <Title title="Explore the World" />
+
+            <Section title="Online Music">
+              {onlineMusicLoading ? (
+                <div className="empty">
+                  <div>♫</div>
+                  <p>Loading music...</p>
+                </div>
+              ) : onlineSongs.length > 0 ? (
+                <div className="chartList">
+                  {onlineSongs.map(song => (
+                    <div className="row" key={song.id}>
+                      <strong>♫</strong>
+
+                      <div className="avatar">
+                        {song.artworkUrl ? (
+                          <img
+                            src={song.artworkUrl}
+                            alt=""
+                          />
+                        ) : (
+                          song.artist?.[0] || '♪'
+                        )}
+                      </div>
+
+                      <div className="meta">
+                        <b>{song.title}</b>
+                        <small>
+                          {song.artist}
+                          {song.genre ? ` · ${song.genre}` : ''}
+                        </small>
+                      </div>
+
+                      <button
+                        onClick={() => {
+                          if (!song.audioUrl) {
+                            alert('This song is not available for playback yet.');
+                            return;
+                          }
+
+                          startSong({
+                            ...song,
+                            uri: song.audioUrl,
+                            title: song.title,
+                            artist: song.artist,
+                            album: song.genre || 'Music World',
+                            artwork: song.artworkUrl
+                          });
+                        }}
+                      >
+                        ▶
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="empty">
+                  <div>♫</div>
+                  <h2>No online music yet</h2>
+                  <p>Published artist releases will appear here.</p>
+                </div>
+              )}
+            </Section>
 
             <div className="grid">
               {continents.map(c => (
