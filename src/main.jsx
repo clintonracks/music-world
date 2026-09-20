@@ -61,7 +61,7 @@ async function uploadCachedFile(cachePath, objectPath, contentType) {
   });
 
   const { data, error } = await supabase.storage
-    .from('Music')
+    .from('music')
     .upload(objectPath, blob, {
       contentType: contentType || 'application/octet-stream',
       upsert: false
