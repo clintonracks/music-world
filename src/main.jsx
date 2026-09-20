@@ -409,14 +409,35 @@ const [accountInfoOpen, setAccountInfoOpen] = useState(false);
 
   const filteredSearch = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return artists;
 
-    return artists.filter(a =>
-      `${a.name} ${a.song}`
-        .toLowerCase()
-        .includes(q)
-    );
-  }, [search]);
+    const artistResults = artists
+      .filter(a =>
+        !q ||
+        `${a.name} ${a.song}`
+          .toLowerCase()
+          .includes(q)
+      )
+      .map(a => ({
+        ...a,
+        searchType: 'artist'
+      }));
+
+    const onlineSongResults = onlineSongs
+      .filter(song =>
+        !q ||
+        `${song.title || ''} ${song.artist || ''}`
+          .toLowerCase()
+          .includes(q)
+      )
+      .map(song => ({
+        ...song,
+        name: song.artist || 'Unknown Artist',
+        song: song.title || 'Unknown Song',
+        searchType: 'online'
+      }));
+
+    return [...artistResults, ...onlineSongResults];
+  }, [search, onlineSongs]);
 
   const continentArtists = artists.filter(a => a.continent === chart);
 
@@ -3425,10 +3446,25 @@ function formatTime(ms) {
 
           <div className="searchResults">
             {filteredSearch.map(a => (
-              <div className="searchResult" key={a.rank}>
+              <div
+                className="searchResult"
+                key={a.searchType === 'online' ? `online-${a.id}` : `artist-${a.rank}`}
+              >
                 <button
                   onClick={() => {
-                    startSong(a);
+                    if (a.searchType === 'online') {
+                      startSong({
+                        ...a,
+                        uri: a.audioUrl,
+                        title: a.title,
+                        artist: a.artist,
+                        album: 'Music World',
+                        artwork: a.artworkUrl
+                      });
+                    } else {
+                      startSong(a);
+                    }
+
                     setSearchOpen(false);
                   }}
                 >
