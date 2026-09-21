@@ -4022,6 +4022,24 @@ section {
 }
 
 
+/* Offline downloads artwork */
+.songRow .avatar {
+  width: 54px;
+  height: 54px;
+  flex: 0 0 54px;
+  border-radius: 12px;
+  background: #333;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.songRow .avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
 /* Online music artwork */
 .row .avatar {
   overflow: hidden;
