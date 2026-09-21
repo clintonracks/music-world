@@ -128,7 +128,13 @@ function App() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [signedIn, setSignedIn] = useState(false);
+  const [listenerName, setListenerName] = useState('');
+  const [listenerEmail, setListenerEmail] = useState('');
+  const [listenerPassword, setListenerPassword] = useState('');
+  const [listenerAuthLoading, setListenerAuthLoading] = useState(false);
+  const [listenerAuthError, setListenerAuthError] = useState('');
   const [showSignIn, setShowSignIn] = useState(false);
+  const [listenerAuthMode, setListenerAuthMode] = useState('signin');
   const [artistOpen, setArtistOpen] = useState(false);
   const [artistAuth, setArtistAuth] = useState(null);
   const [artistAccount, setArtistAccount] = useState(() => {
@@ -170,11 +176,38 @@ function App() {
   }, []);
 
   useEffect(() => {
+    if (!artistAccount?.id) {
+      setArtistFollowerCount(0);
+      return;
+    }
+
+    const loadArtistFollowers = async () => {
+      const { count, error } = await supabase
+        .from('artist_followers')
+        .select('*', { count: 'exact', head: true })
+        .eq('artist_id', artistAccount.id);
+
+      if (error) {
+        console.error('Unable to load artist followers:', error.message);
+        return;
+      }
+
+      setArtistFollowerCount(count || 0);
+    };
+
+    loadArtistFollowers();
+  }, [artistAccount?.id]);
+
+  useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
-      const user = data?.session?.user;
+      const session = data?.session;
+      const user = session?.user;
+
+      setSignedIn(Boolean(session));
 
       if (user) {
         setArtistAccount({
+          id: user.id,
           email: user.email || '',
           artistName: user.user_metadata?.artistName || 'Music World Artist',
           createdAt: user.created_at || new Date().toISOString()
@@ -185,6 +218,8 @@ function App() {
     const { data: listener } = supabase.auth.onAuthStateChange(
       (_event, session) => {
         const user = session?.user;
+
+        setSignedIn(Boolean(session));
 
         if (user) {
           setArtistAccount({
@@ -217,6 +252,8 @@ function App() {
   const [artistProfileGenre, setArtistProfileGenre] = useState('');
   const [artistProfileCountry, setArtistProfileCountry] = useState('');
   const [artistProfileBio, setArtistProfileBio] = useState('');
+  const [artistFollowerCount, setArtistFollowerCount] = useState(0);
+  const [artistFollowing, setArtistFollowing] = useState(false);
 
   const [artistMusicOpen, setArtistMusicOpen] = useState(false);
   const [artistProfileOpen, setArtistProfileOpen] = useState(false);
@@ -1782,8 +1819,12 @@ function formatTime(ms) {
 
       <div className="artistProfileIdentity">
         <span className="artistProfileTag">ARTIST</span>
-        <h2>Your Artist Name</h2>
-        <p>Your country • Your genre</p>
+        <h2>{artistProfile.name || artistAccount?.artistName || 'Your Artist Name'}</h2>
+        <p>
+          {artistProfile.country || 'Country not set'}
+          {' • '}
+          {artistProfile.genre || 'Genre not set'}
+        </p>
       </div>
 
       <button
@@ -1907,22 +1948,48 @@ function formatTime(ms) {
       <div className="artistProfileFields">
         <div>
           <span>Artist Name</span>
-          <b>Your Artist Name</b>
+          <b>{artistProfile.name || artistAccount?.artistName || 'Not set yet'}</b>
         </div>
 
         <div>
           <span>Genre</span>
-          <b>Not set yet</b>
+          <b>{artistProfile.genre || 'Not set yet'}</b>
         </div>
 
         <div>
           <span>Country</span>
-          <b>Not set yet</b>
+          <b>{artistProfile.country || 'Not set yet'}</b>
         </div>
 
         <div>
           <span>Bio</span>
-          <b>Add your artist story</b>
+          <b>{artistProfile.bio || 'Add your artist story'}</b>
+        </div>
+      </div>
+    </div>
+    )}
+
+    {!artistProfileEditOpen && (
+    <div className="artistProfileSection">
+      <div className="artistProfileSectionTitle">
+        <div>
+          <h2>Audience</h2>
+          <small>Your Music World audience</small>
+        </div>
+      </div>
+
+      <div className="artistAudienceStats">
+        <div className="artistAudienceStat">
+          <strong>{artistFollowerCount}</strong>
+          <span>Followers</span>
+        </div>
+        <div className="artistAudienceStat">
+          <strong>0</strong>
+          <span>Listeners</span>
+        </div>
+        <div className="artistAudienceStat">
+          <strong>0</strong>
+          <span>Streams</span>
         </div>
       </div>
     </div>
@@ -3183,27 +3250,143 @@ function formatTime(ms) {
 
         {showSignIn && (
           <div className="profile">
-            <Title title="Sign In" />
+            <Title title={listenerAuthMode === 'signin' ? 'Sign In' : 'Create Account'} />
 
             <div className="accountForm">
+              {listenerAuthMode === 'create' && (
+                <input
+                  placeholder="Your name"
+                  type="text"
+                  value={listenerName}
+                  onChange={(e) => {
+                    setListenerName(e.target.value);
+                    setListenerAuthError('');
+                  }}
+                />
+              )}
+
               <input
                 placeholder="Email address"
                 type="email"
+                value={listenerEmail}
+                onChange={(e) => {
+                  setListenerEmail(e.target.value);
+                  setListenerAuthError('');
+                }}
               />
 
               <input
                 placeholder="Password"
                 type="password"
+                value={listenerPassword}
+                onChange={(e) => {
+                  setListenerPassword(e.target.value);
+                  setListenerAuthError('');
+                }}
               />
 
               <button
                 className="primary"
-                onClick={() => {
-                  setSignedIn(true);
-                  setShowSignIn(false);
+                disabled={listenerAuthLoading}
+                onClick={async () => {
+                  const email = listenerEmail.trim();
+
+                  if (listenerAuthMode === 'create') {
+                    const name = listenerName.trim();
+
+                    if (!name || !email || !listenerPassword) {
+                      setListenerAuthError('Please enter your name, email and password.');
+                      return;
+                    }
+
+                    if (listenerPassword.length < 6) {
+                      setListenerAuthError('Password must be at least 6 characters.');
+                      return;
+                    }
+
+                    setListenerAuthLoading(true);
+                    setListenerAuthError('');
+
+                    const { data, error } = await supabase.auth.signUp({
+                      email,
+                      password: listenerPassword,
+                      options: {
+                        data: {
+                          displayName: name
+                        }
+                      }
+                    });
+
+                    setListenerAuthLoading(false);
+
+                    if (error) {
+                      setListenerAuthError(error.message);
+                      return;
+                    }
+
+                    if (data?.session) {
+                      setSignedIn(true);
+                      setShowSignIn(false);
+                      setListenerPassword('');
+                      setListenerName('');
+                    } else {
+                      setListenerAuthError(
+                        'Account created. Please check your email to confirm your account.'
+                      );
+                    }
+
+                    return;
+                  }
+
+                  if (!email || !listenerPassword) {
+                    setListenerAuthError('Please enter your email and password.');
+                    return;
+                  }
+
+                  setListenerAuthLoading(true);
+                  setListenerAuthError('');
+
+                  const { data, error } = await supabase.auth.signInWithPassword({
+                    email,
+                    password: listenerPassword
+                  });
+
+                  setListenerAuthLoading(false);
+
+                  if (error) {
+                    setListenerAuthError(error.message);
+                    return;
+                  }
+
+                  if (data?.session) {
+                    setSignedIn(true);
+                    setShowSignIn(false);
+                    setListenerPassword('');
+                  }
                 }}
               >
-                Sign In
+                {listenerAuthLoading ? (listenerAuthMode === 'signin' ? 'Signing In...' : 'Creating Account...') : (listenerAuthMode === 'signin' ? 'Sign In' : 'Create Account')}
+              </button>
+
+              {listenerAuthError && (
+                <p className="authError">
+                  {listenerAuthError}
+                </p>
+              )}
+
+              <button
+                type="button"
+                className="authSwitchButton"
+                onClick={() => {
+                  setListenerAuthMode(
+                    mode => mode === 'signin' ? 'create' : 'signin'
+                  );
+                  setListenerAuthError('');
+                }}
+              >
+                {listenerAuthMode === 'signin'
+                  ? 'New to Music World? Create an account'
+                  : 'Already have an account? Sign in'}
               </button>
 
               <p>
