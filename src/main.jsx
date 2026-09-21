@@ -257,6 +257,8 @@ function App() {
 
   const [artistMusicOpen, setArtistMusicOpen] = useState(false);
   const [artistProfileOpen, setArtistProfileOpen] = useState(false);
+  const [publicArtistOpen, setPublicArtistOpen] = useState(false);
+  const [publicArtist, setPublicArtist] = useState(null);
   const [artistAnalyticsOpen, setArtistAnalyticsOpen] = useState(false);
   const [artistAnalyticsRange, setArtistAnalyticsRange] = useState('Overview');
   const [artistAudienceOpen, setArtistAudienceOpen] = useState(false);
@@ -326,6 +328,19 @@ useEffect(() => {
   artistReleaseStep
 ]);
 
+
+function openPublicArtist(artist) {
+  if (!artist) return;
+
+  setPublicArtist(artist);
+  setPublicArtistOpen(true);
+  setArtistOpen(false);
+  setArtistProfileOpen(false);
+  setArtistMusicOpen(false);
+  setArtistAnalyticsOpen(false);
+  setArtistAudienceOpen(false);
+  setArtistEarningsOpen(false);
+}
 
 function openArtistSection(section) {
   setArtistMusicOpen(section === 'music');
@@ -1814,7 +1829,21 @@ function formatTime(ms) {
       </p>
     </div>
 
-    <div className="artistProfilePreview">
+    <div
+  className="artistProfilePreview"
+  onClick={() => openPublicArtist({
+    ...artistProfile,
+    artistName: artistProfile.name || artistAccount?.artistName || 'Artist'
+  })}
+  role="button"
+  tabIndex="0"
+  onKeyDown={e => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      e.currentTarget.click();
+    }
+  }}
+>
       <div className="artistProfileAvatar">🎤</div>
 
       <div className="artistProfileIdentity">
@@ -3246,6 +3275,83 @@ function formatTime(ms) {
               </div>
             )}
           </>
+        )}
+
+        {publicArtistOpen && publicArtist && (
+          <div className="publicArtistPage">
+            <div className="publicArtistHeader">
+              <button
+                className="artistBack"
+                type="button"
+                onClick={() => setPublicArtistOpen(false)}
+              >
+                ← Back
+              </button>
+
+              <span className="artistDashboardLabel">ARTIST</span>
+            </div>
+
+            <div className="publicArtistHero">
+              <div className="publicArtistAvatar">
+                🎤
+              </div>
+
+              <div className="publicArtistIdentity">
+                <span className="artistProfileTag">ARTIST</span>
+                <h1>{publicArtist.name || publicArtist.artistName || 'Artist'}</h1>
+                <p>
+                  {publicArtist.country || 'Country not set'}
+                  {' • '}
+                  {publicArtist.genre || 'Genre not set'}
+                </p>
+              </div>
+
+              <button
+                className="primary publicArtistFollow"
+                type="button"
+              >
+                Follow
+              </button>
+            </div>
+
+            <div className="publicArtistStats">
+              <div>
+                <strong>0</strong>
+                <span>Followers</span>
+              </div>
+
+              <div>
+                <strong>0</strong>
+                <span>Listeners</span>
+              </div>
+
+              <div>
+                <strong>0</strong>
+                <span>Streams</span>
+              </div>
+            </div>
+
+            <section className="publicArtistSection">
+              <h2>About</h2>
+              <p>
+                {publicArtist.bio || 'This artist has not added a bio yet.'}
+              </p>
+            </section>
+
+            <section className="publicArtistSection">
+              <div className="publicArtistSectionHeader">
+                <div>
+                  <h2>Releases</h2>
+                  <small>Music from this artist</small>
+                </div>
+              </div>
+
+              <div className="empty">
+                <div>♫</div>
+                <p>No releases yet.</p>
+              </div>
+            </section>
+          </div>
         )}
 
         {showSignIn && (

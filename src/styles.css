@@ -4194,3 +4194,131 @@ section {
   align-items: center;
   justify-content: center;
 }
+
+.publicArtistPage {
+  padding: 18px 16px 110px;
+  max-width: 760px;
+  margin: 0 auto;
+}
+
+.publicArtistHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 22px;
+}
+
+.publicArtistHero {
+  text-align: center;
+  padding: 8px 0 24px;
+}
+
+.publicArtistAvatar {
+  width: 112px;
+  height: 112px;
+  margin: 0 auto 16px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #2b2b2b;
+  border: 2px solid #444;
+  font-size: 42px;
+}
+
+.publicArtistIdentity h1 {
+  margin: 6px 0;
+  font-size: 28px;
+  line-height: 1.15;
+}
+
+.publicArtistIdentity p {
+  margin: 0;
+  color: #aaa;
+  font-size: 14px;
+}
+
+.publicArtistFollow {
+  margin-top: 18px;
+  min-width: 150px;
+  border-radius: 22px;
+}
+
+.publicArtistStats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin: 8px 0 24px;
+}
+
+.publicArtistStats > div {
+  background: #242424;
+  border: 1px solid #353535;
+  border-radius: 14px;
+  padding: 14px 8px;
+  text-align: center;
+}
+
+.publicArtistStats strong {
+  display: block;
+  font-size: 20px;
+}
+
+.publicArtistStats span {
+  display: block;
+  margin-top: 4px;
+  color: #999;
+  font-size: 12px;
+}
+
+.publicArtistSection {
+  margin-top: 18px;
+  padding: 18px;
+  background: #202020;
+  border: 1px solid #333;
+  border-radius: 16px;
+}
+
+.publicArtistSection h2 {
+  margin: 0 0 10px;
+  font-size: 19px;
+}
+
+.publicArtistSection p {
+  margin: 0;
+  color: #bdbdbd;
+  line-height: 1.6;
+  font-size: 14px;
+}
+
+.publicArtistSectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.publicArtistSectionHeader h2 {
+  margin-bottom: 3px;
+}
+
+.publicArtistSectionHeader small {
+  color: #888;
+}
+
+@media (max-width: 420px) {
+  .publicArtistPage {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  .publicArtistAvatar {
+    width: 96px;
+    height: 96px;
+    font-size: 36px;
+  }
+
+  .publicArtistIdentity h1 {
+    font-size: 24px;
+  }
+}
+
