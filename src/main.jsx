@@ -310,9 +310,90 @@ const [accountInfoOpen, setAccountInfoOpen] = useState(false);
   const [deviceMusicLoading, setDeviceMusicLoading] = useState(false);
   const [deviceMusicSearch, setDeviceMusicSearch] = useState('');
   const [onlineSongs, setOnlineSongs] = useState([]);
+const [offlineSongs, setOfflineSongs] = useState(() => {
+  try {
+    return JSON.parse(
+      localStorage.getItem('musicWorldOfflineSongs') || '[]'
+    );
+  } catch {
+    return [];
+  }
+});
   const [onlineMusicLoading, setOnlineMusicLoading] = useState(false);
+const [offlineMusicLoading, setOfflineMusicLoading] = useState(false);
+  const [offlineMusicOpen, setOfflineMusicOpen] = useState(false);
 
-  async function loadOnlineSongs() {
+  async function downloadSongForOffline(song) {
+  if (!song?.audioUrl || !song?.id) {
+    throw new Error('This song is not available for offline download.');
+  }
+
+  setOfflineMusicLoading(true);
+
+  try {
+    const response = await fetch(song.audioUrl);
+
+    if (!response.ok) {
+      throw new Error('Unable to download the song.');
+    }
+
+    const blob = await response.blob();
+    const dataUrl = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+
+      reader.onloadend = () => resolve(reader.result);
+      reader.onerror = () => reject(
+        new Error('Unable to prepare the song for offline storage.')
+      );
+
+      reader.readAsDataURL(blob);
+    });
+
+    const base64 = dataUrl.split(',')[1];
+
+    const fileName =
+      `${song.id}-${(song.title || 'song')
+        .replace(/[^a-zA-Z0-9._-]/g, '_')}.mp3`;
+
+    await Filesystem.writeFile({
+      path: `offline/${fileName}`,
+      data: base64,
+      directory: 'DATA',
+      recursive: true
+    });
+
+    const offlineSong = {
+      ...song,
+      offlineFileName: fileName,
+      downloadedAt: new Date().toISOString()
+    };
+
+    const updated = [
+      ...offlineSongs.filter(item => item.id !== song.id),
+      offlineSong
+    ];
+
+    setOfflineSongs(updated);
+
+    localStorage.setItem(
+      'musicWorldOfflineSongs',
+      JSON.stringify(updated)
+    );
+
+    alert('Downloaded for offline listening.');
+  } catch (error) {
+    console.error('Offline download error:', error);
+
+    alert(
+      'Unable to download this song.\n\nDetails: ' +
+      (error?.message || String(error))
+    );
+  } finally {
+    setOfflineMusicLoading(false);
+  }
+}
+
+async function loadOnlineSongs() {
     setOnlineMusicLoading(true);
 
     try {
@@ -543,6 +624,38 @@ function formatTime(ms) {
     return `${minutes}:${String(seconds).padStart(2, "0")}`;
   }
 
+
+  async function playOfflineSong(song, keepExpanded = false) {
+    if (!song?.offlineFileName) {
+      throw new Error('This offline song is not available.');
+    }
+
+    try {
+      const result = await Filesystem.getUri({
+        path: `offline/${song.offlineFileName}`,
+        directory: 'DATA'
+      });
+
+      if (!result?.uri) {
+        throw new Error('Unable to access the offline song.');
+      }
+
+      await startSong(
+        {
+          ...song,
+          uri: result.uri,
+          artwork: song.artworkUrl || song.artwork
+        },
+        keepExpanded
+      );
+    } catch (error) {
+      console.error('Offline playback error:', error);
+      alert(
+        'Unable to play this offline song.\n\nDetails: ' +
+        (error?.message || String(error))
+      );
+    }
+  }
 
   async function startSong(song, keepExpanded = false) {
     setPlaying(song);
@@ -2550,7 +2663,65 @@ function formatTime(ms) {
           <>
             <Title title="Your Library" />
 
-{deviceMusicOpen ? (
+{offlineMusicOpen ? (
+  <>
+    <button
+      className="backButton"
+      onClick={() => setOfflineMusicOpen(false)}
+    >
+      ← Your Library
+    </button>
+
+    <Title title="Downloads" />
+
+    <p className="deviceMusicSubtitle">
+      Music saved for offline listening
+    </p>
+
+    {offlineSongs.length === 0 ? (
+      <div className="empty">
+        <div>⬇️</div>
+        <h2>No offline music yet</h2>
+        <p>Download online songs to listen without internet.</p>
+      </div>
+    ) : (
+      <div className="songList">
+        {offlineSongs.map(song => {
+          const isCurrentSong = playing?.id === song?.id;
+
+          return (
+            <div
+              className={`songRow ${isCurrentSong ? 'playingSong' : ''}`}
+              key={song.id}
+              onClick={() => playOfflineSong(song)}
+              role="button"
+              tabIndex="0"
+              onKeyDown={e => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  e.currentTarget.click();
+                }
+              }}
+            >
+              <div className="avatar">
+                {song.artworkUrl ? (
+                  <img src={song.artworkUrl} alt="" />
+                ) : (
+                  song.artist?.[0] || '♪'
+                )}
+              </div>
+
+              <div className="meta">
+                <b>{song.title || 'Unknown Song'}</b>
+                <small>{song.artist || 'Unknown Artist'}</small>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    )}
+  </>
+) : deviceMusicOpen ? (
   <>
     <button
       className="backButton"
@@ -2689,11 +2860,23 @@ function formatTime(ms) {
 
                 <button
                   className="libraryFolder"
+                  onClick={() => setOfflineMusicOpen(true)}
+                >
+                  <span className="folderIcon">⬇️</span>
+                  <span className="folderInfo">
+                    <b>Downloads</b>
+                    <small>Music saved for offline listening</small>
+                  </span>
+                  <span className="folderArrow">›</span>
+                </button>
+
+                <button
+                  className="libraryFolder"
                   onClick={openDeviceMusic}
                 >
                   <span className="folderIcon">📁</span>
                   <span className="folderInfo">
-                    <b>Device Music</b>
+                    <b>Phone Music</b>
                     <small>Music on this phone</small>
                   </span>
                   <span className="folderArrow">›</span>
@@ -3642,6 +3825,31 @@ function formatTime(ms) {
           >
             ＋ Add to Playlist
           </button>
+
+          {playing && onlineSongs.some(
+            song => song?.id === playing?.id
+          ) && (
+            <button
+              className="primary offlineDownloadButton"
+              onClick={async () => {
+                try {
+                  await downloadSongForOffline(playing);
+                } catch (error) {
+                  console.error('Offline download error:', error);
+                }
+              }}
+              disabled={
+                offlineMusicLoading ||
+                offlineSongs.some(song => song?.id === playing?.id)
+              }
+            >
+              {offlineSongs.some(song => song?.id === playing?.id)
+                ? '✓ Available Offline'
+                : offlineMusicLoading
+                  ? 'Downloading...'
+                  : '↓ Download for Offline'}
+            </button>
+          )}
 
           <button
             className="closeFull"
