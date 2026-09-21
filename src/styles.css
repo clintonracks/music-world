@@ -1168,8 +1168,9 @@ section {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 22px;
-  margin-top: 18px;
+  gap: 14px;
+  margin-top: 16px;
+  width: 100%;
 }
 
 .controls button {
@@ -1179,22 +1180,56 @@ section {
   justify-content: center;
   border-radius: 50%;
   cursor: pointer;
-  font-size: 22px;
-  width: 52px;
-  height: 52px;
+  font-size: 18px;
+  width: 44px;
+  height: 44px;
   background: #333;
   color: white;
+  flex-shrink: 0;
 }
 
 .controls .playButton {
-  width: 66px;
-  height: 66px;
-  font-size: 27px;
+  width: 56px;
+  height: 56px;
+  font-size: 23px;
   background: #e50914;
+}
+
+.controls .utilityButton {
+  background: transparent;
+  color: #aaa;
+  font-size: 18px;
 }
 
 .controls button:active {
   transform: scale(0.94);
+}
+
+.playerActionRow {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  margin-top: 12px;
+}
+
+.playerActionButton {
+  width: min(90%, 360px);
+  min-height: 44px;
+  border: 1px solid #444;
+  border-radius: 12px;
+  background: #242424;
+  color: white;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.playerActionButton:active {
+  transform: scale(0.98);
+}
+
+.offlineDownloadButton {
+  border-color: #555;
 }
 
 

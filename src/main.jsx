@@ -3812,43 +3812,81 @@ function formatTime(ms) {
           </div>
 
           <div className="controls">
-            <button className="skipButton" onClick={playPrevious} aria-label="Previous song">⏮</button>
-            <button className="playButton" onClick={togglePlayback} aria-label={isPlaying ? "Pause" : "Play"}>
+            <button
+              className="utilityButton"
+              aria-label="Shuffle"
+              type="button"
+            >
+              🔀
+            </button>
+
+            <button
+              className="skipButton"
+              onClick={playPrevious}
+              aria-label="Previous song"
+            >
+              ⏮
+            </button>
+
+            <button
+              className="playButton"
+              onClick={togglePlayback}
+              aria-label={isPlaying ? "Pause" : "Play"}
+            >
               {isPlaying ? "❚❚" : "▶"}
             </button>
-            <button className="skipButton" onClick={playNext} aria-label="Next song">⏭</button>
+
+            <button
+              className="skipButton"
+              onClick={playNext}
+              aria-label="Next song"
+            >
+              ⏭
+            </button>
+
+            <button
+              className="utilityButton"
+              aria-label="Repeat"
+              type="button"
+            >
+              🔁
+            </button>
           </div>
 
-          <button
-            className="primary"
-            onClick={() => openPlaylistPicker(playing)}
-          >
-            ＋ Add to Playlist
-          </button>
+          <div className="playerActionRow">
+            <button
+              className="playerActionButton"
+              onClick={() => openPlaylistPicker(playing)}
+            >
+              ＋ <span>Add to Playlist</span>
+            </button>
+          </div>
 
           {playing && onlineSongs.some(
             song => song?.id === playing?.id
           ) && (
-            <button
-              className="primary offlineDownloadButton"
-              onClick={async () => {
-                try {
-                  await downloadSongForOffline(playing);
-                } catch (error) {
-                  console.error('Offline download error:', error);
+            <div className="playerActionRow">
+              <button
+                className="playerActionButton offlineDownloadButton"
+                onClick={async () => {
+                  try {
+                    await downloadSongForOffline(playing);
+                  } catch (error) {
+                    console.error('Offline download error:', error);
+                  }
+                }}
+                disabled={
+                  offlineMusicLoading ||
+                  offlineSongs.some(song => song?.id === playing?.id)
                 }
-              }}
-              disabled={
-                offlineMusicLoading ||
-                offlineSongs.some(song => song?.id === playing?.id)
-              }
-            >
-              {offlineSongs.some(song => song?.id === playing?.id)
-                ? '✓ Available Offline'
-                : offlineMusicLoading
-                  ? 'Downloading...'
-                  : '↓ Download for Offline'}
-            </button>
+              >
+                {offlineSongs.some(song => song?.id === playing?.id)
+                  ? '✓ Available Offline'
+                  : offlineMusicLoading
+                    ? 'Downloading...'
+                    : '↓ Download for Offline'}
+              </button>
+            </div>
           )}
 
           <button
