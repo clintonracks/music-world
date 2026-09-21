@@ -120,6 +120,8 @@ function App() {
   const [expandedPlayer, setExpandedPlayer] = useState(false);
   const audioRef = useRef(null);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [shuffleEnabled, setShuffleEnabled] = useState(false);
+  const [repeatMode, setRepeatMode] = useState('off');
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [chart, setChart] = useState('Africa');
@@ -572,16 +574,23 @@ async function loadOnlineSongs() {
           nextTime >= nextDuration
         ) {
           setCurrentTime(nextDuration);
+
+          if (repeatMode === 'one') {
+            try {
+              await DeviceMusic.seekTo({ position: 0 });
+              setCurrentTime(0);
+              await DeviceMusic.resume();
+              setIsPlaying(true);
+            } catch (error) {
+              console.error("Repeat one error:", error);
+              setIsPlaying(false);
+            }
+            return;
+          }
+
           setIsPlaying(false);
 
-          const currentIndex = deviceMusic.findIndex(
-            song => song?.uri === playing?.uri
-          );
-
-          if (currentIndex >= 0 && currentIndex < deviceMusic.length - 1) {
-            const nextSong = deviceMusic[currentIndex + 1];
-            await startSong(nextSong);
-          }
+          await playNext();
         }
       } catch (error) {
         console.error("Playback state error:", error);
@@ -594,7 +603,7 @@ async function loadOnlineSongs() {
     return () => {
       clearInterval(timer);
     };
-  }, [playing?.uri]);
+  }, [playing?.uri, repeatMode, shuffleEnabled]);
 
   async function seekFromProgress(event) {
   if (!playing?.uri || !duration || !Number.isFinite(duration)) return;
@@ -717,21 +726,40 @@ function formatTime(ms) {
         : song?.uri === playing?.uri
     );
 
-    if (currentIndex >= 0 && currentIndex < currentList.length - 1) {
-      const nextSong = currentList[currentIndex + 1];
+    if (currentIndex < 0) return;
 
-      if (isOnlineSong) {
-        await startSong({
-          ...nextSong,
-          uri: nextSong.audioUrl,
-          title: nextSong.title,
-          artist: nextSong.artist,
-          album: nextSong.genre || 'Music World',
-          artwork: nextSong.artworkUrl
-        }, true);
-      } else {
-        await startSong(nextSong, true);
-      }
+    let nextIndex;
+
+    if (shuffleEnabled && currentList.length > 1) {
+      const availableIndexes = currentList
+        .map((_, index) => index)
+        .filter(index => index !== currentIndex);
+
+      nextIndex =
+        availableIndexes[
+          Math.floor(Math.random() * availableIndexes.length)
+        ];
+    } else if (currentIndex < currentList.length - 1) {
+      nextIndex = currentIndex + 1;
+    } else if (repeatMode === 'all') {
+      nextIndex = 0;
+    } else {
+      return;
+    }
+
+    const nextSong = currentList[nextIndex];
+
+    if (isOnlineSong) {
+      await startSong({
+        ...nextSong,
+        uri: nextSong.audioUrl,
+        title: nextSong.title,
+        artist: nextSong.artist,
+        album: nextSong.genre || 'Music World',
+        artwork: nextSong.artworkUrl
+      }, true);
+    } else {
+      await startSong(nextSong, true);
     }
   }
 
@@ -3813,9 +3841,10 @@ function formatTime(ms) {
 
           <div className="controls">
             <button
-              className="utilityButton"
-              aria-label="Shuffle"
+              className={`utilityButton ${shuffleEnabled ? 'activeUtility' : ''}`}
+              aria-label={shuffleEnabled ? "Disable Shuffle" : "Enable Shuffle"}
               type="button"
+              onClick={() => setShuffleEnabled(value => !value)}
             >
               🔀
             </button>
@@ -3845,9 +3874,24 @@ function formatTime(ms) {
             </button>
 
             <button
-              className="utilityButton"
-              aria-label="Repeat"
+              className={`utilityButton ${repeatMode !== 'off' ? 'activeUtility' : ''}`}
+              aria-label={
+                repeatMode === 'off'
+                  ? "Enable Repeat"
+                  : repeatMode === 'all'
+                    ? "Repeat All"
+                    : "Repeat One"
+              }
               type="button"
+              onClick={() =>
+                setRepeatMode(mode =>
+                  mode === 'off'
+                    ? 'all'
+                    : mode === 'all'
+                      ? 'one'
+                      : 'off'
+                )
+              }
             >
               🔁
             </button>

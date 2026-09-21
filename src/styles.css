@@ -1201,6 +1201,10 @@ section {
   font-size: 18px;
 }
 
+.controls .utilityButton.activeUtility {
+  color: #e50914;
+}
+
 .controls button:active {
   transform: scale(0.94);
 }
