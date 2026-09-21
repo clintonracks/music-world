@@ -1933,11 +1933,16 @@ function formatTime(ms) {
 
           <button
             className="primary"
-            onClick={() => {
+            onClick={async () => {
               const name = artistProfileName.trim();
 
               if (!name) {
                 alert('Please enter your artist name.');
+                return;
+              }
+
+              if (!artistAccount?.id) {
+                alert('Please sign in to your artist account first.');
                 return;
               }
 
@@ -1948,6 +1953,23 @@ function formatTime(ms) {
                 bio: artistProfileBio.trim(),
                 updatedAt: new Date().toISOString()
               };
+
+              const { error } = await supabase
+                .from('artist_profiles')
+                .upsert({
+                  id: artistAccount.id,
+                  name: profile.name,
+                  genre: profile.genre,
+                  country: profile.country,
+                  bio: profile.bio,
+                  updated_at: profile.updatedAt
+                });
+
+              if (error) {
+                console.error('Artist profile save error:', error.message);
+                alert('Unable to save your artist profile.\\n\\nDetails: ' + error.message);
+                return;
+              }
 
               setArtistProfile(profile);
               localStorage.setItem(
