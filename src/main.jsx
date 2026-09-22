@@ -330,6 +330,20 @@ useEffect(() => {
 ]);
 
 
+function openPlayingArtist() {
+  if (!playing) return;
+
+  openPublicArtist({
+    name: playing.artist || playing.artistName || 'Unknown Artist',
+    artistName: playing.artist || playing.artistName || 'Unknown Artist',
+    country: playing.country || '',
+    genre: playing.genre || '',
+    bio: playing.bio || '',
+    artwork: playing.artistArtwork || playing.artwork || '',
+    releases: []
+  });
+}
+
 function openPublicArtist(artist) {
   if (!artist) return;
 
@@ -4198,7 +4212,13 @@ function formatTime(ms) {
 
           <div className="pmeta">
             <b>{playing.title || playing.song || 'Unknown Song'}</b>
-            <small>{playing.artist || playing.name || 'Unknown Artist'}</small>
+            <button
+              type="button"
+              className="playerArtistButton"
+              onClick={openPlayingArtist}
+            >
+              {playing.artist || playing.artistName || playing.name || 'Unknown Artist'}
+            </button>
           </div>
 
           <button
@@ -4260,7 +4280,16 @@ function formatTime(ms) {
 
           <p className="eyebrow">NOW PLAYING</p>
           <h1>{playing.title || playing.song || 'Unknown Song'}</h1>
-          <p>{playing.artist || playing.name || 'Unknown Artist'}{playing.country ? ` · ${playing.country}` : ''}</p>
+          <p>
+            <button
+              type="button"
+              className="playerArtistButton"
+              onClick={openPlayingArtist}
+            >
+              {playing.artist || playing.artistName || playing.name || 'Unknown Artist'}
+            </button>
+            {playing.country ? ` · ${playing.country}` : ''}
+          </p>
 
           <div
             className="progress"
