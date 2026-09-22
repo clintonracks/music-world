@@ -260,6 +260,7 @@ function App() {
   const [publicArtistOpen, setPublicArtistOpen] = useState(false);
   const [publicArtist, setPublicArtist] = useState(null);
   const [publicArtistTab, setPublicArtistTab] = useState('Music');
+  const [pendingFollowArtist, setPendingFollowArtist] = useState(null);
   const [artistAnalyticsOpen, setArtistAnalyticsOpen] = useState(false);
   const [artistAnalyticsRange, setArtistAnalyticsRange] = useState('Overview');
   const [artistAudienceOpen, setArtistAudienceOpen] = useState(false);
@@ -332,6 +333,8 @@ useEffect(() => {
 
 function openPlayingArtist() {
   if (!playing) return;
+
+  setExpandedPlayer(false);
 
   openPublicArtist({
     name: playing.artist || playing.artistName || 'Unknown Artist',
@@ -3354,6 +3357,14 @@ function formatTime(ms) {
                 className="primary publicArtistFollow"
                 type="button"
                 onClick={() => {
+                  if (!signedIn) {
+                    setPendingFollowArtist(publicArtist);
+                    setListenerAuthMode('create');
+                    setListenerAuthError('');
+                    setShowSignIn(true);
+                    return;
+                  }
+
                   setArtistFollowing(!artistFollowing);
                   setArtistFollowerCount(
                     artistFollowing
@@ -3600,6 +3611,14 @@ function formatTime(ms) {
                       setShowSignIn(false);
                       setListenerPassword('');
                       setListenerName('');
+
+                      if (pendingFollowArtist) {
+                        setPublicArtist(pendingFollowArtist);
+                        setPublicArtistOpen(true);
+                        setArtistFollowing(true);
+                        setArtistFollowerCount(count => count + 1);
+                        setPendingFollowArtist(null);
+                      }
                     } else {
                       setListenerAuthError(
                         'Account created. Please check your email to confirm your account.'
@@ -3660,9 +3679,6 @@ function formatTime(ms) {
                   : 'Already have an account? Sign in'}
               </button>
 
-              <p>
-                New to Music World? Account creation will be added next.
-              </p>
             </div>
           </div>
         )}
