@@ -363,7 +363,13 @@ function openPlayingArtist() {
 function openPublicArtist(artist) {
   if (!artist) return;
 
-  setPublicArtist(artist);
+  const publicArtistData = {
+    ...artist,
+    monthlyListeners: artist.monthlyListeners || artist.listeners || 0,
+    verified: artist.verified === true
+  };
+
+  setPublicArtist(publicArtistData);
   setPublicArtistOpen(true);
   navigateTo('ArtistProfile');
   setArtistOpen(false);
@@ -951,17 +957,30 @@ function formatTime(ms) {
   }
 
   function goBack() {
+    if (publicArtistOpen) {
+      if (navigationStack.length > 1) {
+        const previousScreen = navigationStack[navigationStack.length - 2];
+
+        setNavigationStack(prev => prev.slice(0, -1));
+        setPublicArtistOpen(false);
+        setPublicArtist(null);
+
+        if (['Home', 'Discover', 'Charts', 'Library', 'Profile'].includes(previousScreen)) {
+          setTab(previousScreen);
+        }
+
+        return;
+      }
+
+      setPublicArtistOpen(false);
+      setPublicArtist(null);
+      return;
+    }
+
     if (navigationStack.length > 1) {
       const previousScreen = navigationStack[navigationStack.length - 2];
 
       navigateBack();
-
-      if (previousScreen === 'Home') {
-        setPublicArtistOpen(false);
-        setPublicArtist(null);
-        setTab('Home');
-        return;
-      }
 
       if (previousScreen === 'ArtistProfile') {
         setPublicArtistOpen(true);
@@ -1047,7 +1066,7 @@ function formatTime(ms) {
     <div className="app">
       <audio ref={audioRef} />
 
-      {!artistOpen && (
+      {!artistOpen && !publicArtistOpen && (
         <header>
           <div className="logo">
             MUSIC<span>WORLD</span>
@@ -1297,9 +1316,11 @@ function formatTime(ms) {
                       }
 
                       const account = {
+                        id: user.id,
                         email: user.email || email,
                         artistName: name,
-                        createdAt: user.created_at || new Date().toISOString()
+                        createdAt: user.created_at || new Date().toISOString(),
+                        verified: true
                       };
 
                       setArtistAccount(account);
@@ -1335,13 +1356,15 @@ function formatTime(ms) {
                     }
 
                     setArtistAccount({
+                      id: user.id,
                       email: user.email || email,
                       artistName:
                         user.user_metadata?.artistName ||
                         'Music World Artist',
                       createdAt:
                         user.created_at ||
-                        new Date().toISOString()
+                        new Date().toISOString(),
+                      verified: true
                     });
 
                     setArtistAuthEmail('');
@@ -1883,7 +1906,11 @@ function formatTime(ms) {
   className="artistProfilePreview"
   onClick={() => openPublicArtist({
     ...artistProfile,
-    artistName: artistProfile.name || artistAccount?.artistName || 'Artist'
+    id: artistProfile.id || artistAccount?.id,
+    name: artistProfile.name || artistAccount?.artistName || 'Artist',
+    artistName: artistProfile.name || artistAccount?.artistName || 'Artist',
+    verified: artistAccount?.verified === true,
+    monthlyListeners: artistProfile.monthlyListeners || 0
   })}
   role="button"
   tabIndex="0"
@@ -3377,7 +3404,18 @@ function formatTime(ms) {
 
               <div className="publicArtistIdentity">
                 <span className="artistProfileTag">ARTIST</span>
-                <h1>{publicArtist.name || publicArtist.artistName || 'Artist'}</h1>
+                <h1>
+                  {publicArtist.name || publicArtist.artistName || 'Artist'}
+                  {publicArtist.verified && (
+                    <span
+                      className="publicArtistVerified"
+                      title="Verified Music World artist"
+                      aria-label="Verified artist"
+                    >
+                      ✓
+                    </span>
+                  )}
+                </h1>
                 <p>
                   {publicArtist.country || 'Country not set'}
                   {' • '}
@@ -3416,8 +3454,8 @@ function formatTime(ms) {
               </div>
 
               <div>
-                <strong>{publicArtist.listeners || 0}</strong>
-                <span>Listeners</span>
+                <strong>{publicArtist.monthlyListeners || 0}</strong>
+                <span>Monthly Listeners</span>
               </div>
 
               <div>
@@ -4200,7 +4238,7 @@ function formatTime(ms) {
         </div>
       )}
 
-      {!artistOpen && (
+      {!artistOpen && !publicArtistOpen && (
         <nav className="bottomNav">
           {['Home', 'Discover', 'Charts', 'Library', 'Profile'].map(x => (
           <button
