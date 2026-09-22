@@ -245,7 +245,7 @@ public class DeviceMusicPlugin extends Plugin {
         }
     }
 
-    @com.capacitor.annotation.PermissionCallback
+    @com.getcapacitor.annotation.PermissionCallback
     private void permissionCallback(PluginCall call) {
         JSObject result = new JSObject();
         result.put(
@@ -255,7 +255,7 @@ public class DeviceMusicPlugin extends Plugin {
         call.resolve(result);
     }
 
-    @com.capacitor.annotation.PermissionCallback
+    @com.getcapacitor.annotation.PermissionCallback
     private void legacyPermissionCallback(PluginCall call) {
         JSObject result = new JSObject();
         result.put(
