@@ -4322,3 +4322,174 @@ section {
   }
 }
 
+
+.publicArtistAvatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
+
+.publicArtistTabs {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  margin: 8px 0 4px;
+  padding: 5px;
+  background: #1b1b1b;
+  border: 1px solid #333;
+  border-radius: 14px;
+}
+
+.publicArtistTabs button {
+  border: 0;
+  background: transparent;
+  color: #999;
+  padding: 11px 8px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.publicArtistTabs button.active {
+  background: #e50914;
+  color: #fff;
+}
+
+.publicArtistReleaseCard {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 14px;
+  padding: 12px;
+  background: #292929;
+  border: 1px solid #3a3a3a;
+  border-radius: 14px;
+}
+
+.publicArtistReleaseArtwork {
+  width: 72px;
+  height: 72px;
+  flex: 0 0 72px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: 10px;
+  background: #303030;
+  font-size: 28px;
+}
+
+.publicArtistReleaseArtwork img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.publicArtistReleaseCard h3 {
+  margin: 0 0 5px;
+  font-size: 17px;
+}
+
+.publicArtistReleaseCard p {
+  color: #999;
+  font-size: 12px;
+}
+
+.publicArtistSongList {
+  margin-top: 10px;
+}
+
+.publicArtistSong {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 13px 4px;
+  border-bottom: 1px solid #333;
+}
+
+.publicArtistSong:last-child {
+  border-bottom: 0;
+}
+
+.publicArtistSongNumber {
+  width: 24px;
+  text-align: center;
+  color: #777;
+  font-size: 13px;
+}
+
+.publicArtistSong strong,
+.publicArtistSong small {
+  display: block;
+}
+
+.publicArtistSong strong {
+  font-size: 14px;
+}
+
+.publicArtistSong small {
+  margin-top: 3px;
+  color: #888;
+  font-size: 11px;
+}
+
+.publicArtistReleaseList {
+  margin-top: 12px;
+}
+
+.publicArtistReleaseItem {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 0;
+  border-bottom: 1px solid #333;
+}
+
+.publicArtistReleaseItem:last-child {
+  border-bottom: 0;
+}
+
+.publicArtistReleaseItem strong,
+.publicArtistReleaseItem small {
+  display: block;
+}
+
+.publicArtistReleaseItem strong {
+  font-size: 14px;
+}
+
+.publicArtistReleaseItem small {
+  margin-top: 4px;
+  color: #888;
+  font-size: 11px;
+}
+
+.publicArtistPage .empty {
+  padding: 28px 12px;
+  text-align: center;
+}
+
+.publicArtistPage .empty > div {
+  font-size: 30px;
+  margin-bottom: 8px;
+}
+
+@media (max-width: 420px) {
+  .publicArtistTabs button {
+    font-size: 13px;
+    padding: 10px 5px;
+  }
+
+  .publicArtistReleaseCard {
+    gap: 10px;
+  }
+
+  .publicArtistReleaseArtwork {
+    width: 64px;
+    height: 64px;
+    flex-basis: 64px;
+  }
+}
+

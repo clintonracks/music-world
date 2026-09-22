@@ -259,6 +259,7 @@ function App() {
   const [artistProfileOpen, setArtistProfileOpen] = useState(false);
   const [publicArtistOpen, setPublicArtistOpen] = useState(false);
   const [publicArtist, setPublicArtist] = useState(null);
+  const [publicArtistTab, setPublicArtistTab] = useState('Music');
   const [artistAnalyticsOpen, setArtistAnalyticsOpen] = useState(false);
   const [artistAnalyticsRange, setArtistAnalyticsRange] = useState('Overview');
   const [artistAudienceOpen, setArtistAudienceOpen] = useState(false);
@@ -3315,7 +3316,14 @@ function formatTime(ms) {
 
             <div className="publicArtistHero">
               <div className="publicArtistAvatar">
-                🎤
+                {publicArtist.artwork ? (
+                  <img
+                    src={publicArtist.artwork}
+                    alt={publicArtist.name || publicArtist.artistName || 'Artist'}
+                  />
+                ) : (
+                  '🎤'
+                )}
               </div>
 
               <div className="publicArtistIdentity">
@@ -3331,48 +3339,169 @@ function formatTime(ms) {
               <button
                 className="primary publicArtistFollow"
                 type="button"
+                onClick={() => {
+                  setArtistFollowing(!artistFollowing);
+                  setArtistFollowerCount(
+                    artistFollowing
+                      ? Math.max(0, artistFollowerCount - 1)
+                      : artistFollowerCount + 1
+                  );
+                }}
               >
-                Follow
+                {artistFollowing ? 'Following' : 'Follow'}
               </button>
             </div>
 
             <div className="publicArtistStats">
               <div>
-                <strong>0</strong>
+                <strong>{artistFollowerCount}</strong>
                 <span>Followers</span>
               </div>
 
               <div>
-                <strong>0</strong>
+                <strong>{publicArtist.listeners || 0}</strong>
                 <span>Listeners</span>
               </div>
 
               <div>
-                <strong>0</strong>
+                <strong>{publicArtist.streams || 0}</strong>
                 <span>Streams</span>
               </div>
             </div>
 
-            <section className="publicArtistSection">
-              <h2>About</h2>
-              <p>
-                {publicArtist.bio || 'This artist has not added a bio yet.'}
-              </p>
-            </section>
+            <div className="publicArtistTabs">
+              {['Music', 'Releases', 'About'].map((tab) => (
+                <button
+                  key={tab}
+                  type="button"
+                  className={publicArtistTab === tab ? 'active' : ''}
+                  onClick={() => setPublicArtistTab(tab)}
+                >
+                  {tab}
+                </button>
+              ))}
+            </div>
 
-            <section className="publicArtistSection">
-              <div className="publicArtistSectionHeader">
-                <div>
-                  <h2>Releases</h2>
-                  <small>Music from this artist</small>
+            {publicArtistTab === 'Music' && (
+              <>
+                <section className="publicArtistSection">
+                  <div className="publicArtistSectionHeader">
+                    <div>
+                      <h2>Latest Release</h2>
+                      <small>The newest music from this artist</small>
+                    </div>
+                  </div>
+
+                  {publicArtist.releases && publicArtist.releases.length > 0 ? (
+                    <div className="publicArtistReleaseCard">
+                      <div className="publicArtistReleaseArtwork">
+                        {publicArtist.releases[0].artwork ? (
+                          <img
+                            src={publicArtist.releases[0].artwork}
+                            alt={publicArtist.releases[0].title || 'Release artwork'}
+                          />
+                        ) : (
+                          '♫'
+                        )}
+                      </div>
+                      <div>
+                        <h3>{publicArtist.releases[0].title || 'Untitled Release'}</h3>
+                        <p>
+                          {publicArtist.releases[0].type || 'Single'}
+                          {' • '}
+                          {publicArtist.releases[0].genre || publicArtist.genre || 'Music'}
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="empty">
+                      <div>♫</div>
+                      <p>No releases yet.</p>
+                    </div>
+                  )}
+                </section>
+
+                <section className="publicArtistSection">
+                  <div className="publicArtistSectionHeader">
+                    <div>
+                      <h2>Popular Songs</h2>
+                      <small>Most played music from this artist</small>
+                    </div>
+                  </div>
+
+                  {publicArtist.releases && publicArtist.releases.length > 0 ? (
+                    <div className="publicArtistSongList">
+                      {publicArtist.releases.slice(0, 5).map((release, index) => (
+                        <div className="publicArtistSong" key={release.id || index}>
+                          <span className="publicArtistSongNumber">{index + 1}</span>
+                          <div>
+                            <strong>{release.title || 'Untitled Song'}</strong>
+                            <small>{release.type || 'Release'}</small>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="empty">
+                      <div>🎵</div>
+                      <p>No songs yet.</p>
+                    </div>
+                  )}
+                </section>
+              </>
+            )}
+
+            {publicArtistTab === 'Releases' && (
+              <section className="publicArtistSection">
+                <div className="publicArtistSectionHeader">
+                  <div>
+                    <h2>All Releases</h2>
+                    <small>Music from this artist</small>
+                  </div>
                 </div>
-              </div>
 
-              <div className="empty">
-                <div>♫</div>
-                <p>No releases yet.</p>
-              </div>
-            </section>
+                {publicArtist.releases && publicArtist.releases.length > 0 ? (
+                  <div className="publicArtistReleaseList">
+                    {publicArtist.releases.map((release, index) => (
+                      <div className="publicArtistReleaseItem" key={release.id || index}>
+                        <div className="publicArtistReleaseArtwork">
+                          {release.artwork ? (
+                            <img
+                              src={release.artwork}
+                              alt={release.title || 'Release artwork'}
+                            />
+                          ) : (
+                            '♫'
+                          )}
+                        </div>
+                        <div>
+                          <strong>{release.title || 'Untitled Release'}</strong>
+                          <small>
+                            {release.type || 'Single'}
+                            {' • '}
+                            {release.genre || publicArtist.genre || 'Music'}
+                          </small>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="empty">
+                    <div>♫</div>
+                    <p>No releases yet.</p>
+                  </div>
+                )}
+              </section>
+            )}
+
+            {publicArtistTab === 'About' && (
+              <section className="publicArtistSection">
+                <h2>About</h2>
+                <p>
+                  {publicArtist.bio || 'This artist has not added a bio yet.'}
+                </p>
+              </section>
+            )}
           </div>
         )}
 
