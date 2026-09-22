@@ -223,7 +223,8 @@ function App() {
           id: user.id,
           email: user.email || '',
           artistName: user.user_metadata?.artistName || 'Music World Artist',
-          createdAt: user.created_at || new Date().toISOString()
+          createdAt: user.created_at || new Date().toISOString(),
+          verified: user.user_metadata?.accountType === 'artist'
         });
       }
     });
@@ -236,9 +237,11 @@ function App() {
 
         if (user) {
           setArtistAccount({
+            id: user.id,
             email: user.email || '',
             artistName: user.user_metadata?.artistName || 'Music World Artist',
-            createdAt: user.created_at || new Date().toISOString()
+            createdAt: user.created_at || new Date().toISOString(),
+            verified: user.user_metadata?.accountType === 'artist'
           });
         }
       }
