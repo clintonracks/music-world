@@ -26,6 +26,10 @@ import com.getcapacitor.annotation.Permission;
         @Permission(
             alias = "music",
             strings = { Manifest.permission.READ_MEDIA_AUDIO }
+        ),
+        @Permission(
+            alias = "musicLegacy",
+            strings = { Manifest.permission.READ_EXTERNAL_STORAGE }
         )
     }
 )
@@ -219,22 +223,44 @@ public class DeviceMusicPlugin extends Plugin {
 
     @PluginMethod
     public void requestPermission(PluginCall call) {
-        if (getPermissionState("music") == com.getcapacitor.PermissionState.GRANTED) {
+        String permissionAlias;
+
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+            permissionAlias = "music";
+        } else {
+            permissionAlias = "musicLegacy";
+        }
+
+        if (getPermissionState(permissionAlias) == com.getcapacitor.PermissionState.GRANTED) {
             JSObject result = new JSObject();
             result.put("granted", true);
             call.resolve(result);
             return;
         }
 
-        requestPermissionForAlias("music", call, "permissionCallback");
+        if (permissionAlias.equals("music")) {
+            requestPermissionForAlias("music", call, "permissionCallback");
+        } else {
+            requestPermissionForAlias("musicLegacy", call, "legacyPermissionCallback");
+        }
     }
 
-    @com.getcapacitor.annotation.PermissionCallback
+    @com.capacitor.annotation.PermissionCallback
     private void permissionCallback(PluginCall call) {
         JSObject result = new JSObject();
         result.put(
             "granted",
             getPermissionState("music") == com.getcapacitor.PermissionState.GRANTED
+        );
+        call.resolve(result);
+    }
+
+    @com.capacitor.annotation.PermissionCallback
+    private void legacyPermissionCallback(PluginCall call) {
+        JSObject result = new JSObject();
+        result.put(
+            "granted",
+            getPermissionState("musicLegacy") == com.getcapacitor.PermissionState.GRANTED
         );
         call.resolve(result);
     }
@@ -430,7 +456,15 @@ public class DeviceMusicPlugin extends Plugin {
 
     @PluginMethod
     public void getSongs(PluginCall call) {
-        if (getPermissionState("music") != com.getcapacitor.PermissionState.GRANTED) {
+        String permissionAlias;
+
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+            permissionAlias = "music";
+        } else {
+            permissionAlias = "musicLegacy";
+        }
+
+        if (getPermissionState(permissionAlias) != com.getcapacitor.PermissionState.GRANTED) {
             call.reject("Music permission is not granted");
             return;
         }
