@@ -285,6 +285,7 @@ const [artistReleaseOpen, setArtistReleaseOpen] = useState(false);
 const [artistReleaseStep, setArtistReleaseStep] = useState(1);
 const [artistReleaseAudio, setArtistReleaseAudio] = useState(null);
 const [artistReleaseArtwork, setArtistReleaseArtwork] = useState(null);
+const [artistReleasePublishing, setArtistReleasePublishing] = useState(false);
 const [artistReleases, setArtistReleases] = useState(() => {
   try {
     return JSON.parse(localStorage.getItem('musicWorldArtistReleases') || '[]');
@@ -2443,6 +2444,10 @@ function formatTime(ms) {
             return;
           }
 
+          if (artistReleasePublishing) {
+            return;
+          }
+
           if (!artistReleaseAudio) {
             alert('Please select an audio file before submitting.');
             return;
@@ -2469,6 +2474,8 @@ function formatTime(ms) {
           }
 
           try {
+            setArtistReleasePublishing(true);
+
             const { data: sessionData, error: sessionError } =
               await supabase.auth.getSession();
 
@@ -2480,6 +2487,11 @@ function formatTime(ms) {
 
             if (!user) {
               alert('Please sign in to your artist account first.');
+              return;
+            }
+
+            if (user.user_metadata?.accountType !== 'artist') {
+              alert('Please sign in with a Music World artist account to publish music.');
               return;
             }
 
@@ -2590,10 +2602,17 @@ function formatTime(ms) {
               'Unable to upload release.\n\nDetails: ' +
               (error?.message || String(error))
             );
+          } finally {
+            setArtistReleasePublishing(false);
           }
         }}
+        disabled={artistReleasePublishing}
       >
-        {artistReleaseStep === 1 ? 'Continue →' : 'Submit Release'}
+        {artistReleasePublishing
+          ? 'Publishing...'
+          : artistReleaseStep === 1
+            ? 'Continue →'
+            : 'Submit Release'}
       </button>
     </div>
 
