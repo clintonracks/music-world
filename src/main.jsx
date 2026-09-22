@@ -116,6 +116,19 @@ function App() {
     setDeviceMusicLoading(false);
   };
   const [tab, setTab] = useState('Home');
+  const [navigationStack, setNavigationStack] = useState(['Home']);
+
+  function navigateTo(screen) {
+    setNavigationStack(prev => [...prev, screen]);
+  }
+
+  function navigateBack() {
+    setNavigationStack(prev => {
+      if (prev.length <= 1) return prev;
+
+      return prev.slice(0, -1);
+    });
+  }
   const [playing, setPlaying] = useState(null);
   const [expandedPlayer, setExpandedPlayer] = useState(false);
   const audioRef = useRef(null);
@@ -352,6 +365,7 @@ function openPublicArtist(artist) {
 
   setPublicArtist(artist);
   setPublicArtistOpen(true);
+  navigateTo('ArtistProfile');
   setArtistOpen(false);
   setArtistProfileOpen(false);
   setArtistMusicOpen(false);
@@ -937,6 +951,24 @@ function formatTime(ms) {
   }
 
   function goBack() {
+    if (navigationStack.length > 1) {
+      const previousScreen = navigationStack[navigationStack.length - 2];
+
+      navigateBack();
+
+      if (previousScreen === 'Home') {
+        setPublicArtistOpen(false);
+        setPublicArtist(null);
+        setTab('Home');
+        return;
+      }
+
+      if (previousScreen === 'ArtistProfile') {
+        setPublicArtistOpen(true);
+        return;
+      }
+    }
+
     if (accountInfoOpen) {
       setAccountInfoOpen(false);
       return;
@@ -3323,7 +3355,7 @@ function formatTime(ms) {
               <button
                 className="artistBack"
                 type="button"
-                onClick={() => setPublicArtistOpen(false)}
+                onClick={goBack}
               >
                 ← Back
               </button>
@@ -4174,6 +4206,7 @@ function formatTime(ms) {
           <button
             className={`navItem ${tab === x && !settings && !showSignIn ? 'active' : ''}`}
             onClick={() => {
+              setNavigationStack([x]);
               setTab(x);
               setSettings(false);
               setChangePasswordOpen(false);
