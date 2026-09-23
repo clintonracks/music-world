@@ -354,6 +354,7 @@ function openPlayingArtist() {
   setExpandedPlayer(false);
 
   openPublicArtist({
+    id: playing.artist_id || playing.artistId || '',
     name: playing.artist || playing.artistName || 'Unknown Artist',
     artistName: playing.artist || playing.artistName || 'Unknown Artist',
     country: playing.country || '',
@@ -364,13 +365,14 @@ function openPlayingArtist() {
   });
 }
 
-function openPublicArtist(artist) {
+async function openPublicArtist(artist) {
   if (!artist) return;
 
   const publicArtistData = {
     ...artist,
     monthlyListeners: artist.monthlyListeners || artist.listeners || 0,
-    verified: artist.verified === true
+    verified: artist.verified === true,
+    releases: artist.releases || []
   };
 
   setPublicArtist(publicArtistData);
@@ -382,6 +384,59 @@ function openPublicArtist(artist) {
   setArtistAnalyticsOpen(false);
   setArtistAudienceOpen(false);
   setArtistEarningsOpen(false);
+
+  const artistId = artist.id;
+
+  if (!artistId) {
+    return;
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('songs')
+      .select('*')
+      .eq('artist_id', artistId)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    const releases = await Promise.all(
+      (data || []).map(async (song) => {
+        let artworkUrl = null;
+
+        if (song.artwork_url) {
+          const { data: artworkData } =
+            await supabase.storage
+              .from('music')
+              .createSignedUrl(song.artwork_url, 3600);
+
+          artworkUrl = artworkData?.signedUrl || null;
+        }
+
+        return {
+          ...song,
+          title: song.title,
+          artist: song.artist,
+          genre: song.genre,
+          artwork: artworkUrl,
+          status: 'Published'
+        };
+      })
+    );
+
+    setPublicArtist(current => (
+      current
+        ? { ...current, releases }
+        : current
+    ));
+  } catch (error) {
+    console.error(
+      'Unable to load public artist releases:',
+      error.message
+    );
+  }
 }
 
 function openArtistSection(section) {
@@ -3623,7 +3678,7 @@ function formatTime(ms) {
         )}
 
         {showSignIn && (
-          <div className="profile">
+          <div className="profile listenerAuthPage">
             <Title title={listenerAuthMode === 'signin' ? 'Sign In' : 'Create Account'} />
 
             <div className="accountForm">
