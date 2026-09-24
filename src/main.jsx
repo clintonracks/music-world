@@ -132,6 +132,8 @@ function App() {
   const [playing, setPlaying] = useState(null);
   const [expandedPlayer, setExpandedPlayer] = useState(false);
   const audioRef = useRef(null);
+  const playbackIdRef = useRef(null);
+  const streamRecordedRef = useRef(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [shuffleEnabled, setShuffleEnabled] = useState(false);
   const [repeatMode, setRepeatMode] = useState('off');
@@ -717,6 +719,39 @@ async function loadOnlineSongs() {
         setIsPlaying(Boolean(state.isPlaying));
 
         if (
+          nextTime >= 10 &&
+          playbackIdRef.current &&
+          streamRecordedRef.current !== playbackIdRef.current
+        ) {
+          const artistId = playing.artist_id || playing.artistId || '';
+
+          if (artistId) {
+            try {
+              const { data: { user } } = await supabase.auth.getUser();
+
+              if (user?.id) {
+                const { error: streamError } = await supabase
+                  .from('streams')
+                  .insert({
+                    artist_id: artistId,
+                    playback_id: playbackIdRef.current,
+                    listener_id: user.id
+                  });
+
+                if (streamError) {
+                  console.error('Stream recording error:', streamError.message);
+                } else {
+                  streamRecordedRef.current = playbackIdRef.current;
+                  console.log('Stream recorded:', playbackIdRef.current);
+                }
+              }
+            } catch (error) {
+              console.error('Stream recording error:', error);
+            }
+          }
+        }
+
+        if (
           Number.isFinite(nextDuration) &&
           nextDuration > 0 &&
           Number.isFinite(nextTime) &&
@@ -816,6 +851,10 @@ function formatTime(ms) {
   }
 
   async function startSong(song, keepExpanded = false) {
+    const playbackId = crypto.randomUUID();
+    playbackIdRef.current = playbackId;
+    streamRecordedRef.current = null;
+
     setPlaying(song);
 
     if (!keepExpanded) {
