@@ -4534,23 +4534,12 @@ section {
 }
 
 
-.playerArtistButton {
-  border: 0;
-  padding: 0;
+.playerArtist {
+  display: block;
   margin: 0;
-  background: transparent;
   color: inherit;
   font: inherit;
   text-align: left;
-  cursor: pointer;
-}
-
-.playerArtistButton:hover {
-  color: #e50914;
-}
-
-.playerArtistButton:active {
-  opacity: 0.75;
 }
 
 

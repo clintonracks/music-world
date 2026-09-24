@@ -438,6 +438,7 @@ async function openPublicArtist(artist) {
   const publicArtistData = {
     ...artist,
     monthlyListeners: artist.monthlyListeners || artist.listeners || 0,
+    streams: artist.streams || 0,
     verified: artist.verified === true,
     releases: artist.releases || []
   };
@@ -459,6 +460,35 @@ async function openPublicArtist(artist) {
   }
 
   try {
+    const { data: streamRows, error: streamError } = await supabase
+      .from('streams')
+      .select('listener_id, played_at')
+      .eq('artist_id', artistId);
+
+    if (streamError) {
+      throw new Error(streamError.message);
+    }
+
+    const totalStreams = streamRows?.length || 0;
+
+    const uniqueListeners = new Set(
+      (streamRows || [])
+        .map(row => row.listener_id)
+        .filter(Boolean)
+    ).size;
+
+    const thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
+
+    const monthlyListeners = new Set(
+      (streamRows || [])
+        .filter(row => {
+          if (!row.played_at) return false;
+          return new Date(row.played_at).getTime() >= thirtyDaysAgo;
+        })
+        .map(row => row.listener_id)
+        .filter(Boolean)
+    ).size;
+
     const { data, error } = await supabase
       .from('songs')
       .select('*')
@@ -495,12 +525,18 @@ async function openPublicArtist(artist) {
 
     setPublicArtist(current => (
       current
-        ? { ...current, releases }
+        ? {
+            ...current,
+            streams: totalStreams,
+            listeners: uniqueListeners,
+            monthlyListeners,
+            releases
+          }
         : current
     ));
   } catch (error) {
     console.error(
-      'Unable to load public artist releases:',
+      'Unable to load public artist data:',
       error.message
     );
   }
@@ -4512,13 +4548,9 @@ function formatTime(ms) {
 
           <div className="pmeta">
             <b>{playing.title || playing.song || 'Unknown Song'}</b>
-            <button
-              type="button"
-              className="playerArtistButton"
-              onClick={openPlayingArtist}
-            >
+            <span className="playerArtist">
               {playing.artist || playing.artistName || playing.name || 'Unknown Artist'}
-            </button>
+            </span>
           </div>
 
           <button
