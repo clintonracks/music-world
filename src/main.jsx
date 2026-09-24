@@ -193,6 +193,10 @@ function App() {
   useEffect(() => {
     if (!artistAccount?.id) {
       setArtistFollowerCount(0);
+      setArtistStreamCount(0);
+      setArtistListenerCount(0);
+      setArtistReleaseCount(0);
+      setArtistAnalyticsData([]);
       return;
     }
 
@@ -208,6 +212,55 @@ function App() {
       }
 
       setArtistFollowerCount(count || 0);
+
+      const { data: streamRows, error: streamError } = await supabase
+        .from('streams')
+        .select('listener_id, played_at')
+        .eq('artist_id', artistAccount.id);
+
+      if (streamError) {
+        console.error('Unable to load artist streams:', streamError.message);
+        return;
+      }
+
+      setArtistStreamCount(streamRows?.length || 0);
+      setArtistListenerCount(
+        new Set(
+          (streamRows || [])
+            .map((row) => row.listener_id)
+            .filter(Boolean)
+        ).size
+      );
+
+      const dailyPlays = {};
+
+      (streamRows || []).forEach((row) => {
+        if (!row.played_at) return;
+
+        const dateKey = new Date(row.played_at).toISOString().slice(0, 10);
+        dailyPlays[dateKey] = (dailyPlays[dateKey] || 0) + 1;
+      });
+
+      setArtistAnalyticsData(
+        Object.entries(dailyPlays)
+          .sort(([a], [b]) => a.localeCompare(b))
+          .map(([date, plays]) => ({
+            date,
+            plays
+          }))
+      );
+
+      const { count: releaseCount, error: releaseError } = await supabase
+        .from('songs')
+        .select('*', { count: 'exact', head: true })
+        .eq('artist_id', artistAccount.id);
+
+      if (releaseError) {
+        console.error('Unable to load artist releases:', releaseError.message);
+        return;
+      }
+
+      setArtistReleaseCount(releaseCount || 0);
     };
 
     loadArtistFollowers();
@@ -279,6 +332,10 @@ function App() {
   const [artistProfileCountry, setArtistProfileCountry] = useState('');
   const [artistProfileBio, setArtistProfileBio] = useState('');
   const [artistFollowerCount, setArtistFollowerCount] = useState(0);
+  const [artistStreamCount, setArtistStreamCount] = useState(0);
+  const [artistListenerCount, setArtistListenerCount] = useState(0);
+  const [artistReleaseCount, setArtistReleaseCount] = useState(0);
+  const [artistAnalyticsData, setArtistAnalyticsData] = useState([]);
   const [artistFollowing, setArtistFollowing] = useState(false);
 
   const [artistMusicOpen, setArtistMusicOpen] = useState(false);
@@ -744,7 +801,8 @@ async function loadOnlineSongs() {
                     song_id: playing.id,
                     artist_id: artistId,
                     playback_id: playbackIdRef.current,
-                    listener_id: user.id
+                    listener_id: user.id,
+                    played_at: new Date().toISOString()
                   });
 
                 if (streamError) {
@@ -1506,13 +1564,13 @@ function formatTime(ms) {
               <div className="artistStatsGrid">
                 <div className="artistStatCard">
                   <span>▶</span>
-                  <b>0</b>
+                  <b>{artistStreamCount}</b>
                   <small>Total Plays</small>
                 </div>
 
                 <div className="artistStatCard">
                   <span>👥</span>
-                  <b>0</b>
+                  <b>{artistListenerCount}</b>
                   <small>Listeners</small>
                 </div>
 
@@ -1647,7 +1705,7 @@ function formatTime(ms) {
 
       <div>
         <span>🎵</span>
-        <b>0</b>
+        <b>{artistReleaseCount}</b>
         <small>Releases</small>
       </div>
 
@@ -1739,7 +1797,7 @@ function formatTime(ms) {
     <div className="artistAudienceStats">
       <div>
         <span>👥</span>
-        <b>0</b>
+        <b>{artistListenerCount}</b>
         <small>Total Listeners</small>
       </div>
 
@@ -1751,7 +1809,7 @@ function formatTime(ms) {
 
       <div>
         <span>▶</span>
-        <b>0</b>
+        <b>{artistStreamCount}</b>
         <small>Total Plays</small>
       </div>
 
@@ -1885,13 +1943,13 @@ function formatTime(ms) {
     <div className="artistAnalyticsStats">
       <div>
         <span>▶</span>
-        <b>0</b>
+        <b>{artistStreamCount}</b>
         <small>Total Plays</small>
       </div>
 
       <div>
         <span>👥</span>
-        <b>0</b>
+        <b>{artistListenerCount}</b>
         <small>Listeners</small>
       </div>
 
@@ -1903,7 +1961,7 @@ function formatTime(ms) {
 
       <div>
         <span>🎵</span>
-        <b>0</b>
+        <b>{artistReleaseCount}</b>
         <small>Releases</small>
       </div>
     </div>
@@ -1914,7 +1972,7 @@ function formatTime(ms) {
           <h2>Music Performance</h2>
           <small>Plays over time</small>
         </div>
-        <span>0 plays</span>
+        <span>{artistStreamCount} plays</span>
       </div>
 
       <div className="artistAnalyticsGraph">
@@ -1922,14 +1980,43 @@ function formatTime(ms) {
         <div className="artistGraphLine lineTwo"></div>
         <div className="artistGraphLine lineThree"></div>
 
-        <div className="artistGraphEmpty">
-          <span>📈</span>
-          <b>No data yet</b>
-          <small>
-            Your performance data will appear after your music
-            starts reaching listeners.
-          </small>
-        </div>
+        {artistAnalyticsData.length > 0 ? (
+          <svg
+            className="artistAnalyticsSvg"
+            viewBox="0 0 100 100"
+            preserveAspectRatio="none"
+          >
+            <polyline
+              className="artistAnalyticsPolyline"
+              points={artistAnalyticsData
+                .map((item, index) => {
+                  const maxPlays = Math.max(
+                    ...artistAnalyticsData.map((entry) => entry.plays),
+                    1
+                  );
+
+                  const x =
+                    artistAnalyticsData.length === 1
+                      ? 50
+                      : (index / (artistAnalyticsData.length - 1)) * 100;
+
+                  const y = 95 - (item.plays / maxPlays) * 80;
+
+                  return `${x},${y}`;
+                })
+                .join(' ')}
+            />
+          </svg>
+        ) : (
+          <div className="artistGraphEmpty">
+            <span>📈</span>
+            <b>No data yet</b>
+            <small>
+              Your performance data will appear after your music
+              starts reaching listeners.
+            </small>
+          </div>
+        )}
       </div>
     </div>
 
@@ -2219,11 +2306,11 @@ function formatTime(ms) {
           <span>Followers</span>
         </div>
         <div className="artistAudienceStat">
-          <strong>0</strong>
+          <strong>{artistListenerCount}</strong>
           <span>Listeners</span>
         </div>
         <div className="artistAudienceStat">
-          <strong>0</strong>
+          <strong>{artistStreamCount}</strong>
           <span>Streams</span>
         </div>
       </div>

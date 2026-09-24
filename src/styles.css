@@ -3025,6 +3025,23 @@ section {
 .artistGraphLine.lineTwo { top: 50%; }
 .artistGraphLine.lineThree { top: 75%; }
 
+.artistAnalyticsSvg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.artistAnalyticsPolyline {
+  fill: none;
+  stroke: #e31b23;
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
 .artistGraphEmpty {
   position: absolute;
   inset: 0;
