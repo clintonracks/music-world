@@ -3779,6 +3779,7 @@ function formatTime(ms) {
                       email,
                       password: listenerPassword,
                       options: {
+                        emailRedirectTo: 'musicworld://auth/callback',
                         data: {
                           displayName: name
                         }
