@@ -214,38 +214,46 @@ function App() {
   }, [artistAccount?.id]);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      const session = data?.session;
+    const applyAuthSession = (session) => {
       const user = session?.user;
 
       setSignedIn(Boolean(session));
 
-      if (user) {
-        setArtistAccount({
+      if (!user) {
+        setArtistAccount(null);
+        localStorage.removeItem('musicWorldArtistAccount');
+        return;
+      }
+
+      const isArtist = user.user_metadata?.accountType === 'artist';
+
+      if (isArtist) {
+        const account = {
           id: user.id,
           email: user.email || '',
           artistName: user.user_metadata?.artistName || 'Music World Artist',
           createdAt: user.created_at || new Date().toISOString(),
-          verified: user.user_metadata?.accountType === 'artist'
-        });
+          verified: true
+        };
+
+        setArtistAccount(account);
+        localStorage.setItem(
+          'musicWorldArtistAccount',
+          JSON.stringify(account)
+        );
+      } else {
+        setArtistAccount(null);
+        localStorage.removeItem('musicWorldArtistAccount');
       }
+    };
+
+    supabase.auth.getSession().then(({ data }) => {
+      applyAuthSession(data?.session || null);
     });
 
     const { data: listener } = supabase.auth.onAuthStateChange(
       (_event, session) => {
-        const user = session?.user;
-
-        setSignedIn(Boolean(session));
-
-        if (user) {
-          setArtistAccount({
-            id: user.id,
-            email: user.email || '',
-            artistName: user.user_metadata?.artistName || 'Music World Artist',
-            createdAt: user.created_at || new Date().toISOString(),
-            verified: user.user_metadata?.accountType === 'artist'
-          });
-        }
+        applyAuthSession(session || null);
       }
     );
 
@@ -733,6 +741,7 @@ async function loadOnlineSongs() {
                 const { error: streamError } = await supabase
                   .from('streams')
                   .insert({
+                    song_id: playing.id,
                     artist_id: artistId,
                     playback_id: playbackIdRef.current,
                     listener_id: user.id
