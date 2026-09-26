@@ -435,9 +435,64 @@ function openPlayingArtist() {
 async function openPublicArtist(artist) {
   if (!artist) return;
 
+  const artistId = artist.id;
+
+  let savedProfile = null;
+
+  if (artistId) {
+    try {
+      const { data, error } = await supabase
+        .from('artist_profiles')
+        .select('id, name, genre, country, bio')
+        .eq('id', artistId)
+        .maybeSingle();
+
+      if (error) {
+        console.error(
+          'Unable to load artist profile:',
+          error.message
+        );
+      } else {
+        savedProfile = data;
+      }
+    } catch (error) {
+      console.error(
+        'Unable to load artist profile:',
+        error.message
+      );
+    }
+  }
+
   const publicArtistData = {
     ...artist,
-    monthlyListeners: artist.monthlyListeners || artist.listeners || 0,
+    ...(savedProfile || {}),
+    id: artistId || savedProfile?.id || '',
+    name:
+      savedProfile?.name ||
+      artist.name ||
+      artist.artistName ||
+      'Artist',
+    artistName:
+      savedProfile?.name ||
+      artist.artistName ||
+      artist.name ||
+      'Artist',
+    country:
+      savedProfile?.country ||
+      artist.country ||
+      '',
+    genre:
+      savedProfile?.genre ||
+      artist.genre ||
+      '',
+    bio:
+      savedProfile?.bio ||
+      artist.bio ||
+      '',
+    monthlyListeners:
+      artist.monthlyListeners ||
+      artist.listeners ||
+      0,
     streams: artist.streams || 0,
     verified: artist.verified === true,
     releases: artist.releases || []
@@ -446,14 +501,13 @@ async function openPublicArtist(artist) {
   setPublicArtist(publicArtistData);
   setPublicArtistOpen(true);
   navigateTo('ArtistProfile');
+
   setArtistOpen(false);
   setArtistProfileOpen(false);
   setArtistMusicOpen(false);
   setArtistAnalyticsOpen(false);
   setArtistAudienceOpen(false);
   setArtistEarningsOpen(false);
-
-  const artistId = artist.id;
 
   if (!artistId) {
     return;
@@ -477,13 +531,17 @@ async function openPublicArtist(artist) {
         .filter(Boolean)
     ).size;
 
-    const thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
+    const thirtyDaysAgo =
+      Date.now() - (30 * 24 * 60 * 60 * 1000);
 
     const monthlyListeners = new Set(
       (streamRows || [])
         .filter(row => {
           if (!row.played_at) return false;
-          return new Date(row.played_at).getTime() >= thirtyDaysAgo;
+          return (
+            new Date(row.played_at).getTime() >=
+            thirtyDaysAgo
+          );
         })
         .map(row => row.listener_id)
         .filter(Boolean)
@@ -509,7 +567,8 @@ async function openPublicArtist(artist) {
               .from('music')
               .createSignedUrl(song.artwork_url, 3600);
 
-          artworkUrl = artworkData?.signedUrl || null;
+          artworkUrl =
+            artworkData?.signedUrl || null;
         }
 
         return {
