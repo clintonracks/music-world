@@ -2785,6 +2785,23 @@ section {
   background: #1b1b1b;
 }
 
+.artistProfileChecklist > div[role="button"] {
+  cursor: pointer;
+  transition:
+    border-color 0.2s ease,
+    background 0.2s ease,
+    transform 0.1s ease;
+}
+
+.artistProfileChecklist > div[role="button"]:hover {
+  border-color: #555;
+  background: #202020;
+}
+
+.artistProfileChecklist > div[role="button"]:active {
+  transform: scale(0.99);
+}
+
 .artistProfileChecklist span {
   grid-row: span 2;
   display: flex;

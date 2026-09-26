@@ -331,6 +331,11 @@ function App() {
   const [artistProfileGenre, setArtistProfileGenre] = useState('');
   const [artistProfileCountry, setArtistProfileCountry] = useState('');
   const [artistProfileBio, setArtistProfileBio] = useState('');
+  const [artistSocialOpen, setArtistSocialOpen] = useState(false);
+  const [artistInstagram, setArtistInstagram] = useState('');
+  const [artistFacebook, setArtistFacebook] = useState('');
+  const [artistTikTok, setArtistTikTok] = useState('');
+  const [artistX, setArtistX] = useState('');
   const [artistFollowerCount, setArtistFollowerCount] = useState(0);
   const [artistStreamCount, setArtistStreamCount] = useState(0);
   const [artistListenerCount, setArtistListenerCount] = useState(0);
@@ -489,6 +494,10 @@ async function openPublicArtist(artist) {
       savedProfile?.bio ||
       artist.bio ||
       '',
+    photo:
+      artistProfile.photo ||
+      artist.photo ||
+      null,
     monthlyListeners:
       artist.monthlyListeners ||
       artist.listeners ||
@@ -2383,7 +2392,98 @@ function formatTime(ms) {
     </div>
     )}
 
-    {!artistProfileEditOpen && (
+    {artistSocialOpen && (
+      <div className="artistProfileSection">
+        <div className="artistProfileSectionTitle">
+          <div>
+            <h2>Social Links</h2>
+            <small>Connect your social presence</small>
+          </div>
+        </div>
+
+        <div className="artistProfileFields">
+          <label>
+            Instagram
+            <input
+              type="text"
+              value={artistInstagram}
+              onChange={(e) => setArtistInstagram(e.target.value)}
+              placeholder="@username"
+            />
+          </label>
+
+          <label>
+            Facebook
+            <input
+              type="text"
+              value={artistFacebook}
+              onChange={(e) => setArtistFacebook(e.target.value)}
+              placeholder="Profile or page link"
+            />
+          </label>
+
+          <label>
+            TikTok
+            <input
+              type="text"
+              value={artistTikTok}
+              onChange={(e) => setArtistTikTok(e.target.value)}
+              placeholder="@username"
+            />
+          </label>
+
+          <label>
+            X
+            <input
+              type="text"
+              value={artistX}
+              onChange={(e) => setArtistX(e.target.value)}
+              placeholder="@username"
+            />
+          </label>
+        </div>
+
+        <div className="artistProfileActions">
+          <button
+            className="artistBack"
+            onClick={() => setArtistSocialOpen(false)}
+          >
+            Cancel
+          </button>
+
+          <button
+            className="primary"
+            onClick={() => {
+              const socialLinks = {
+                instagram: artistInstagram.trim(),
+                facebook: artistFacebook.trim(),
+                tiktok: artistTikTok.trim(),
+                x: artistX.trim()
+              };
+
+              const updatedProfile = {
+                ...artistProfile,
+                socialLinks
+              };
+
+              setArtistProfile(updatedProfile);
+
+              localStorage.setItem(
+                'musicWorldArtistProfile',
+                JSON.stringify(updatedProfile)
+              );
+
+              setArtistSocialOpen(false);
+              alert('Social links updated successfully.');
+            }}
+          >
+            Save Social Links
+          </button>
+        </div>
+      </div>
+    )}
+
+    {!artistProfileEditOpen && !artistSocialOpen && (
     <div className="artistProfileSection">
       <div className="artistProfileSectionTitle">
         <div>
@@ -2409,7 +2509,7 @@ function formatTime(ms) {
     </div>
     )}
 
-    {!artistProfileEditOpen && (
+    {!artistProfileEditOpen && !artistSocialOpen && (
     <div className="artistProfileSection">
       <div className="artistProfileSectionTitle">
         <div>
@@ -2419,28 +2519,112 @@ function formatTime(ms) {
       </div>
 
       <div className="artistProfileChecklist">
-        <div>
-          <span>○</span>
+        <div
+          onClick={async () => {
+            try {
+              const result = await DeviceMusic.pickArtwork();
+
+              if (!result?.uri) {
+                alert('No photo was selected.');
+                return;
+              }
+
+              const updatedProfile = {
+                ...artistProfile,
+                photo: {
+                  uri: result.uri,
+                  name: result.name || 'artist-photo'
+                }
+              };
+
+              setArtistProfile(updatedProfile);
+              localStorage.setItem(
+                'musicWorldArtistProfile',
+                JSON.stringify(updatedProfile)
+              );
+
+              alert('Artist photo updated successfully.');
+            } catch (error) {
+              alert(
+                'Unable to select artist photo.\\n\\nDetails: ' +
+                (error?.message || String(error))
+              );
+            }
+          }}
+          role="button"
+          tabIndex="0"
+        >
+          <span>{artistProfile.photo?.uri ? '✓' : '○'}</span>
           <b>Artist photo</b>
-          <small>Add a recognizable profile image.</small>
+          <small>
+            {artistProfile.photo?.uri
+              ? 'Photo selected. Tap to change it.'
+              : 'Add a recognizable profile image.'}
+          </small>
         </div>
 
-        <div>
-          <span>○</span>
+        <div
+          onClick={() => {
+            setArtistProfileName(
+              artistProfile.name || artistAccount?.artistName || ''
+            );
+            setArtistProfileGenre(artistProfile.genre || '');
+            setArtistProfileCountry(artistProfile.country || '');
+            setArtistProfileBio(artistProfile.bio || '');
+            setArtistProfileEditOpen(true);
+          }}
+          role="button"
+          tabIndex="0"
+        >
+          <span>{artistProfile.bio?.trim() ? '✓' : '○'}</span>
           <b>Artist bio</b>
           <small>Tell listeners your story and sound.</small>
         </div>
 
-        <div>
-          <span>○</span>
+        <div
+          onClick={() => {
+            setArtistProfileName(
+              artistProfile.name || artistAccount?.artistName || ''
+            );
+            setArtistProfileGenre(artistProfile.genre || '');
+            setArtistProfileCountry(artistProfile.country || '');
+            setArtistProfileBio(artistProfile.bio || '');
+            setArtistProfileEditOpen(true);
+          }}
+          role="button"
+          tabIndex="0"
+        >
+          <span>
+            {artistProfile.genre?.trim() && artistProfile.country?.trim()
+              ? '✓'
+              : '○'}
+          </span>
           <b>Genre & country</b>
           <small>Help listeners understand your music.</small>
         </div>
 
-        <div>
-          <span>○</span>
+        <div
+          onClick={() => {
+            const links = artistProfile.socialLinks || {};
+            setArtistInstagram(links.instagram || '');
+            setArtistFacebook(links.facebook || '');
+            setArtistTikTok(links.tiktok || '');
+            setArtistX(links.x || '');
+            setArtistSocialOpen(true);
+          }}
+          role="button"
+          tabIndex="0"
+        >
+          <span>
+            {artistProfile.socialLinks &&
+            Object.values(artistProfile.socialLinks).some(
+              value => value?.trim()
+            )
+              ? '✓'
+              : '○'}
+          </span>
           <b>Social links</b>
-          <small>Connect your other music platforms.</small>
+          <small>Connect your social presence.</small>
         </div>
       </div>
     </div>
@@ -3718,9 +3902,9 @@ function formatTime(ms) {
 
             <div className="publicArtistHero">
               <div className="publicArtistAvatar">
-                {publicArtist.artwork ? (
+                {publicArtist.photo?.uri || publicArtist.artwork ? (
                   <img
-                    src={publicArtist.artwork}
+                    src={publicArtist.photo?.uri || publicArtist.artwork}
                     alt={publicArtist.name || publicArtist.artistName || 'Artist'}
                   />
                 ) : (
