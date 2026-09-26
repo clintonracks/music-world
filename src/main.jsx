@@ -74,23 +74,6 @@ async function uploadCachedFile(cachePath, objectPath, contentType) {
   return data;
 }
 
-const artists = [
-  { rank: 1, name: 'Luna Ray', country: 'Nigeria', continent: 'Africa', song: 'After Midnight', plays: '2.8M' },
-  { rank: 2, name: 'Jay K', country: 'Zambia', continent: 'Africa', song: 'No Limits', plays: '2.4M' },
-  { rank: 3, name: 'Amani', country: 'South Africa', continent: 'Africa', song: 'Higher', plays: '2.1M' },
-  { rank: 4, name: 'Nia Blue', country: 'Ghana', continent: 'Africa', song: 'Golden', plays: '1.9M' },
-  { rank: 5, name: 'Kairo', country: 'Kenya', continent: 'Africa', song: 'Run It', plays: '1.7M' },
-  { rank: 6, name: 'Maya Stone', country: 'UK', continent: 'Europe', song: 'Midnight Lights', plays: '1.6M' },
-  { rank: 7, name: 'Leo Nova', country: 'France', continent: 'Europe', song: 'Paris Nights', plays: '1.4M' },
-  { rank: 8, name: 'Aiko', country: 'Japan', continent: 'Asia', song: 'Neon Sky', plays: '1.3M' },
-  { rank: 9, name: 'Ravi', country: 'India', continent: 'Asia', song: 'Higher Ground', plays: '1.2M' },
-  { rank: 10, name: 'Nova West', country: 'USA', continent: 'North America', song: 'Runaway', plays: '1.1M' },
-  { rank: 11, name: 'Rio Sol', country: 'Brazil', continent: 'South America', song: 'Solamente', plays: '980K' },
-  { rank: 12, name: 'Kai Ocean', country: 'Australia', continent: 'Oceania', song: 'Blue Horizon', plays: '920K' }
-];
-
-const continents = ['Africa', 'Europe', 'Asia', 'North America', 'South America', 'Oceania'];
-
 function App() {
   const openDeviceMusic = async () => {
     setDeviceMusicOpen(true);
@@ -139,7 +122,6 @@ function App() {
   const [repeatMode, setRepeatMode] = useState('off');
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
-  const [chart, setChart] = useState('Africa');
   const [searchOpen, setSearchOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [signedIn, setSignedIn] = useState(false);
@@ -813,18 +795,6 @@ async function loadOnlineSongs() {
   const filteredSearch = useMemo(() => {
     const q = search.trim().toLowerCase();
 
-    const artistResults = artists
-      .filter(a =>
-        !q ||
-        `${a.name} ${a.song}`
-          .toLowerCase()
-          .includes(q)
-      )
-      .map(a => ({
-        ...a,
-        searchType: 'artist'
-      }));
-
     const onlineSongResults = onlineSongs
       .filter(song =>
         !q ||
@@ -839,10 +809,8 @@ async function loadOnlineSongs() {
         searchType: 'online'
       }));
 
-    return [...artistResults, ...onlineSongResults];
+    return onlineSongResults;
   }, [search, onlineSongs]);
-
-  const continentArtists = artists.filter(a => a.continent === chart);
 
   const filteredDeviceMusic = useMemo(() => {
     const q = deviceMusicSearch.trim().toLowerCase();
@@ -1356,12 +1324,21 @@ function formatTime(ms) {
                   A global home for artists, listeners and the next #1.
                 </p>
 
-                <button
-                  onClick={() => startSong(artists[0])}
-                  className="primary"
-                >
-                  ▶ Play Global #1
-                </button>
+                {onlineSongs.length > 0 && onlineSongs[0]?.audioUrl ? (
+                  <button
+                    onClick={() => startSong({
+                      ...onlineSongs[0],
+                      uri: onlineSongs[0].audioUrl,
+                      title: onlineSongs[0].title,
+                      artist: onlineSongs[0].artist,
+                      album: 'Music World',
+                      artwork: onlineSongs[0].artworkUrl
+                    })}
+                    className="primary"
+                  >
+                    ▶ Play Latest Release
+                  </button>
+                ) : null}
               </div>
 
               <div className="heroBadge">
@@ -1370,19 +1347,45 @@ function formatTime(ms) {
             </section>
 
             <Section
-              title="Global Top 10"
+              title="Latest Releases"
               action="View all"
-              onAction={() => setTab('Charts')}
+              onAction={() => setTab('Discover')}
             >
-              <div className="cards">
-                {artists.slice(0, 4).map(a => (
-                  <Track
-                    key={a.rank}
-                    a={a}
-                    onPlay={() => startSong(a)}
-                  />
-                ))}
-              </div>
+              {onlineSongs.length > 0 ? (
+                <div className="cards">
+                  {onlineSongs.slice(0, 4).map(song => (
+                    <Track
+                      key={song.id}
+                      a={{
+                        name: song.artist || 'Unknown Artist',
+                        song: song.title || 'Unknown Song',
+                        artwork: song.artworkUrl
+                      }}
+                      onPlay={() => {
+                        if (!song.audioUrl) {
+                          alert('This song is not available for playback yet.');
+                          return;
+                        }
+
+                        startSong({
+                          ...song,
+                          uri: song.audioUrl,
+                          title: song.title,
+                          artist: song.artist,
+                          album: 'Music World',
+                          artwork: song.artworkUrl
+                        });
+                      }}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="empty">
+                  <div>♫</div>
+                  <h2>No releases yet</h2>
+                  <p>Published artist releases will appear here.</p>
+                </div>
+              )}
             </Section>
 
             <Section title="Rising Artists">
@@ -3291,42 +3294,149 @@ function formatTime(ms) {
               )}
             </Section>
 
-            <div className="grid">
-              {continents.map(c => (
-                <button
-                  key={c}
-                  className={`continent ${chart === c ? 'selected' : ''}`}
-                  onClick={() => setChart(c)}
-                >
-                  <span>🌍</span>
-                  <b>{c}</b>
-                  <small>Charts · Artists · Genres</small>
-                </button>
-              ))}
-            </div>
-
-            <Section title={`${chart} Music`}>
-              {continentArtists.length > 0 ? (
+            <Section title="🔥 Trending Now">
+              {onlineSongs.length > 0 ? (
                 <div className="chartList">
-                  {continentArtists.map(a => (
-                    <div className="row" key={a.rank}>
-                      <strong>#{a.rank}</strong>
-                      <div className="avatar">{a.name[0]}</div>
+                  {onlineSongs.slice(0, 5).map(song => (
+                    <div
+                      className="row onlineSongRow"
+                      key={`trending-${song.id}`}
+                      onClick={() => {
+                        if (!song.audioUrl) {
+                          alert('This song is not available for playback yet.');
+                          return;
+                        }
 
-                      <div className="meta">
-                        <b>{a.song}</b>
-                        <small>{a.name} · {a.country}</small>
+                        startSong({
+                          ...song,
+                          uri: song.audioUrl,
+                          title: song.title,
+                          artist: song.artist,
+                          album: 'Music World',
+                          artwork: song.artworkUrl
+                        });
+                      }}
+                      role="button"
+                      tabIndex="0"
+                    >
+                      <div className="avatar">
+                        {song.artworkUrl ? (
+                          <img src={song.artworkUrl} alt="" />
+                        ) : (
+                          song.artist?.[0] || '♪'
+                        )}
                       </div>
 
-                      <button onClick={() => startSong(a)}>▶</button>
+                      <div className="meta">
+                        <b>{song.title}</b>
+                        <small>{song.artist || 'Unknown Artist'}</small>
+                      </div>
                     </div>
                   ))}
                 </div>
               ) : (
                 <div className="empty">
-                  <div>♫</div>
-                  <h2>Music coming soon</h2>
-                  <p>Artists from {chart} will appear here.</p>
+                  <div>🔥</div>
+                  <h2>No trending music yet</h2>
+                  <p>Published songs will appear here as listeners discover them.</p>
+                </div>
+              )}
+            </Section>
+
+            <Section title="🚀 Rising Artists">
+              {onlineSongs.length > 0 ? (
+                <div className="chartList">
+                  {onlineSongs
+                    .slice(0, 5)
+                    .map(song => (
+                      <div className="row" key={`rising-${song.id}`}>
+                        <div className="avatar">
+                          {song.artworkUrl ? (
+                            <img src={song.artworkUrl} alt="" />
+                          ) : (
+                            song.artist?.[0] || '♪'
+                          )}
+                        </div>
+
+                        <div className="meta">
+                          <b>{song.artist || 'Unknown Artist'}</b>
+                          <small>{song.title || 'Latest release'}</small>
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              ) : (
+                <div className="empty">
+                  <div>🚀</div>
+                  <h2>Artists are getting ready</h2>
+                  <p>New artists will appear here after publishing music.</p>
+                </div>
+              )}
+            </Section>
+
+            <Section title="🆕 Fresh Releases">
+              {onlineSongs.length > 0 ? (
+                <div className="cards">
+                  {onlineSongs.slice(0, 6).map(song => (
+                    <Track
+                      key={`fresh-${song.id}`}
+                      a={{
+                        name: song.artist || 'Unknown Artist',
+                        song: song.title || 'Unknown Song',
+                        artwork: song.artworkUrl
+                      }}
+                      onPlay={() => {
+                        if (!song.audioUrl) {
+                          alert('This song is not available for playback yet.');
+                          return;
+                        }
+
+                        startSong({
+                          ...song,
+                          uri: song.audioUrl,
+                          title: song.title,
+                          artist: song.artist,
+                          album: 'Music World',
+                          artwork: song.artworkUrl
+                        });
+                      }}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="empty">
+                  <div>🆕</div>
+                  <h2>No fresh releases yet</h2>
+                  <p>New artist releases will appear here.</p>
+                </div>
+              )}
+            </Section>
+
+            <Section title="🎤 Artist Spotlight">
+              {onlineSongs.length > 0 ? (
+                <div className="spotlightCard">
+                  <div className="avatar">
+                    {onlineSongs[0]?.artworkUrl ? (
+                      <img src={onlineSongs[0].artworkUrl} alt="" />
+                    ) : (
+                      onlineSongs[0]?.artist?.[0] || '🎤'
+                    )}
+                  </div>
+
+                  <div className="meta">
+                    <b>{onlineSongs[0]?.artist || 'Artist Spotlight'}</b>
+                    <small>
+                      {onlineSongs[0]?.title
+                        ? `Featuring ${onlineSongs[0].title}`
+                        : 'Featured artist'}
+                    </small>
+                  </div>
+                </div>
+              ) : (
+                <div className="empty">
+                  <div>🎤</div>
+                  <h2>Artist Spotlight</h2>
+                  <p>Featured artists will appear here.</p>
                 </div>
               )}
             </Section>
@@ -3337,38 +3447,59 @@ function formatTime(ms) {
           <>
             <Title title="Charts" />
 
-            <div className="tabs">
-              {['Global', ...continents].map(x => (
-                <button
-                  className={chart === x ? 'sel' : ''}
-                  onClick={() => setChart(x)}
-                  key={x}
-                >
-                  {x}
-                </button>
-              ))}
-            </div>
+            <Section title="Music World Charts">
+              {onlineSongs.length > 0 ? (
+                <div className="chartList">
+                  {onlineSongs.map((song, i) => (
+                    <div
+                      className="row onlineSongRow"
+                      key={`chart-${song.id}`}
+                      onClick={() => {
+                        if (!song.audioUrl) {
+                          alert('This song is not available for playback yet.');
+                          return;
+                        }
 
-            <div className="chartList">
-              {(chart === 'Global'
-                ? artists
-                : artists.filter(a => a.continent === chart)
-              ).map((a, i) => (
-                <div className="row" key={a.rank}>
-                  <strong>#{i + 1}</strong>
-                  <div className="avatar">{a.name[0]}</div>
+                        startSong({
+                          ...song,
+                          uri: song.audioUrl,
+                          title: song.title,
+                          artist: song.artist,
+                          album: 'Music World',
+                          artwork: song.artworkUrl
+                        });
+                      }}
+                      role="button"
+                      tabIndex="0"
+                    >
+                      <strong>#{i + 1}</strong>
 
-                  <div className="meta">
-                    <b>{a.song}</b>
-                    <small>{a.name} · {a.country}</small>
-                  </div>
+                      <div className="avatar">
+                        {song.artworkUrl ? (
+                          <img src={song.artworkUrl} alt="" />
+                        ) : (
+                          song.artist?.[0] || '♪'
+                        )}
+                      </div>
 
-                  <button onClick={() => startSong(a)}>▶</button>
+                      <div className="meta">
+                        <b>{song.title || 'Unknown Song'}</b>
+                        <small>{song.artist || 'Unknown Artist'}</small>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
+              ) : (
+                <div className="empty">
+                  <div>♫</div>
+                  <h2>No chart data yet</h2>
+                  <p>Charts will appear as real Music World songs are published and played.</p>
+                </div>
+              )}
+            </Section>
           </>
         )}
+
 
         {tab === 'Library' && (
           <>
