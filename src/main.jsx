@@ -115,8 +115,8 @@ function App() {
 
     setDeviceMusicLoading(false);
   };
-  const [tab, setTab] = useState('Home');
-  const [navigationStack, setNavigationStack] = useState(['Home']);
+  const [tab, setTab] = useState('Discover');
+  const [navigationStack, setNavigationStack] = useState(['Discover']);
 
   function navigateTo(screen) {
     setNavigationStack(prev => [...prev, screen]);
@@ -1166,7 +1166,7 @@ function formatTime(ms) {
         setPublicArtistOpen(false);
         setPublicArtist(null);
 
-        if (['Home', 'Discover', 'Charts', 'Library', 'Profile'].includes(previousScreen)) {
+        if (['Discover', 'Search', 'Charts', 'Library', 'Profile'].includes(previousScreen)) {
           setTab(previousScreen);
         }
 
@@ -1260,7 +1260,7 @@ function formatTime(ms) {
       return;
     }
 
-    setTab('Home');
+    setTab('Discover');
   }
 
   return (
@@ -1273,9 +1273,6 @@ function formatTime(ms) {
             MUSIC<span>WORLD</span>
           </div>
 
-          <button className="search" onClick={() => setSearchOpen(true)}>
-            ⌕ <span>Search artists, songs...</span>
-          </button>
         </header>
       )}
 
@@ -3355,7 +3352,7 @@ function formatTime(ms) {
 
                 <button
                   className="primary"
-                  onClick={() => setTab('Home')}
+                  onClick={() => setTab('Discover')}
                 >
                   Discover Music
                 </button>
@@ -4435,8 +4432,9 @@ function formatTime(ms) {
 
       </main>
 
-      {searchOpen && (
-        <div className="compactSearch">
+      {searchOpen && tab === 'Search' && (
+        <main className="searchPage">
+          <div className="compactSearch">
           <input
             autoFocus
             value={search}
@@ -4465,7 +4463,6 @@ function formatTime(ms) {
                       startSong(a);
                     }
 
-                    setSearchOpen(false);
                   }}
                 >
                   <span>
@@ -4484,12 +4481,13 @@ function formatTime(ms) {
               <p>No music found.</p>
             )}
           </div>
-        </div>
+          </div>
+        </main>
       )}
 
       {!artistOpen && !publicArtistOpen && (
         <nav className="bottomNav">
-          {['Home', 'Discover', 'Charts', 'Library', 'Profile'].map(x => (
+          {['Discover', 'Search', 'Charts', 'Library', 'Profile'].map(x => (
           <button
             className={`navItem ${tab === x && !settings && !showSignIn ? 'active' : ''}`}
             onClick={() => {
@@ -4506,13 +4504,19 @@ function formatTime(ms) {
               setArtistAnalyticsOpen(false);
               setArtistAudienceOpen(false);
               setArtistEarningsOpen(false);
+
+              if (x === 'Search') {
+                setSearchOpen(true);
+              } else {
+                setSearchOpen(false);
+              }
             }}
             key={x}
           >
             <span className="navIcon">
               {{
-                Home: '⌂',
                 Discover: '◉',
+                Search: '⌕',
                 Charts: '▥',
                 Library: '♫',
                 Profile: '●'
