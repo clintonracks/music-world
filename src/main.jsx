@@ -3605,15 +3605,37 @@ function formatTime(ms) {
                   </div>
                 </div>
 
-                <button onClick={() => setTab('Library')}>
+                <button
+                  className="profileActionButton"
+                  onClick={() => setTab('Library')}
+                >
                   🎶 My Playlist
+                  <span>→</span>
                 </button>
 
-                <button onClick={() => setSettings(true)}>
+                <button
+                  className="profileActionButton artistEntryButton"
+                  onClick={() => {
+                    setArtistOpen(true);
+                    setArtistAuth(null);
+                  }}
+                >
+                  🎤 For Artists
+                  <span>→</span>
+                </button>
+
+                <button
+                  className="profileActionButton"
+                  onClick={() => setSettings(true)}
+                >
                   ⚙️ Settings
+                  <span>→</span>
                 </button>
 
-                <button onClick={() => setSignedIn(false)}>
+                <button
+                  className="profileActionButton"
+                  onClick={() => setSignedIn(false)}
+                >
                   Log out
                 </button>
               </div>
