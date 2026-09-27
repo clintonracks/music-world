@@ -4611,3 +4611,55 @@ section {
   color: #e50914;
   opacity: 1;
 }
+
+
+/* Artist Spotlight */
+.spotlightCard {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px;
+  background: #242424;
+  color: white;
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.spotlightCard .avatar {
+  width: 80px;
+  height: 80px;
+  flex: 0 0 80px;
+  border-radius: 14px;
+  background: #333;
+  overflow: hidden;
+}
+
+.spotlightCard .avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.spotlightCard .meta {
+  min-width: 0;
+  flex: 1;
+}
+
+.spotlightCard .meta b,
+.spotlightCard .meta small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.spotlightCard .meta b {
+  color: white;
+  font-size: 16px;
+}
+
+.spotlightCard .meta small {
+  color: #aaa;
+  margin-top: 5px;
+}
