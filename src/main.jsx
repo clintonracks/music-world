@@ -5168,10 +5168,10 @@ function formatTime(ms) {
             </button>
 
             <button
-              className={`utilityButton ${repeatMode !== 'off' ? 'activeUtility' : ''}`}
+              className={`utilityButton repeatButton repeat-${repeatMode}`}
               aria-label={
                 repeatMode === 'off'
-                  ? "Enable Repeat"
+                  ? "Repeat Off"
                   : repeatMode === 'all'
                     ? "Repeat All"
                     : "Repeat One"
@@ -5187,7 +5187,10 @@ function formatTime(ms) {
                 )
               }
             >
-              🔁
+              <span className="repeatIcon">🔁</span>
+              {repeatMode === 'one' && (
+                <span className="repeatOneBadge">1</span>
+              )}
             </button>
           </div>
 
