@@ -4886,3 +4886,36 @@ section {
   text-align: center;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.45);
 }
+
+/* Modern draggable music seek thumb */
+.fullPlayer .progress {
+  position: relative;
+  touch-action: none;
+  cursor: pointer;
+}
+
+.fullPlayer .progress .seekThumb {
+  position: absolute;
+  top: 50%;
+  width: 14px;
+  height: 14px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: #fff;
+  border: 3px solid #e50914;
+  box-shadow:
+    0 2px 8px rgba(0, 0, 0, 0.45),
+    0 0 10px rgba(229, 9, 20, 0.35);
+  pointer-events: none;
+  z-index: 3;
+}
+
+.fullPlayer .progress:active .seekThumb {
+  width: 18px;
+  height: 18px;
+  border-width: 3px;
+  box-shadow:
+    0 3px 12px rgba(0, 0, 0, 0.5),
+    0 0 16px rgba(229, 9, 20, 0.5);
+}
+

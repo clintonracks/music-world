@@ -964,25 +964,72 @@ async function loadOnlineSongs() {
     };
   }, [playing?.uri, repeatMode, shuffleEnabled]);
 
-  async function seekFromProgress(event) {
-  if (!playing?.uri || !duration || !Number.isFinite(duration)) return;
+  const seekDraggingRef = useRef(false);
+  const seekBarRef = useRef(null);
 
-  const rect = event.currentTarget.getBoundingClientRect();
-  const clientX = event.clientX;
+  function getSeekPosition(clientX) {
+    if (!playing?.uri || !duration || !Number.isFinite(duration)) return null;
+    if (!seekBarRef.current) return null;
 
-  if (clientX == null) return;
+    const rect = seekBarRef.current.getBoundingClientRect();
+    if (!rect.width) return null;
 
-  const percent = Math.min(1, Math.max(0, (clientX - rect.left) / rect.width));
-  const position = percent * duration;
+    const percent = Math.min(
+      1,
+      Math.max(0, (clientX - rect.left) / rect.width)
+    );
 
-  setCurrentTime(position);
-
-  try {
-    await DeviceMusic.seekTo({ position });
-  } catch (error) {
-    console.error("Seek error:", error);
+    return percent * duration;
   }
-}
+
+  function updateSeekPosition(clientX) {
+    const position = getSeekPosition(clientX);
+
+    if (position == null) return;
+
+    setCurrentTime(position);
+  }
+
+  async function finishSeek(clientX) {
+    const position = getSeekPosition(clientX);
+
+    seekDraggingRef.current = false;
+
+    if (position == null) return;
+
+    setCurrentTime(position);
+
+    try {
+      await DeviceMusic.seekTo({ position });
+    } catch (error) {
+      console.error("Seek error:", error);
+    }
+  }
+
+  function handleSeekPointerDown(event) {
+    if (!playing?.uri || !duration || !Number.isFinite(duration)) return;
+
+    event.preventDefault();
+    seekDraggingRef.current = true;
+
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+
+    updateSeekPosition(event.clientX);
+  }
+
+  function handleSeekPointerMove(event) {
+    if (!seekDraggingRef.current) return;
+
+    event.preventDefault();
+    updateSeekPosition(event.clientX);
+  }
+
+  async function handleSeekPointerUp(event) {
+    if (!seekDraggingRef.current) return;
+
+    event.preventDefault();
+    await finishSeek(event.clientX);
+  }
 
 function formatTime(ms) {
     if (!ms || !Number.isFinite(ms)) return "0:00";
@@ -5118,14 +5165,29 @@ function formatTime(ms) {
 
           <div
             className="progress"
-            onPointerDown={seekFromProgress}
+            ref={seekBarRef}
+            onPointerDown={handleSeekPointerDown}
+            onPointerMove={handleSeekPointerMove}
+            onPointerUp={handleSeekPointerUp}
+            onPointerCancel={handleSeekPointerUp}
             role="slider"
             aria-label="Song progress"
             aria-valuemin="0"
             aria-valuemax={duration || 0}
             aria-valuenow={currentTime}
           >
-            <span style={{ width: `${duration ? Math.min(100, Math.max(0, (currentTime / duration) * 100)) : 0}%` }}></span>
+            <span
+              style={{
+                width: `${duration ? Math.min(100, Math.max(0, (currentTime / duration) * 100)) : 0}%`
+              }}
+            ></span>
+
+            <div
+              className="seekThumb"
+              style={{
+                left: `${duration ? Math.min(100, Math.max(0, (currentTime / duration) * 100)) : 0}%`
+              }}
+            ></div>
           </div>
 
           <div className="times">
