@@ -477,9 +477,9 @@ async function openPublicArtist(artist) {
       artist.bio ||
       '',
     photo:
-      artistProfile.photo ||
-      artist.photo ||
-      null,
+      artistProfile.photo?.uri
+        ? artistProfile.photo
+        : artist.photo || null,
     monthlyListeners:
       artist.monthlyListeners ||
       artist.listeners ||
@@ -2219,7 +2219,16 @@ function formatTime(ms) {
     }
   }}
 >
-      <div className="artistProfileAvatar">🎤</div>
+      <div className="artistProfileAvatar">
+        {artistProfile.photo?.uri ? (
+          <img
+            src={artistProfile.photo.uri}
+            alt={artistProfile.name || artistAccount?.artistName || 'Artist'}
+          />
+        ) : (
+          '🎤'
+        )}
+      </div>
 
       <div className="artistProfileIdentity">
         <span className="artistProfileTag">ARTIST</span>
