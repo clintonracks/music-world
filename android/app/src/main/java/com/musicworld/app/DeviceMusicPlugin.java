@@ -188,11 +188,13 @@ public class DeviceMusicPlugin extends Plugin {
                         return;
                     }
 
-                    if (startIndex < 0 || startIndex >= mediaItems.size()) {
-                        startIndex = 0;
+                    int safeStartIndex = startIndex;
+
+                    if (safeStartIndex < 0 || safeStartIndex >= mediaItems.size()) {
+                        safeStartIndex = 0;
                     }
 
-                    controller.setMediaItems(mediaItems, startIndex, 0);
+                    controller.setMediaItems(mediaItems, safeStartIndex, 0);
 
                     controller.setShuffleModeEnabled(shuffleEnabled);
 
