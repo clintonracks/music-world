@@ -147,76 +147,99 @@ public class DeviceMusicPlugin extends Plugin {
 
             getActivity().runOnUiThread(() -> {
                 try {
-                    MediaController controller = mediaController;
+                    getController().addListener(() -> {
+                        try {
+                            MediaController controller = getController().get();
 
-                    if (controller == null) {
-                        call.reject("Audio player is not ready");
-                        return;
-                    }
+                            java.util.ArrayList<MediaItem> mediaItems =
+                                new java.util.ArrayList<>();
 
-                    java.util.ArrayList<MediaItem> mediaItems =
-                        new java.util.ArrayList<>();
+                            for (int i = 0; i < queue.length(); i++) {
+                                org.json.JSONObject song = queue.optJSONObject(i);
 
-                    for (int i = 0; i < queue.length(); i++) {
-                        org.json.JSONObject song = queue.optJSONObject(i);
+                                if (song == null) continue;
 
-                        if (song == null) continue;
+                                String uri = song.optString("uri", "");
+                                if (uri.isEmpty()) continue;
 
-                        String uri = song.optString("uri", "");
-                        if (uri.isEmpty()) continue;
+                                String title =
+                                    song.optString("title", "Unknown Song");
+                                String artist =
+                                    song.optString("artist", "Unknown Artist");
+                                String album =
+                                    song.optString("album", "");
 
-                        String title = song.optString("title", "Unknown Song");
-                        String artist = song.optString("artist", "Unknown Artist");
-                        String album = song.optString("album", "");
+                                MediaMetadata metadata =
+                                    new MediaMetadata.Builder()
+                                        .setTitle(title)
+                                        .setArtist(artist)
+                                        .setAlbumTitle(album)
+                                        .build();
 
-                        MediaMetadata metadata = new MediaMetadata.Builder()
-                            .setTitle(title)
-                            .setArtist(artist)
-                            .setAlbumTitle(album)
-                            .build();
+                                MediaItem item =
+                                    new MediaItem.Builder()
+                                        .setUri(Uri.parse(uri))
+                                        .setMediaMetadata(metadata)
+                                        .build();
 
-                        MediaItem item = new MediaItem.Builder()
-                            .setUri(Uri.parse(uri))
-                            .setMediaMetadata(metadata)
-                            .build();
+                                mediaItems.add(item);
+                            }
 
-                        mediaItems.add(item);
-                    }
+                            if (mediaItems.isEmpty()) {
+                                call.reject("No valid songs in queue");
+                                return;
+                            }
 
-                    if (mediaItems.isEmpty()) {
-                        call.reject("No valid songs in queue");
-                        return;
-                    }
+                            int safeStartIndex = startIndex;
 
-                    int safeStartIndex = startIndex;
+                            if (safeStartIndex < 0 ||
+                                safeStartIndex >= mediaItems.size()) {
+                                safeStartIndex = 0;
+                            }
 
-                    if (safeStartIndex < 0 || safeStartIndex >= mediaItems.size()) {
-                        safeStartIndex = 0;
-                    }
+                            controller.setMediaItems(
+                                mediaItems,
+                                safeStartIndex,
+                                0
+                            );
 
-                    controller.setMediaItems(mediaItems, safeStartIndex, 0);
+                            controller.setShuffleModeEnabled(shuffleEnabled);
 
-                    controller.setShuffleModeEnabled(shuffleEnabled);
+                            if ("one".equals(repeatMode)) {
+                                controller.setRepeatMode(
+                                    Player.REPEAT_MODE_ONE
+                                );
+                            } else if ("all".equals(repeatMode)) {
+                                controller.setRepeatMode(
+                                    Player.REPEAT_MODE_ALL
+                                );
+                            } else {
+                                controller.setRepeatMode(
+                                    Player.REPEAT_MODE_OFF
+                                );
+                            }
 
-                    if ("one".equals(repeatMode)) {
-                        controller.setRepeatMode(Player.REPEAT_MODE_ONE);
-                    } else if ("all".equals(repeatMode)) {
-                        controller.setRepeatMode(Player.REPEAT_MODE_ALL);
-                    } else {
-                        controller.setRepeatMode(Player.REPEAT_MODE_OFF);
-                    }
+                            controller.prepare();
+                            controller.play();
 
-                    controller.prepare();
-                    controller.play();
+                            call.resolve();
 
-                    call.resolve();
+                        } catch (Exception e) {
+                            call.reject(
+                                "Unable to set playback queue: " +
+                                (e.getMessage() != null
+                                    ? e.getMessage()
+                                    : "Unknown error"),
+                                e
+                            );
+                        }
+                    },
+                    androidx.core.content.ContextCompat.getMainExecutor(
+                        getContext()
+                    ));
 
                 } catch (Exception e) {
-                    call.reject(
-                        "Unable to set playback queue: " +
-                        (e.getMessage() != null ? e.getMessage() : "Unknown error"),
-                        e
-                    );
+                    call.reject("Unable to connect audio player", e);
                 }
             });
 
