@@ -430,7 +430,7 @@ async function openPublicArtist(artist) {
     try {
       const { data, error } = await supabase
         .from('artist_profiles')
-        .select('id, name, genre, country, bio')
+        .select('id, name, genre, country, bio, photo_url')
         .eq('id', artistId)
         .maybeSingle();
 
@@ -445,6 +445,34 @@ async function openPublicArtist(artist) {
     } catch (error) {
       console.error(
         'Unable to load artist profile:',
+        error.message
+      );
+    }
+  }
+
+  let publicPhoto = artist.photo || null;
+
+  if (savedProfile?.photo_url) {
+    try {
+      const { data: photoData, error: photoError } =
+        await supabase.storage
+          .from('music')
+          .createSignedUrl(savedProfile.photo_url, 3600);
+
+      if (photoError) {
+        console.error(
+          'Unable to load artist profile photo:',
+          photoError.message
+        );
+      } else if (photoData?.signedUrl) {
+        publicPhoto = {
+          uri: photoData.signedUrl,
+          name: 'artist-profile-photo'
+        };
+      }
+    } catch (error) {
+      console.error(
+        'Unable to load artist profile photo:',
         error.message
       );
     }
@@ -476,10 +504,7 @@ async function openPublicArtist(artist) {
       savedProfile?.bio ||
       artist.bio ||
       '',
-    photo:
-      artistProfile.photo?.uri
-        ? artistProfile.photo
-        : artist.photo || null,
+    photo: publicPhoto,
     monthlyListeners:
       artist.monthlyListeners ||
       artist.listeners ||
@@ -2672,11 +2697,15 @@ function formatTime(ms) {
                 return;
               }
 
+              const cached = await copySelectedFileToCache(result.uri);
+
               const updatedProfile = {
                 ...artistProfile,
                 photo: {
                   uri: result.uri,
-                  name: result.name || 'artist-photo'
+                  name: result.name || cached.name || 'artist-photo',
+                  cachePath: cached.path,
+                  cacheName: cached.name
                 }
               };
 
@@ -2769,6 +2798,107 @@ function formatTime(ms) {
           <b>Social links</b>
           <small>Connect your social presence.</small>
         </div>
+      </div>
+
+      <div className="artistPresenceSave">
+        <button
+          type="button"
+          className="primary"
+          onClick={async () => {
+            try {
+              if (!artistAccount?.id) {
+                alert('Please sign in to your artist account first.');
+                return;
+              }
+
+              const profileName =
+                artistProfile.name?.trim() ||
+                artistAccount.artistName?.trim() ||
+                '';
+
+              if (!profileName) {
+                alert('Please add your artist name first.');
+                return;
+              }
+
+              const socialLinks = {
+                instagram: artistInstagram?.trim() || '',
+                facebook: artistFacebook?.trim() || '',
+                tiktok: artistTikTok?.trim() || '',
+                x: artistX?.trim() || ''
+              };
+
+              let photoUrl = artistProfile.photo_url || '';
+
+              if (artistProfile.photo?.cachePath) {
+                const fileName =
+                  artistProfile.photo.cacheName ||
+                  artistProfile.photo.name ||
+                  'artist-photo';
+
+                const safeFileName = fileName.replace(
+                  /[^a-zA-Z0-9._-]/g,
+                  '_'
+                );
+
+                const photoPath =
+                  `${artistAccount.id}/artist-profile/${Date.now()}-${safeFileName}`;
+
+                await uploadCachedFile(
+                  artistProfile.photo.cachePath,
+                  photoPath,
+                  'image/jpeg'
+                );
+
+                photoUrl = photoPath;
+              }
+
+              const profile = {
+                ...artistProfile,
+                name: profileName,
+                genre: artistProfile.genre?.trim() || '',
+                country: artistProfile.country?.trim() || '',
+                bio: artistProfile.bio?.trim() || '',
+                photo_url: photoUrl,
+                socialLinks,
+                updatedAt: new Date().toISOString()
+              };
+
+              const { error } = await supabase
+                .from('artist_profiles')
+                .upsert({
+                  id: artistAccount.id,
+                  name: profile.name,
+                  genre: profile.genre,
+                  country: profile.country,
+                  bio: profile.bio,
+                  photo_url: profile.photo_url,
+                  updated_at: profile.updatedAt
+                });
+
+              if (error) {
+                throw new Error(error.message);
+              }
+
+              setArtistProfile(profile);
+
+              localStorage.setItem(
+                'musicWorldArtistProfile',
+                JSON.stringify(profile)
+              );
+
+              alert('Artist Presence saved successfully.');
+            } catch (error) {
+              console.error('Artist Presence save error:', error);
+              alert(
+                'Unable to save Artist Presence.\n\nDetails: ' +
+                (error?.message || String(error))
+              );
+            }
+          }}
+        >
+          Save Artist Presence
+        </button>
       </div>
     </div>
     )}
