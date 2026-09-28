@@ -9,6 +9,7 @@ import androidx.activity.result.ActivityResult;
 import android.provider.MediaStore;
 import androidx.media3.common.MediaItem;
 import androidx.media3.common.MediaMetadata;
+import androidx.media3.common.Player;
 import androidx.media3.session.MediaController;
 import androidx.media3.session.SessionToken;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -132,6 +133,97 @@ public class DeviceMusicPlugin extends Plugin {
     }
 
     @PluginMethod
+    public void setQueue(PluginCall call) {
+        try {
+            org.json.JSONArray queue = call.getArray("songs");
+            int startIndex = call.getInt("startIndex", 0);
+            boolean shuffleEnabled = call.getBoolean("shuffleEnabled", false);
+            String repeatMode = call.getString("repeatMode", "off");
+
+            if (queue == null || queue.length() == 0) {
+                call.reject("Queue is empty");
+                return;
+            }
+
+            getActivity().runOnUiThread(() -> {
+                try {
+                    MediaController controller = mediaController;
+
+                    if (controller == null) {
+                        call.reject("Audio player is not ready");
+                        return;
+                    }
+
+                    java.util.ArrayList<MediaItem> mediaItems =
+                        new java.util.ArrayList<>();
+
+                    for (int i = 0; i < queue.length(); i++) {
+                        org.json.JSONObject song = queue.optJSONObject(i);
+
+                        if (song == null) continue;
+
+                        String uri = song.optString("uri", "");
+                        if (uri.isEmpty()) continue;
+
+                        String title = song.optString("title", "Unknown Song");
+                        String artist = song.optString("artist", "Unknown Artist");
+                        String album = song.optString("album", "");
+
+                        MediaMetadata metadata = new MediaMetadata.Builder()
+                            .setTitle(title)
+                            .setArtist(artist)
+                            .setAlbumTitle(album)
+                            .build();
+
+                        MediaItem item = new MediaItem.Builder()
+                            .setUri(Uri.parse(uri))
+                            .setMediaMetadata(metadata)
+                            .build();
+
+                        mediaItems.add(item);
+                    }
+
+                    if (mediaItems.isEmpty()) {
+                        call.reject("No valid songs in queue");
+                        return;
+                    }
+
+                    if (startIndex < 0 || startIndex >= mediaItems.size()) {
+                        startIndex = 0;
+                    }
+
+                    controller.setMediaItems(mediaItems, startIndex, 0);
+
+                    controller.setShuffleModeEnabled(shuffleEnabled);
+
+                    if ("one".equals(repeatMode)) {
+                        controller.setRepeatMode(Player.REPEAT_MODE_ONE);
+                    } else if ("all".equals(repeatMode)) {
+                        controller.setRepeatMode(Player.REPEAT_MODE_ALL);
+                    } else {
+                        controller.setRepeatMode(Player.REPEAT_MODE_OFF);
+                    }
+
+                    controller.prepare();
+                    controller.play();
+
+                    call.resolve();
+
+                } catch (Exception e) {
+                    call.reject(
+                        "Unable to set playback queue: " +
+                        (e.getMessage() != null ? e.getMessage() : "Unknown error"),
+                        e
+                    );
+                }
+            });
+
+        } catch (Exception e) {
+            call.reject("Invalid playback queue", e);
+        }
+    }
+
+    @PluginMethod
     public void seekTo(PluginCall call) {
         Double position = call.getDouble("position");
 
@@ -208,6 +300,22 @@ public class DeviceMusicPlugin extends Plugin {
                     result.put("isPlaying", mediaController.isPlaying());
                     result.put("currentTime", mediaController.getCurrentPosition());
                     result.put("duration", mediaController.getDuration());
+
+                    MediaItem currentItem = mediaController.getCurrentMediaItem();
+
+                    if (currentItem != null && currentItem.localConfiguration != null) {
+                        result.put(
+                            "currentUri",
+                            currentItem.localConfiguration.uri.toString()
+                        );
+                    } else {
+                        result.put("currentUri", "");
+                    }
+
+                    result.put(
+                        "currentIndex",
+                        mediaController.getCurrentMediaItemIndex()
+                    );
                 } else {
                     result.put("isPlaying", false);
                     result.put("currentTime", 0);

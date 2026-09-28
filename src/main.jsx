@@ -855,12 +855,48 @@ async function loadOnlineSongs() {
 
         setIsPlaying(Boolean(state.isPlaying));
 
+        const nativeUri = state.currentUri || '';
+        let activeSong = playing;
+
+        if (nativeUri && nativeUri !== playing?.uri) {
+          const onlineMatch = onlineSongs.find(
+            song => song?.audioUrl === nativeUri
+          );
+
+          const deviceMatch = deviceMusic.find(
+            song => song?.uri === nativeUri
+          );
+
+          activeSong = onlineMatch
+            ? {
+                ...onlineMatch,
+                uri: onlineMatch.audioUrl,
+                title: onlineMatch.title,
+                artist: onlineMatch.artist,
+                album: onlineMatch.genre || 'Music World',
+                artwork: onlineMatch.artworkUrl
+              }
+            : deviceMatch || null;
+
+          if (activeSong) {
+            playbackIdRef.current = crypto.randomUUID();
+            streamRecordedRef.current = null;
+
+            setPlaying(activeSong);
+            setCurrentTime(0);
+            setDuration(activeSong?.duration || nextDuration || 0);
+          }
+        }
+
         if (
           nextTime >= 10 &&
           playbackIdRef.current &&
           streamRecordedRef.current !== playbackIdRef.current
         ) {
-          const artistId = playing.artist_id || playing.artistId || '';
+          const artistId =
+            activeSong?.artist_id ||
+            activeSong?.artistId ||
+            '';
 
           if (artistId) {
             try {
@@ -999,20 +1035,68 @@ function formatTime(ms) {
     if (!keepExpanded) {
       setExpandedPlayer(false);
     }
+
     setCurrentTime(0);
     setDuration(song?.duration || 0);
 
-    if (song?.uri) {
-      try {
-        await DeviceMusic.play({ uri: song.uri, title: song.title, artist: song.artist, album: song.album });
-        setIsPlaying(true);
-      } catch (error) {
-        setIsPlaying(false);
-        console.error("Native audio playback error:", error);
-        alert("Unable to play this song.\\n\\nDetails: " + (error?.message || String(error)));
-      }
-    } else {
+    if (!song?.uri) {
       setIsPlaying(false);
+      return;
+    }
+
+    try {
+      const isOnlineSong = onlineSongs.some(
+        item => item?.audioUrl === song?.uri
+      );
+
+      const sourceList = isOnlineSong ? onlineSongs : deviceMusic;
+
+      const queue = sourceList
+        .map(item => {
+          if (isOnlineSong) {
+            return {
+              uri: item?.audioUrl || '',
+              title: item?.title || 'Unknown Song',
+              artist: item?.artist || 'Unknown Artist',
+              album: item?.genre || 'Music World'
+            };
+          }
+
+          return {
+            uri: item?.uri || '',
+            title: item?.title || 'Unknown Song',
+            artist: item?.artist || 'Unknown Artist',
+            album: item?.album || ''
+          };
+        })
+        .filter(item => item.uri);
+
+      const startIndex = queue.findIndex(item => item.uri === song.uri);
+
+      if (queue.length > 0 && startIndex >= 0) {
+        await DeviceMusic.setQueue({
+          songs: queue,
+          startIndex,
+          shuffleEnabled,
+          repeatMode
+        });
+      } else {
+        await DeviceMusic.play({
+          uri: song.uri,
+          title: song.title,
+          artist: song.artist,
+          album: song.album
+        });
+      }
+
+      setIsPlaying(true);
+    } catch (error) {
+      setIsPlaying(false);
+      console.error("Native audio playback error:", error);
+      alert(
+        "Unable to play this song.\\n\\nDetails: " +
+        (error?.message || String(error))
+      );
     }
   }
 
