@@ -4685,6 +4685,11 @@ section {
 .spotlightCard {
   display: flex;
   align-items: center;
+  width: 100%;
+  border: 0;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
   gap: 14px;
   padding: 14px;
   background: #242424;
