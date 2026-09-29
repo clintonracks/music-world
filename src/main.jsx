@@ -4526,10 +4526,24 @@ function formatTime(ms) {
                           }}
                         >
                           <span className="publicArtistSongNumber">{index + 1}</span>
-                          <div>
+
+                          <span className="publicArtistSongArtwork">
+                            {release.artwork || release.artworkUrl ? (
+                              <img
+                                src={release.artwork || release.artworkUrl}
+                                alt=""
+                              />
+                            ) : (
+                              '♫'
+                            )}
+                          </span>
+
+                          <span className="publicArtistSongInfo">
                             <strong>{release.title || 'Untitled Song'}</strong>
                             <small>{release.type || 'Release'}</small>
-                          </div>
+                          </span>
+
+                          <span className="publicArtistSongPlayIcon">▶</span>
                         </button>
                       ))}
                     </div>
