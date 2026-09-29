@@ -540,6 +540,68 @@ useEffect(() => {
 ]);
 
 
+async function loadArtistFollowState(artistId) {
+  if (!artistId) {
+    setArtistFollowing(false);
+    return;
+  }
+
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user || user.user_metadata?.accountType === 'artist') {
+      setArtistFollowing(false);
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from('artist_followers')
+      .select('id')
+      .eq('artist_id', artistId)
+      .eq('follower_id', user.id)
+      .maybeSingle();
+
+    if (error) {
+      console.error(
+        'Unable to load artist follow state:',
+        error.message
+      );
+      setArtistFollowing(false);
+      return;
+    }
+
+    setArtistFollowing(Boolean(data));
+  } catch (error) {
+    console.error(
+      'Artist follow state error:',
+      error.message
+    );
+    setArtistFollowing(false);
+  }
+}
+
+async function loadArtistFollowerCount(artistId) {
+  if (!artistId) {
+    setArtistFollowerCount(0);
+    return;
+  }
+
+  const { count, error } = await supabase
+    .from('artist_followers')
+    .select('*', { count: 'exact', head: true })
+    .eq('artist_id', artistId);
+
+  if (error) {
+    console.error(
+      'Unable to load artist follower count:',
+      error.message
+    );
+    return;
+  }
+
+  setArtistFollowerCount(count || 0);
+}
+
 function openPlayingArtist() {
   if (!playing) return;
 
@@ -654,7 +716,12 @@ async function openPublicArtist(artist) {
 
   setPublicArtist(publicArtistData);
   setPublicArtistOpen(true);
+  setArtistFollowing(false);
+  setArtistFollowerCount(0);
   navigateTo('ArtistProfile');
+
+  await loadArtistFollowerCount(artistId);
+  await loadArtistFollowState(artistId);
 
   setArtistOpen(false);
   setArtistProfileOpen(false);
@@ -4812,7 +4879,7 @@ function formatTime(ms) {
               <button
                 className="primary publicArtistFollow"
                 type="button"
-                onClick={() => {
+                onClick={async () => {
                   if (!signedIn) {
                     setPendingFollowArtist(publicArtist);
                     setListenerAuthMode('create');
@@ -4821,12 +4888,70 @@ function formatTime(ms) {
                     return;
                   }
 
-                  setArtistFollowing(!artistFollowing);
-                  setArtistFollowerCount(
-                    artistFollowing
-                      ? Math.max(0, artistFollowerCount - 1)
-                      : artistFollowerCount + 1
-                  );
+                  try {
+                    const { data: { user } } =
+                      await supabase.auth.getUser();
+
+                    if (
+                      !user ||
+                      user.user_metadata?.accountType === 'artist'
+                    ) {
+                      return;
+                    }
+
+                    if (artistFollowing) {
+                      const { error } = await supabase
+                        .from('artist_followers')
+                        .delete()
+                        .eq('artist_id', publicArtist.id)
+                        .eq('follower_id', user.id);
+
+                      if (error) {
+                        throw new Error(error.message);
+                      }
+                    } else {
+                      const { data: existing, error: checkError } =
+                        await supabase
+                          .from('artist_followers')
+                          .select('id')
+                          .eq('artist_id', publicArtist.id)
+                          .eq('follower_id', user.id)
+                          .maybeSingle();
+
+                      if (checkError) {
+                        throw new Error(checkError.message);
+                      }
+
+                      if (!existing) {
+                        const { error } = await supabase
+                          .from('artist_followers')
+                          .insert({
+                            artist_id: publicArtist.id,
+                            follower_id: user.id
+                          });
+
+                        if (error) {
+                          throw new Error(error.message);
+                        }
+                      }
+                    }
+
+                    await loadArtistFollowerCount(
+                      publicArtist.id
+                    );
+
+                    await loadArtistFollowState(
+                      publicArtist.id
+                    );
+                  } catch (error) {
+                    console.error(
+                      'Unable to update artist follow:',
+                      error.message
+                    );
+                    alert(
+                      'Unable to update follow right now.'
+                    );
+                  }
                 }}
               >
                 {artistFollowing ? 'Following' : 'Follow'}
@@ -5112,11 +5237,53 @@ function formatTime(ms) {
                       setListenerName('');
 
                       if (pendingFollowArtist) {
+                        const { data: { user } } =
+                          await supabase.auth.getUser();
+
+                        if (user) {
+                          const { data: existing } =
+                            await supabase
+                              .from('artist_followers')
+                              .select('id')
+                              .eq(
+                                'artist_id',
+                                pendingFollowArtist.id
+                              )
+                              .eq(
+                                'follower_id',
+                                user.id
+                              )
+                              .maybeSingle();
+
+                          if (!existing) {
+                            const { error: followError } =
+                              await supabase
+                                .from('artist_followers')
+                                .insert({
+                                  artist_id:
+                                    pendingFollowArtist.id,
+                                  follower_id: user.id
+                                });
+
+                            if (followError) {
+                              console.error(
+                                'Unable to save pending follow:',
+                                followError.message
+                              );
+                            }
+                          }
+                        }
+
                         setPublicArtist(pendingFollowArtist);
                         setPublicArtistOpen(true);
-                        setArtistFollowing(true);
-                        setArtistFollowerCount(count => count + 1);
                         setPendingFollowArtist(null);
+
+                        await loadArtistFollowerCount(
+                          pendingFollowArtist.id
+                        );
+                        await loadArtistFollowState(
+                          pendingFollowArtist.id
+                        );
                       }
                     } else {
                       setListenerAuthError(
