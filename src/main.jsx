@@ -575,7 +575,24 @@ async function openPublicArtist(artist) {
 
     const releases = await Promise.all(
       (data || []).map(async (song) => {
+        let audioUrl = null;
         let artworkUrl = null;
+
+        if (song.audio_url) {
+          const { data: audioData, error: audioError } =
+            await supabase.storage
+              .from('music')
+              .createSignedUrl(song.audio_url, 3600);
+
+          if (audioError) {
+            console.error(
+              'Unable to load public artist song audio:',
+              audioError.message
+            );
+          } else {
+            audioUrl = audioData?.signedUrl || null;
+          }
+        }
 
         if (song.artwork_url) {
           const { data: artworkData } =
@@ -592,6 +609,7 @@ async function openPublicArtist(artist) {
           title: song.title,
           artist: song.artist,
           genre: song.genre,
+          audioUrl,
           artwork: artworkUrl,
           status: 'Published'
         };
@@ -639,6 +657,7 @@ const [accountInfoOpen, setAccountInfoOpen] = useState(false);
   const [deviceMusicLoading, setDeviceMusicLoading] = useState(false);
   const [deviceMusicSearch, setDeviceMusicSearch] = useState('');
   const [onlineSongs, setOnlineSongs] = useState([]);
+  const [spotlightArtist, setSpotlightArtist] = useState(null);
 const [offlineSongs, setOfflineSongs] = useState(() => {
   try {
     return JSON.parse(
@@ -771,6 +790,52 @@ async function loadOnlineSongs() {
       );
 
       setOnlineSongs(songsWithUrls);
+
+      const featuredSong = songsWithUrls[0];
+
+      if (featuredSong?.artist_id) {
+        try {
+          const { data: profile } = await supabase
+            .from('artist_profiles')
+            .select('id, name, genre, country, bio, photo_url')
+            .eq('id', featuredSong.artist_id)
+            .maybeSingle();
+
+          let artistPhoto = null;
+
+          if (profile?.photo_url) {
+            const { data: photoData } =
+              await supabase.storage
+                .from('music')
+                .createSignedUrl(profile.photo_url, 3600);
+
+            artistPhoto = photoData?.signedUrl || null;
+          }
+
+          setSpotlightArtist({
+            ...profile,
+            id: profile?.id || featuredSong.artist_id,
+            name:
+              profile?.name ||
+              featuredSong.artist ||
+              'Artist',
+            photo: artistPhoto
+          });
+        } catch (error) {
+          console.error(
+            'Unable to load Spotlight artist:',
+            error
+          );
+
+          setSpotlightArtist({
+            id: featuredSong.artist_id,
+            name: featuredSong.artist || 'Artist',
+            photo: null
+          });
+        }
+      } else {
+        setSpotlightArtist(null);
+      }
     } catch (error) {
       console.error('Unable to load online songs:', error);
     } finally {
@@ -3670,30 +3735,35 @@ function formatTime(ms) {
               )}
             </Section>
 
-            <Section title="🎤 Artist Spotlight">
-              {onlineSongs.length > 0 ? (
-                <div className="spotlightCard">
+            <Section title="🎤 Music World Spotlight">
+              {spotlightArtist ? (
+                <button
+                  className="spotlightCard"
+                  type="button"
+                  onClick={() => openPublicArtist(spotlightArtist)}
+                >
                   <div className="avatar">
-                    {onlineSongs[0]?.artworkUrl ? (
-                      <img src={onlineSongs[0].artworkUrl} alt="" />
+                    {spotlightArtist.photo ? (
+                      <img
+                        src={spotlightArtist.photo}
+                        alt={spotlightArtist.name || 'Artist'}
+                      />
                     ) : (
-                      onlineSongs[0]?.artist?.[0] || '🎤'
+                      spotlightArtist.name?.[0] || '🎤'
                     )}
                   </div>
 
                   <div className="meta">
-                    <b>{onlineSongs[0]?.artist || 'Artist Spotlight'}</b>
+                    <b>{spotlightArtist.name || 'Artist'}</b>
                     <small>
-                      {onlineSongs[0]?.title
-                        ? `Featuring ${onlineSongs[0].title}`
-                        : 'Featured artist'}
+                      {spotlightArtist.genre || 'Featured artist'}
                     </small>
                   </div>
-                </div>
+                </button>
               ) : (
                 <div className="empty">
                   <div>🎤</div>
-                  <h2>Artist Spotlight</h2>
+                  <h2>Music World Spotlight</h2>
                   <p>Featured artists will appear here.</p>
                 </div>
               )}
@@ -4426,13 +4496,41 @@ function formatTime(ms) {
                   {publicArtist.releases && publicArtist.releases.length > 0 ? (
                     <div className="publicArtistSongList">
                       {publicArtist.releases.slice(0, 5).map((release, index) => (
-                        <div className="publicArtistSong" key={release.id || index}>
+                        <button
+                          className="publicArtistSong"
+                          key={release.id || index}
+                          type="button"
+                          onClick={() => {
+                            if (!release.audio_url) {
+                              alert('This song is not available for playback yet.');
+                              return;
+                            }
+
+                            const songArtwork =
+                              release.artwork ||
+                              release.artworkUrl ||
+                              '';
+
+                            startSong({
+                              ...release,
+                              uri: release.audioUrl || release.audio_url,
+                              title: release.title,
+                              artist:
+                                release.artist ||
+                                publicArtist.name ||
+                                publicArtist.artistName ||
+                                'Unknown Artist',
+                              album: 'Music World',
+                              artwork: songArtwork
+                            });
+                          }}
+                        >
                           <span className="publicArtistSongNumber">{index + 1}</span>
                           <div>
                             <strong>{release.title || 'Untitled Song'}</strong>
                             <small>{release.type || 'Release'}</small>
                           </div>
-                        </div>
+                        </button>
                       ))}
                     </div>
                   ) : (
