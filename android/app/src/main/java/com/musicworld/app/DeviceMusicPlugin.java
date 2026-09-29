@@ -249,6 +249,38 @@ public class DeviceMusicPlugin extends Plugin {
     }
 
     @PluginMethod
+    public void setRepeatMode(PluginCall call) {
+        String repeatMode = call.getString("repeatMode", "off");
+
+        getActivity().runOnUiThread(() -> {
+            try {
+                if (mediaController == null) {
+                    call.reject("Audio player is not ready");
+                    return;
+                }
+
+                if ("one".equals(repeatMode)) {
+                    mediaController.setRepeatMode(Player.REPEAT_MODE_ONE);
+                } else if ("all".equals(repeatMode)) {
+                    mediaController.setRepeatMode(Player.REPEAT_MODE_ALL);
+                } else {
+                    mediaController.setRepeatMode(Player.REPEAT_MODE_OFF);
+                }
+
+                call.resolve();
+            } catch (Exception e) {
+                call.reject(
+                    "Unable to set repeat mode: " +
+                    (e.getMessage() != null
+                        ? e.getMessage()
+                        : "Unknown error"),
+                    e
+                );
+            }
+        });
+    }
+
+    @PluginMethod
     public void seekTo(PluginCall call) {
         Double position = call.getDouble("position");
 

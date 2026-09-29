@@ -5369,15 +5369,24 @@ function formatTime(ms) {
                     : "Repeat One"
               }
               type="button"
-              onClick={() =>
-                setRepeatMode(mode =>
-                  mode === 'off'
+              onClick={async () => {
+                const nextMode =
+                  repeatMode === 'off'
                     ? 'all'
-                    : mode === 'all'
+                    : repeatMode === 'all'
                       ? 'one'
-                      : 'off'
-                )
-              }
+                      : 'off';
+
+                setRepeatMode(nextMode);
+
+                try {
+                  await DeviceMusic.setRepeatMode({
+                    repeatMode: nextMode
+                  });
+                } catch (error) {
+                  console.error('Repeat mode error:', error);
+                }
+              }}
             >
               <span className="repeatIcon">🔁</span>
               {repeatMode === 'one' && (
