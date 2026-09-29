@@ -127,6 +127,8 @@ function App() {
   const [signedIn, setSignedIn] = useState(false);
   const [favoriteSongs, setFavoriteSongs] = useState([]);
   const [favoritesOpen, setFavoritesOpen] = useState(false);
+  const [recentlyPlayedSongs, setRecentlyPlayedSongs] = useState([]);
+  const [recentlyPlayedOpen, setRecentlyPlayedOpen] = useState(false);
   const [listenerName, setListenerName] = useState('');
   const [listenerEmail, setListenerEmail] = useState('');
   const [listenerPassword, setListenerPassword] = useState('');
@@ -392,8 +394,10 @@ function App() {
 
       if (!isArtist) {
         loadFavoriteSongs(user.id);
+        loadRecentlyPlayed(user.id);
       } else {
         setFavoriteSongs([]);
+        setRecentlyPlayedSongs([]);
       }
 
       if (isArtist) {
@@ -1284,12 +1288,117 @@ function formatTime(ms) {
     }
   }
 
+  async function loadRecentlyPlayed(userId) {
+    if (!userId) {
+      setRecentlyPlayedSongs([]);
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('recently_played')
+        .select(`
+          song_id,
+          played_at,
+          songs (*)
+        `)
+        .eq('listener_id', userId)
+        .order('played_at', { ascending: false });
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      const songs = await Promise.all(
+        (data || []).map(async row => {
+          const song = row.songs;
+
+          if (!song) return null;
+
+          let audioUrl = null;
+          let artworkUrl = null;
+
+          if (song.audio_url) {
+            const { data: audioData } =
+              await supabase.storage
+                .from('music')
+                .createSignedUrl(song.audio_url, 3600);
+
+            audioUrl = audioData?.signedUrl || null;
+          }
+
+          if (song.artwork_url) {
+            const { data: artworkData } =
+              await supabase.storage
+                .from('music')
+                .createSignedUrl(song.artwork_url, 3600);
+
+            artworkUrl = artworkData?.signedUrl || null;
+          }
+
+          return {
+            ...song,
+            audioUrl,
+            artworkUrl,
+            recentlyPlayedAt: row.played_at
+          };
+        })
+      );
+
+      setRecentlyPlayedSongs(songs.filter(Boolean));
+    } catch (error) {
+      console.error(
+        'Unable to load recently played:',
+        error.message
+      );
+      setRecentlyPlayedSongs([]);
+    }
+  }
+
+  async function recordRecentlyPlayed(song) {
+    if (!song?.id) return;
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+
+      if (!user || user.user_metadata?.accountType === 'artist') {
+        return;
+      }
+
+      const { error } = await supabase
+        .from('recently_played')
+        .upsert(
+          {
+            listener_id: user.id,
+            song_id: song.id,
+            played_at: new Date().toISOString()
+          },
+          {
+            onConflict: 'listener_id,song_id'
+          }
+        );
+
+      if (error) {
+        console.error(
+          'Unable to record recently played:',
+          error.message
+        );
+      }
+    } catch (error) {
+      console.error(
+        'Recently played recording error:',
+        error
+      );
+    }
+  }
+
   async function startSong(song, keepExpanded = false) {
     const playbackId = crypto.randomUUID();
     playbackIdRef.current = playbackId;
     streamRecordedRef.current = null;
 
     setPlaying(song);
+    recordRecentlyPlayed(song);
 
     if (!keepExpanded) {
       setExpandedPlayer(false);
@@ -3967,7 +4076,74 @@ function formatTime(ms) {
           <>
             <Title title="Your Library" />
 
-{favoritesOpen ? (
+{recentlyPlayedOpen ? (
+  <>
+    <button
+      className="backButton"
+      onClick={() => setRecentlyPlayedOpen(false)}
+    >
+      ← Your Library
+    </button>
+
+    <Title title="Recently Played" />
+
+    <p className="deviceMusicSubtitle">
+      Songs you've played recently
+    </p>
+
+    {recentlyPlayedSongs.length === 0 ? (
+      <div className="empty">
+        <div>🕘</div>
+        <h2>No recently played songs</h2>
+        <p>Songs you play will appear here.</p>
+      </div>
+    ) : (
+      <div className="songList">
+        {recentlyPlayedSongs.map(song => {
+          const isCurrentSong = playing?.id === song?.id;
+
+          return (
+            <div
+              className={`songRow ${isCurrentSong ? 'playingSong' : ''}`}
+              key={song.id}
+              onClick={() =>
+                startSong({
+                  ...song,
+                  uri: song.audioUrl || song.audio_url,
+                  artwork: song.artworkUrl || song.artwork_url || ''
+                })
+              }
+              role="button"
+              tabIndex="0"
+              onKeyDown={e => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  e.currentTarget.click();
+                }
+              }}
+            >
+              <div className="avatar">
+                {song.artworkUrl || song.artwork_url ? (
+                  <img
+                    src={song.artworkUrl || song.artwork_url}
+                    alt=""
+                  />
+                ) : (
+                  song.artist?.[0] || '♪'
+                )}
+              </div>
+
+              <div className="meta">
+                <b>{song.title || 'Unknown Song'}</b>
+                <small>{song.artist || 'Unknown Artist'}</small>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    )}
+  </>
+) : favoritesOpen ? (
   <>
     <button
       className="backButton"
@@ -4240,6 +4416,20 @@ function formatTime(ms) {
                     ))}
                   </div>
                 )}
+
+                <button
+                  className="libraryFolder"
+                  onClick={() => setRecentlyPlayedOpen(true)}
+                >
+                  <span className="folderIcon">🕘</span>
+                  <span className="folderInfo">
+                    <b>Recently Played</b>
+                    <small>
+                      {recentlyPlayedSongs.length} {recentlyPlayedSongs.length === 1 ? 'song' : 'songs'}
+                    </small>
+                  </span>
+                  <span className="folderArrow">›</span>
+                </button>
 
                 <button
                   className="libraryFolder"
