@@ -125,6 +125,8 @@ function App() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [signedIn, setSignedIn] = useState(false);
+  const [favoriteSongs, setFavoriteSongs] = useState([]);
+  const [favoritesOpen, setFavoritesOpen] = useState(false);
   const [listenerName, setListenerName] = useState('');
   const [listenerEmail, setListenerEmail] = useState('');
   const [listenerPassword, setListenerPassword] = useState('');
@@ -248,6 +250,131 @@ function App() {
     loadArtistFollowers();
   }, [artistAccount?.id]);
 
+  async function toggleFavorite(song) {
+    if (!song?.id) return;
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+
+      if (!user) {
+        alert('Please sign in to favorite songs.');
+        return;
+      }
+
+      const isFavorite = favoriteSongs.some(
+        favorite => favorite.id === song.id
+      );
+
+      if (isFavorite) {
+        const { error } = await supabase
+          .from('song_favorites')
+          .delete()
+          .eq('listener_id', user.id)
+          .eq('song_id', song.id);
+
+        if (error) {
+          throw new Error(error.message);
+        }
+
+        setFavoriteSongs(current =>
+          current.filter(favorite => favorite.id !== song.id)
+        );
+      } else {
+        const { error } = await supabase
+          .from('song_favorites')
+          .insert({
+            listener_id: user.id,
+            song_id: song.id
+          });
+
+        if (error) {
+          throw new Error(error.message);
+        }
+
+        setFavoriteSongs(current => [
+          {
+            ...song,
+            favoriteCreatedAt: new Date().toISOString()
+          },
+          ...current.filter(favorite => favorite.id !== song.id)
+        ]);
+      }
+    } catch (error) {
+      console.error(
+        'Unable to update favorite:',
+        error.message
+      );
+      alert('Unable to update favorite right now.');
+    }
+  }
+
+  async function loadFavoriteSongs(userId) {
+    if (!userId) {
+      setFavoriteSongs([]);
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('song_favorites')
+        .select(`
+          song_id,
+          created_at,
+          songs (*)
+        `)
+        .eq('listener_id', userId)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      const favorites = await Promise.all(
+        (data || []).map(async favorite => {
+          const song = favorite.songs;
+
+          if (!song) return null;
+
+          let audioUrl = null;
+          let artworkUrl = null;
+
+          if (song.audio_url) {
+            const { data: audioData } =
+              await supabase.storage
+                .from('music')
+                .createSignedUrl(song.audio_url, 3600);
+
+            audioUrl = audioData?.signedUrl || null;
+          }
+
+          if (song.artwork_url) {
+            const { data: artworkData } =
+              await supabase.storage
+                .from('music')
+                .createSignedUrl(song.artwork_url, 3600);
+
+            artworkUrl = artworkData?.signedUrl || null;
+          }
+
+          return {
+            ...song,
+            audioUrl,
+            artworkUrl,
+            favoriteCreatedAt: favorite.created_at
+          };
+        })
+      );
+
+      setFavoriteSongs(favorites.filter(Boolean));
+    } catch (error) {
+      console.error(
+        'Unable to load favorite songs:',
+        error.message
+      );
+      setFavoriteSongs([]);
+    }
+  }
+
   useEffect(() => {
     const applyAuthSession = (session) => {
       const user = session?.user;
@@ -256,11 +383,18 @@ function App() {
 
       if (!user) {
         setArtistAccount(null);
+        setFavoriteSongs([]);
         localStorage.removeItem('musicWorldArtistAccount');
         return;
       }
 
       const isArtist = user.user_metadata?.accountType === 'artist';
+
+      if (!isArtist) {
+        loadFavoriteSongs(user.id);
+      } else {
+        setFavoriteSongs([]);
+      }
 
       if (isArtist) {
         const account = {
@@ -3833,7 +3967,86 @@ function formatTime(ms) {
           <>
             <Title title="Your Library" />
 
-{offlineMusicOpen ? (
+{favoritesOpen ? (
+  <>
+    <button
+      className="backButton"
+      onClick={() => setFavoritesOpen(false)}
+    >
+      ← Your Library
+    </button>
+
+    <Title title="Favorites" />
+
+    <p className="deviceMusicSubtitle">
+      Songs you've saved to your favorites
+    </p>
+
+    {favoriteSongs.length === 0 ? (
+      <div className="empty">
+        <div>❤️</div>
+        <h2>No favorites yet</h2>
+        <p>Favorite songs to find them here later.</p>
+      </div>
+    ) : (
+      <div className="songList">
+        {favoriteSongs.map(song => {
+          const isCurrentSong = playing?.id === song?.id;
+
+          return (
+            <div
+              className={`songRow ${isCurrentSong ? 'playingSong' : ''}`}
+              key={song.id}
+              onClick={() =>
+                startSong({
+                  ...song,
+                  uri: song.audioUrl || song.audio_url,
+                  artwork: song.artworkUrl || song.artwork_url || ''
+                })
+              }
+              role="button"
+              tabIndex="0"
+              onKeyDown={e => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  e.currentTarget.click();
+                }
+              }}
+            >
+              <div className="avatar">
+                {song.artworkUrl || song.artwork_url ? (
+                  <img
+                    src={song.artworkUrl || song.artwork_url}
+                    alt=""
+                  />
+                ) : (
+                  song.artist?.[0] || '♪'
+                )}
+              </div>
+
+              <div className="meta">
+                <b>{song.title || 'Unknown Song'}</b>
+                <small>{song.artist || 'Unknown Artist'}</small>
+              </div>
+
+              <button
+                type="button"
+                className="iconBtn"
+                aria-label="Remove from favorites"
+                onClick={e => {
+                  e.stopPropagation();
+                  toggleFavorite(song);
+                }}
+              >
+                ❤️
+              </button>
+            </div>
+          );
+        })}
+      </div>
+    )}
+  </>
+) : offlineMusicOpen ? (
   <>
     <button
       className="backButton"
@@ -4027,6 +4240,20 @@ function formatTime(ms) {
                     ))}
                   </div>
                 )}
+
+                <button
+                  className="libraryFolder"
+                  onClick={() => setFavoritesOpen(true)}
+                >
+                  <span className="folderIcon">❤️</span>
+                  <span className="folderInfo">
+                    <b>Favorites</b>
+                    <small>
+                      {favoriteSongs.length} {favoriteSongs.length === 1 ? 'song' : 'songs'}
+                    </small>
+                  </span>
+                  <span className="folderArrow">›</span>
+                </button>
 
                 <button
                   className="libraryFolder"
@@ -5503,6 +5730,24 @@ function formatTime(ms) {
               ＋ <span>Add to Playlist</span>
             </button>
           </div>
+
+          {playing && onlineSongs.some(
+            song => song?.id === playing?.id
+          ) && (
+            <div className="playerActionRow">
+              <button
+                className="playerActionButton favoritePlayerButton"
+                onClick={() => toggleFavorite(playing)}
+                type="button"
+              >
+                {favoriteSongs.some(
+                  song => song?.id === playing?.id
+                )
+                  ? '❤️ Remove from Favorites'
+                  : '♡ Add to Favorites'}
+              </button>
+            </div>
+          )}
 
           {playing && onlineSongs.some(
             song => song?.id === playing?.id
