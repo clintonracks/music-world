@@ -959,22 +959,10 @@ async function loadOnlineSongs() {
         ) {
           setCurrentTime(nextDuration);
 
-          if (repeatMode === 'one') {
-            try {
-              await DeviceMusic.seekTo({ position: 0 });
-              setCurrentTime(0);
-              await DeviceMusic.resume();
-              setIsPlaying(true);
-            } catch (error) {
-              console.error("Repeat one error:", error);
-              setIsPlaying(false);
-            }
-            return;
+          if (repeatMode === 'off') {
+            setIsPlaying(false);
+            await playNext();
           }
-
-          setIsPlaying(false);
-
-          await playNext();
         }
       } catch (error) {
         console.error("Playback state error:", error);
