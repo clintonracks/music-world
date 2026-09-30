@@ -1428,6 +1428,13 @@ function formatTime(ms) {
     try {
       const { data: { user } } = await supabase.auth.getUser();
 
+      console.log('Recently Played debug:', {
+        songId: song?.id,
+        songTitle: song?.title,
+        userId: user?.id,
+        accountType: user?.user_metadata?.accountType
+      });
+
       if (!user || user.user_metadata?.accountType === 'artist') {
         return;
       }
