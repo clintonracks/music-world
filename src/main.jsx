@@ -1489,10 +1489,16 @@ function formatTime(ms) {
         );
 
       if (error) {
+        console.error('RECENTLY PLAYED SUPABASE ERROR:', {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code
+        });
         throw new Error(error.message);
       }
 
-      console.log('Recently Played saved:', {
+      console.log('RECENTLY PLAYED SAVED SUCCESSFULLY:', {
         userId: user.id,
         songId: song.id,
         title: song.title
