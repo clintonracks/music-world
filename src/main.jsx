@@ -1450,21 +1450,30 @@ function formatTime(ms) {
   }
 
   async function recordRecentlyPlayed(song) {
-    if (!song?.id) return;
+    if (!song?.id) {
+      console.log('Recently Played: no song ID');
+      return;
+    }
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user }, error: userError } =
+        await supabase.auth.getUser();
 
-      console.log('Recently Played debug:', {
-        songId: song?.id,
-        songTitle: song?.title,
-        userId: user?.id,
-        accountType: user?.user_metadata?.accountType
-      });
+      if (userError) {
+        throw new Error(userError.message);
+      }
 
-      if (!user || user.user_metadata?.accountType === 'artist') {
+      if (!user) {
+        console.log('Recently Played: no signed-in listener');
         return;
       }
+
+      if (user.user_metadata?.accountType === 'artist') {
+        console.log('Recently Played: artist account skipped');
+        return;
+      }
+
+      const playedAt = new Date().toISOString();
 
       const { error } = await supabase
         .from('recently_played')
@@ -1472,7 +1481,7 @@ function formatTime(ms) {
           {
             listener_id: user.id,
             song_id: song.id,
-            played_at: new Date().toISOString()
+            played_at: playedAt
           },
           {
             onConflict: 'listener_id,song_id'
@@ -1480,15 +1489,26 @@ function formatTime(ms) {
         );
 
       if (error) {
-        console.error(
-          'Unable to record recently played:',
-          error.message
-        );
+        throw new Error(error.message);
       }
+
+      console.log('Recently Played saved:', {
+        userId: user.id,
+        songId: song.id,
+        title: song.title
+      });
+
+      setRecentlyPlayedSongs(current => [
+        {
+          ...song,
+          recentlyPlayedAt: playedAt
+        },
+        ...current.filter(item => item?.id !== song.id)
+      ]);
     } catch (error) {
       console.error(
-        'Recently played recording error:',
-        error
+        'Recently Played recording failed:',
+        error.message
       );
     }
   }
@@ -1499,7 +1519,7 @@ function formatTime(ms) {
     streamRecordedRef.current = null;
 
     setPlaying(song);
-    recordRecentlyPlayed(song);
+    await recordRecentlyPlayed(song);
 
     if (!keepExpanded) {
       setExpandedPlayer(false);
