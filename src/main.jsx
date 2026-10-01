@@ -1450,8 +1450,10 @@ function formatTime(ms) {
   }
 
   async function recordRecentlyPlayed(song) {
+    console.log('RECENTLY PLAYED SONG OBJECT:', song);
+
     if (!song?.id) {
-      console.log('Recently Played: no song ID');
+      console.error('RECENTLY PLAYED FAILED: song has no id', song);
       return;
     }
 
