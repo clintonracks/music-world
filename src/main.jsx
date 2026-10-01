@@ -263,16 +263,23 @@ function App() {
         return;
       }
 
-      const isFavorite = favoriteSongs.some(
-        favorite => favorite.id === song.id
-      );
+      const { data: existing, error: checkError } =
+        await supabase
+          .from('song_favorites')
+          .select('id')
+          .eq('listener_id', user.id)
+          .eq('song_id', song.id)
+          .maybeSingle();
 
-      if (isFavorite) {
+      if (checkError) {
+        throw new Error(checkError.message);
+      }
+
+      if (existing) {
         const { error } = await supabase
           .from('song_favorites')
           .delete()
-          .eq('listener_id', user.id)
-          .eq('song_id', song.id);
+          .eq('id', existing.id);
 
         if (error) {
           throw new Error(error.message);
@@ -306,7 +313,7 @@ function App() {
         'Unable to update favorite:',
         error.message
       );
-      alert('Unable to update favorite right now.');
+      alert('Favorite error: ' + (error?.message || String(error)));
     }
   }
 
@@ -317,23 +324,43 @@ function App() {
     }
 
     try {
-      const { data, error } = await supabase
-        .from('song_favorites')
-        .select(`
-          song_id,
-          created_at,
-          songs (*)
-        `)
-        .eq('listener_id', userId)
-        .order('created_at', { ascending: false });
+      const { data: favoriteRows, error: favoriteError } =
+        await supabase
+          .from('song_favorites')
+          .select('song_id, created_at')
+          .eq('listener_id', userId)
+          .order('created_at', { ascending: false });
 
-      if (error) {
-        throw new Error(error.message);
+      if (favoriteError) {
+        throw new Error(favoriteError.message);
       }
 
+      if (!favoriteRows?.length) {
+        setFavoriteSongs([]);
+        return;
+      }
+
+      const songIds = favoriteRows
+        .map(row => row.song_id)
+        .filter(Boolean);
+
+      const { data: songs, error: songsError } =
+        await supabase
+          .from('songs')
+          .select('*')
+          .in('id', songIds);
+
+      if (songsError) {
+        throw new Error(songsError.message);
+      }
+
+      const songMap = new Map(
+        (songs || []).map(song => [song.id, song])
+      );
+
       const favorites = await Promise.all(
-        (data || []).map(async favorite => {
-          const song = favorite.songs;
+        favoriteRows.map(async favorite => {
+          const song = songMap.get(favorite.song_id);
 
           if (!song) return null;
 
@@ -4827,7 +4854,28 @@ function formatTime(ms) {
 
                 <button
                   className="profileActionButton"
-                  onClick={() => setSignedIn(false)}
+                  onClick={async () => {
+                    try {
+                      const { error } = await supabase.auth.signOut();
+
+                      if (error) {
+                        throw new Error(error.message);
+                      }
+
+                      setSignedIn(false);
+                      setFavoriteSongs([]);
+                      setRecentlyPlayedSongs([]);
+                    } catch (error) {
+                      console.error(
+                        'Unable to log out:',
+                        error.message
+                      );
+                      alert(
+                        'Unable to log out right now: ' +
+                        error.message
+                      );
+                    }
+                  }}
                 >
                   Log out
                 </button>
