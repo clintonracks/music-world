@@ -422,9 +422,15 @@ function App() {
       if (!isArtist) {
         loadFavoriteSongs(user.id);
         loadRecentlyPlayed(user.id);
+
+        if (publicArtist?.id) {
+          loadArtistFollowerCount(publicArtist.id);
+          loadArtistFollowState(publicArtist.id);
+        }
       } else {
         setFavoriteSongs([]);
         setRecentlyPlayedSongs([]);
+        setArtistFollowing(false);
       }
 
       if (isArtist) {
