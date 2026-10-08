@@ -1157,6 +1157,17 @@ async function loadOnlineSongs() {
   }, [theme]);
 
   useEffect(() => {
+    if (!publicArtist?.id) return;
+
+    const refreshArtistFollowState = async () => {
+      await loadArtistFollowerCount(publicArtist.id);
+      await loadArtistFollowState(publicArtist.id);
+    };
+
+    refreshArtistFollowState();
+  }, [publicArtist?.id, signedIn]);
+
+  useEffect(() => {
     document.documentElement.setAttribute('data-font', font);
     document.documentElement.setAttribute('data-font-style', fontStyle);
     document.documentElement.setAttribute('data-font-size', fontSize);
@@ -1186,34 +1197,39 @@ async function loadOnlineSongs() {
         const nativeUri = state.currentUri || '';
         let activeSong = playing;
 
-        if (nativeUri && nativeUri !== playing?.uri) {
-          const onlineMatch = onlineSongs.find(
-            song => song?.audioUrl === nativeUri
-          );
+        const onlineMatch = nativeUri
+          ? onlineSongs.find(song => song?.audioUrl === nativeUri)
+          : null;
 
-          const deviceMatch = deviceMusic.find(
-            song => song?.uri === nativeUri
-          );
+        const deviceMatch = nativeUri
+          ? deviceMusic.find(song => song?.uri === nativeUri)
+          : null;
 
-          activeSong = onlineMatch
-            ? {
-                ...onlineMatch,
-                uri: onlineMatch.audioUrl,
-                title: onlineMatch.title,
-                artist: onlineMatch.artist,
-                album: onlineMatch.genre || 'Music World',
-                artwork: onlineMatch.artworkUrl
-              }
-            : deviceMatch || null;
+        if (onlineMatch) {
+          activeSong = {
+            ...onlineMatch,
+            uri: onlineMatch.audioUrl,
+            title: onlineMatch.title || 'Unknown Song',
+            artist: onlineMatch.artist || 'Unknown Artist',
+            album: onlineMatch.genre || 'Music World',
+            artwork: onlineMatch.artworkUrl || null
+          };
 
-          if (activeSong) {
-            playbackIdRef.current = crypto.randomUUID();
-            streamRecordedRef.current = null;
-
+          if (
+            playing?.uri !== activeSong.uri ||
+            playing?.id !== activeSong.id ||
+            playing?.title !== activeSong.title ||
+            playing?.artist !== activeSong.artist
+          ) {
             setPlaying(activeSong);
-            setCurrentTime(0);
-            setDuration(activeSong?.duration || nextDuration || 0);
           }
+        } else if (deviceMatch && playing?.uri !== deviceMatch.uri) {
+          activeSong = deviceMatch;
+          setPlaying(activeSong);
+        }
+
+        if (nativeUri && !activeSong) {
+          activeSong = playing;
         }
 
         if (
@@ -1234,7 +1250,7 @@ async function loadOnlineSongs() {
                 const { error: streamError } = await supabase
                   .from('streams')
                   .insert({
-                    song_id: playing.id,
+                    song_id: activeSong?.id,
                     artist_id: artistId,
                     playback_id: playbackIdRef.current,
                     listener_id: user.id,
@@ -1278,7 +1294,7 @@ async function loadOnlineSongs() {
     return () => {
       clearInterval(timer);
     };
-  }, [playing?.uri, repeatMode, shuffleEnabled]);
+  }, [playing?.uri, repeatMode, shuffleEnabled, onlineSongs, deviceMusic]);
 
   const seekDraggingRef = useRef(false);
   const seekBarRef = useRef(null);
@@ -5038,7 +5054,8 @@ function formatTime(ms) {
                       error.message
                     );
                     alert(
-                      'Unable to update follow right now.'
+                      'Unable to update follow right now.\n\n' +
+                      (error?.message || String(error))
                     );
                   }
                 }}
