@@ -5017,3 +5017,69 @@ section {
   border-radius: 50%;
   box-sizing: border-box;
 }
+
+/* Final mini-player positioning fix */
+.player {
+  position: fixed !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  z-index: 1000 !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+
+/* Final full-screen page layers */
+.fullPlayer,
+.settings,
+.artistPortal,
+.artistMusicStudio,
+.artistProfileStudio {
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: 100dvh !important;
+  min-height: 100dvh !important;
+  max-height: 100dvh !important;
+  box-sizing: border-box !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  z-index: 2000 !important;
+}
+
+/* Full-screen player sits above every normal app section */
+.fullPlayer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Artist screens behave like real pages */
+.artistPortal,
+.artistMusicStudio,
+.artistProfileStudio,
+.settings {
+  background: #111;
+}
+
+/* Back navigation stays visible on full-screen pages */
+.fullPlayer ~ .backButton,
+.artistPortal ~ .backButton,
+.artistMusicStudio ~ .backButton,
+.artistProfileStudio ~ .backButton,
+.settings ~ .backButton {
+  position: fixed !important;
+  top: max(12px, env(safe-area-inset-top)) !important;
+  left: 16px !important;
+  z-index: 3000 !important;
+}
+
+/* Main player close/minimize control */
+.fullPlayer .minimize,
+.fullPlayer .closeFull {
+  position: absolute !important;
+  top: max(12px, env(safe-area-inset-top)) !important;
+  right: 16px !important;
+  z-index: 3000 !important;
+}
