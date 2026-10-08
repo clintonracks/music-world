@@ -2053,6 +2053,23 @@ function formatTime(ms) {
 
         {artistOpen && (
           <section className="artistPortal">
+            <button
+              className="artistBack artistPortalBack"
+              type="button"
+              onClick={() => {
+                setArtistOpen(false);
+                setArtistAuth(null);
+                setArtistMusicOpen(false);
+                setArtistProfileOpen(false);
+                setArtistAnalyticsOpen(false);
+                setArtistAudienceOpen(false);
+                setArtistEarningsOpen(false);
+                setTab('Profile');
+              }}
+            >
+              ← Back to Profile
+            </button>
+
             <div className="artistPortalHero">
               <div className="artistPortalIcon">🎤</div>
               <p className="eyebrow">MUSIC WORLD FOR ARTISTS</p>

@@ -5083,3 +5083,16 @@ section {
   right: 16px !important;
   z-index: 3000 !important;
 }
+
+/* Artist Portal profile navigation */
+.artistPortalBack {
+  align-self: flex-start;
+  margin: max(12px, env(safe-area-inset-top)) 16px 0;
+  position: relative;
+  z-index: 10;
+}
+
+/* Keep the mini-player above Android's navigation/gesture area */
+.player {
+  bottom: max(10px, env(safe-area-inset-bottom)) !important;
+}
