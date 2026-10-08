@@ -5023,10 +5023,11 @@ section {
   position: fixed !important;
   left: 0 !important;
   right: 0 !important;
-  bottom: 0 !important;
+  bottom: 64px !important;
   z-index: 1000 !important;
   width: 100% !important;
   box-sizing: border-box !important;
+  margin-bottom: 0 !important;
 }
 
 
@@ -5094,5 +5095,6 @@ section {
 
 /* Keep the mini-player above Android's navigation/gesture area */
 .player {
-  bottom: max(10px, env(safe-area-inset-bottom)) !important;
+  bottom: 64px !important;
+  margin-bottom: 0 !important;
 }
