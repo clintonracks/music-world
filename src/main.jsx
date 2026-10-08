@@ -655,7 +655,19 @@ async function toggleArtistFollow(artistId) {
       return false;
     }
 
-    if (artistFollowing) {
+    const { data: existing, error: checkError } =
+      await supabase
+        .from('artist_followers')
+        .select('id')
+        .eq('artist_id', artistId)
+        .eq('follower_id', user.id)
+        .maybeSingle();
+
+    if (checkError) {
+      throw new Error(checkError.message);
+    }
+
+    if (existing) {
       const { error } = await supabase
         .from('artist_followers')
         .delete()
@@ -666,29 +678,15 @@ async function toggleArtistFollow(artistId) {
         throw new Error(error.message);
       }
     } else {
-      const { data: existing, error: checkError } =
-        await supabase
-          .from('artist_followers')
-          .select('id')
-          .eq('artist_id', artistId)
-          .eq('follower_id', user.id)
-          .maybeSingle();
+      const { error } = await supabase
+        .from('artist_followers')
+        .insert({
+          artist_id: artistId,
+          follower_id: user.id
+        });
 
-      if (checkError) {
-        throw new Error(checkError.message);
-      }
-
-      if (!existing) {
-        const { error } = await supabase
-          .from('artist_followers')
-          .insert({
-            artist_id: artistId,
-            follower_id: user.id
-          });
-
-        if (error) {
-          throw new Error(error.message);
-        }
+      if (error) {
+        throw new Error(error.message);
       }
     }
 
@@ -703,11 +701,52 @@ async function toggleArtistFollow(artistId) {
     );
 
     alert(
-      'Unable to update follow right now.\n\n' +
+      'Unable to update follow right now.\\n\\n' +
       (error?.message || String(error))
     );
 
     return false;
+  }
+}
+
+async function loadPublicArtistStats(artistId) {
+  if (!artistId) {
+    return;
+  }
+
+  try {
+    const { data, error } = await supabase.rpc(
+      'get_public_artist_stats',
+      { p_artist_id: artistId }
+    );
+
+    if (error) {
+      console.error(
+        'Unable to load public artist stats:',
+        error.message
+      );
+      return;
+    }
+
+    const stats = data?.[0] || {};
+
+    setPublicArtist(current =>
+      current
+        ? {
+            ...current,
+            streams: Number(stats.total_streams || 0),
+            listeners: Number(stats.unique_listeners || 0),
+            monthlyListeners: Number(
+              stats.monthly_listeners || 0
+            )
+          }
+        : current
+    );
+  } catch (error) {
+    console.error(
+      'Public artist stats error:',
+      error?.message || String(error)
+    );
   }
 }
 
@@ -852,8 +891,21 @@ async function openPublicArtist(artist) {
       .order('created_at', { ascending: false });
 
     if (error) {
+      console.error('PUBLIC ARTIST SONG QUERY ERROR:', error);
       throw new Error(error.message);
     }
+
+    console.log('PUBLIC ARTIST SONG QUERY RESULT:', {
+      artistId,
+      count: data?.length || 0,
+      songs: (data || []).map(song => ({
+        id: song.id,
+        title: song.title,
+        artist_id: song.artist_id,
+        audio_url: song.audio_url,
+        artwork_url: song.artwork_url
+      }))
+    });
 
     const releases = await Promise.all(
       (data || []).map(async (song) => {
@@ -868,11 +920,21 @@ async function openPublicArtist(artist) {
 
           if (audioError) {
             console.error(
-              'Unable to load public artist song audio:',
-              audioError.message
+              'PUBLIC ARTIST AUDIO SIGNED URL ERROR:',
+              {
+                songId: song.id,
+                title: song.title,
+                path: song.audio_url,
+                error: audioError
+              }
             );
           } else {
             audioUrl = audioData?.signedUrl || null;
+            console.log('PUBLIC ARTIST AUDIO SIGNED URL OK:', {
+              songId: song.id,
+              title: song.title,
+              hasSignedUrl: Boolean(audioUrl)
+            });
           }
         }
 
@@ -5143,7 +5205,7 @@ function formatTime(ms) {
                           key={release.id || index}
                           type="button"
                           onClick={() => {
-                            if (!release.audio_url) {
+                            if (!release.audioUrl && !release.audio_url) {
                               alert('This song is not available for playback yet.');
                               return;
                             }
