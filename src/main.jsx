@@ -895,18 +895,6 @@ async function openPublicArtist(artist) {
       throw new Error(error.message);
     }
 
-    console.log('PUBLIC ARTIST SONG QUERY RESULT:', {
-      artistId,
-      count: data?.length || 0,
-      songs: (data || []).map(song => ({
-        id: song.id,
-        title: song.title,
-        artist_id: song.artist_id,
-        audio_url: song.audio_url,
-        artwork_url: song.artwork_url
-      }))
-    });
-
     const releases = await Promise.all(
       (data || []).map(async (song) => {
         let audioUrl = null;
@@ -920,21 +908,17 @@ async function openPublicArtist(artist) {
 
           if (audioError) {
             console.error(
-              'PUBLIC ARTIST AUDIO SIGNED URL ERROR:',
+              'Unable to load public artist song audio:',
               {
                 songId: song.id,
                 title: song.title,
                 path: song.audio_url,
-                error: audioError
+                error: audioError.message
               }
             );
           } else {
             audioUrl = audioData?.signedUrl || null;
-            console.log('PUBLIC ARTIST AUDIO SIGNED URL OK:', {
-              songId: song.id,
-              title: song.title,
-              hasSignedUrl: Boolean(audioUrl)
-            });
+
           }
         }
 
