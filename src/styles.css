@@ -5037,7 +5037,8 @@ section {
 .artistPortal,
 .artistMusicStudio,
 .artistProfileStudio,
-.artistAnalyticsStudio {
+.artistAnalyticsStudio,
+.artistReleaseStudio {
   position: fixed !important;
   inset: 0 !important;
   width: 100vw !important;
@@ -5062,6 +5063,7 @@ section {
 .artistMusicStudio,
 .artistProfileStudio,
 .artistAnalyticsStudio,
+.artistReleaseStudio,
 .settings {
   background: #111;
 }
