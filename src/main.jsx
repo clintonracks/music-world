@@ -3478,7 +3478,10 @@ function formatTime(ms) {
     <div className="artistReleaseHeader">
       <button
         className="artistBack"
-        onClick={() => setArtistReleaseOpen(false)}
+        onClick={() => {
+          setArtistReleaseOpen(false);
+          setArtistMusicOpen(true);
+        }}
       >
         ← Music Studio
       </button>
@@ -4105,6 +4108,7 @@ function formatTime(ms) {
                     setArtistReleaseArtwork(artistReleaseDraft.artwork || null);
                     setArtistReleaseStep(artistReleaseDraft.step || 1);
                   }
+                  setArtistMusicOpen(false);
                   setArtistReleaseOpen(true);
                 }}
               >
@@ -4144,6 +4148,7 @@ function formatTime(ms) {
                     setArtistReleaseArtwork(artistReleaseDraft.artwork || null);
                     setArtistReleaseStep(artistReleaseDraft.step || 1);
                   }
+                  setArtistMusicOpen(false);
                   setArtistReleaseOpen(true);
                 }}
                 >
