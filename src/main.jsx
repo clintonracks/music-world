@@ -509,6 +509,7 @@ function App() {
 const [artistReleaseOpen, setArtistReleaseOpen] = useState(false);
 const [artistReleaseStep, setArtistReleaseStep] = useState(1);
 const [artistReleaseAudio, setArtistReleaseAudio] = useState(null);
+const [artistReleaseAudioTracks, setArtistReleaseAudioTracks] = useState([]);
 const [artistReleaseArtwork, setArtistReleaseArtwork] = useState(null);
 const [artistReleasePublishing, setArtistReleasePublishing] = useState(false);
 const [artistReleases, setArtistReleases] = useState(() => {
@@ -539,6 +540,7 @@ useEffect(() => {
     artistReleaseTitle.trim() ||
     artistReleaseArtist.trim() ||
     artistReleaseGenre ||
+    artistReleaseAudioTracks.length > 0 ||
     artistReleaseAudio ||
     artistReleaseArtwork;
 
@@ -552,6 +554,7 @@ useEffect(() => {
     type: artistReleaseType,
     genre: artistReleaseGenre,
     audio: artistReleaseAudio,
+    tracks: artistReleaseAudioTracks,
     artwork: artistReleaseArtwork,
     step: artistReleaseStep,
     savedAt: new Date().toISOString()
@@ -568,6 +571,7 @@ useEffect(() => {
   artistReleaseType,
   artistReleaseGenre,
   artistReleaseAudio,
+  artistReleaseAudioTracks,
   artistReleaseArtwork,
   artistReleaseStep
 ]);
@@ -3664,9 +3668,11 @@ function formatTime(ms) {
         <div>
           <b>Audio file</b>
           <small>
-            {artistReleaseAudio
-              ? `${artistReleaseAudio.title || 'Selected audio'}${artistReleaseAudio.artist ? ' • ' + artistReleaseAudio.artist : ''}`
-              : 'Select the music file you want to release.'}
+            {artistReleaseAudioTracks.length > 0
+              ? `${artistReleaseAudioTracks.length} track${artistReleaseAudioTracks.length === 1 ? '' : 's'} selected`
+              : artistReleaseAudio
+                ? (artistReleaseAudio.title || 'Selected audio')
+                : 'Select the music file you want to release.'}
           </small>
         </div>
         <button
@@ -3675,26 +3681,47 @@ function formatTime(ms) {
           onClick={async () => {
           try {
             const result = await DeviceMusic.pickAudio();
-            const selected = result?.songs?.[0] || null;
+            const selectedTracks = result?.songs || [];
 
-            if (!selected) {
-              alert('No music file was selected.');
+            if (selectedTracks.length === 0) {
+              alert('No music files were selected.');
               return;
             }
 
-            const cached = await copySelectedFileToCache(selected.uri);
+            const cachedTracks = [];
 
-            setArtistReleaseAudio({
-              ...selected,
-              cachePath: cached.path,
-              cacheName: cached.name
-            });
+            for (const selected of selectedTracks) {
+              if (!selected.uri) {
+                throw new Error('One of the selected tracks has no file URI.');
+              }
+
+              const cached = await copySelectedFileToCache(selected.uri);
+
+              cachedTracks.push({
+                ...selected,
+                cachePath: cached.path,
+                cacheName: cached.name
+              });
+            }
+
+            const tracks = artistReleaseType === 'Single'
+              ? cachedTracks.slice(0, 1)
+              : cachedTracks;
+
+            if (artistReleaseType === 'Single' && cachedTracks.length > 1) {
+              alert('A Single can contain one track. Only the first selected track was kept.');
+            }
+
+            setArtistReleaseAudioTracks(tracks);
+            setArtistReleaseAudio(tracks[0] || null);
           } catch (error) {
             alert('Unable to select music file.\n\nDetails: ' + (error?.message || String(error)));
           }
         }}
         >
-          {artistReleaseAudio ? 'Change Music' : 'Select Music'}
+          {artistReleaseAudioTracks.length > 0 || artistReleaseAudio
+            ? 'Change Music'
+            : 'Select Music'}
         </button>
       </div>
 
@@ -3714,8 +3741,14 @@ function formatTime(ms) {
           </div>
 
           <div className="artistReleaseReviewItem">
-            <b>Audio</b>
-            <span>{artistReleaseAudio?.title || 'No audio selected'}</span>
+            <b>Tracks ({artistReleaseAudioTracks.length || (artistReleaseAudio ? 1 : 0)})</b>
+            <span>
+              {(artistReleaseAudioTracks.length > 0
+                ? artistReleaseAudioTracks
+                : artistReleaseAudio ? [artistReleaseAudio] : [])
+                .map((track, index) => `${index + 1}. ${track.title || track.name || 'Selected audio'}`)
+                .join(' • ') || 'No audio selected'}
+            </span>
           </div>
 
           <div className="artistReleaseReviewItem">
@@ -3738,8 +3771,17 @@ function formatTime(ms) {
             return;
           }
 
-          if (!artistReleaseAudio) {
+          const selectedTracks = artistReleaseAudioTracks.length > 0
+            ? artistReleaseAudioTracks
+            : artistReleaseAudio ? [artistReleaseAudio] : [];
+
+          if (selectedTracks.length === 0) {
             alert('Please select an audio file before submitting.');
+            return;
+          }
+
+          if (artistReleaseType === 'Single' && selectedTracks.length !== 1) {
+            alert('A Single release must contain exactly one track.');
             return;
           }
 
@@ -3785,8 +3827,20 @@ function formatTime(ms) {
               return;
             }
 
-            if (!artistReleaseAudio.cachePath) {
-              throw new Error('The selected audio file is not ready for upload.');
+            const tracksToPublish = artistReleaseAudioTracks.length > 0
+              ? artistReleaseAudioTracks
+              : artistReleaseAudio ? [artistReleaseAudio] : [];
+
+            if (tracksToPublish.length === 0) {
+              throw new Error('Select at least one audio track.');
+            }
+
+            if (artistReleaseType === 'Single' && tracksToPublish.length !== 1) {
+              throw new Error('A Single release must contain exactly one track.');
+            }
+
+            if (tracksToPublish.some(track => !track.cachePath)) {
+              throw new Error('One or more selected tracks are not ready for upload. Select them again.');
             }
 
             if (!artistReleaseArtwork.cachePath) {
@@ -3794,38 +3848,16 @@ function formatTime(ms) {
             }
 
             const timestamp = Date.now();
+            const safeFileName = (name, fallback) =>
+              (name || fallback).replace(/[^a-zA-Z0-9._-]/g, '_');
 
-            const audioName =
-              artistReleaseAudio.cacheName ||
-              artistReleaseAudio.title ||
-              'audio-file';
-
-            const artworkName =
-              artistReleaseArtwork.cacheName ||
-              artistReleaseArtwork.name ||
-              'artwork-file';
-
-            const safeAudioName = audioName.replace(
-              /[^a-zA-Z0-9._-]/g,
-              '_'
+            const artworkName = safeFileName(
+              artistReleaseArtwork.cacheName || artistReleaseArtwork.name,
+              'artwork-file'
             );
-
-            const safeArtworkName = artworkName.replace(
-              /[^a-zA-Z0-9._-]/g,
-              '_'
-            );
-
-            const audioPath =
-              `${user.id}/audio/${timestamp}-${safeAudioName}`;
 
             const artworkPath =
-              `${user.id}/artwork/${timestamp}-${safeArtworkName}`;
-
-            await uploadCachedFile(
-              artistReleaseAudio.cachePath,
-              audioPath,
-              artistReleaseAudio.mimeType || 'audio/mpeg'
-            );
+              `${user.id}/artwork/${timestamp}-${artworkName}`;
 
             await uploadCachedFile(
               artistReleaseArtwork.cachePath,
@@ -3833,36 +3865,149 @@ function formatTime(ms) {
               artistReleaseArtwork.mimeType || 'image/jpeg'
             );
 
-            const { data: song, error: songError } =
+            const songRows = [];
+
+            for (let index = 0; index < tracksToPublish.length; index++) {
+              const track = tracksToPublish[index];
+              const audioName = safeFileName(
+                track.cacheName || track.title,
+                `audio-track-${index + 1}`
+              );
+              const audioPath =
+                `${user.id}/audio/${timestamp}-${index + 1}-${audioName}`;
+
+              await uploadCachedFile(
+                track.cachePath,
+                audioPath,
+                track.mimeType || 'audio/mpeg'
+              );
+
+              songRows.push({
+                title: track.title?.trim() ||
+                  (tracksToPublish.length === 1
+                    ? artistReleaseTitle.trim()
+                    : `${artistReleaseTitle.trim()} - Track ${index + 1}`),
+                artist: artistReleaseArtist.trim(),
+                genre: artistReleaseGenre,
+                audio_url: audioPath,
+                artwork_url: artworkPath,
+                artist_id: user.id,
+                is_published: false
+              });
+            }
+
+            const { data: release, error: releaseError } =
               await supabase
-                .from('songs')
+                .from('releases')
                 .insert({
+                  artist_id: user.id,
                   title: artistReleaseTitle.trim(),
                   artist: artistReleaseArtist.trim(),
+                  release_type: artistReleaseType,
                   genre: artistReleaseGenre,
-                  audio_url: audioPath,
                   artwork_url: artworkPath,
-                  artist_id: user.id
+                  status: 'draft'
                 })
                 .select()
                 .single();
 
-            if (songError) {
-              throw new Error(songError.message);
+            if (releaseError) {
+              throw new Error('Could not create release: ' + releaseError.message);
+            }
+
+            const { data: savedSongs, error: songsError } =
+              await supabase
+                .from('songs')
+                .insert(songRows)
+                .select();
+
+            if (songsError) {
+              throw new Error(
+                'Could not save release tracks: ' + songsError.message
+              );
+            }
+
+            if (!savedSongs || savedSongs.length !== songRows.length) {
+              throw new Error(
+                'Not all tracks were saved. The release remains unpublished.'
+              );
+            }
+
+            const songsByAudioPath = new Map(
+              savedSongs.map(song => [song.audio_url, song])
+            );
+
+            const songs = songRows.map(row =>
+              songsByAudioPath.get(row.audio_url)
+            );
+
+            if (songs.some(song => !song)) {
+              throw new Error(
+                'Could not match every saved song to its audio file.'
+              );
+            }
+
+            const releaseTrackRows = songs.map((song, index) => ({
+              release_id: release.id,
+              song_id: song.id,
+              track_number: index + 1
+            }));
+
+            const { error: linkError } =
+              await supabase
+                .from('release_tracks')
+                .insert(releaseTrackRows);
+
+            if (linkError) {
+              throw new Error('Could not link release tracks: ' + linkError.message);
+            }
+
+            const { data: publishedRelease, error: publishError } =
+              await supabase
+                .from('releases')
+                .update({
+                  status: 'published',
+                  published_at: new Date().toISOString()
+                })
+                .eq('id', release.id)
+                .eq('artist_id', user.id)
+                .select()
+                .single();
+
+            if (publishError) {
+              throw new Error('Tracks were saved, but the release could not be published: ' + publishError.message);
+            }
+
+            const { error: trackPublishError } = await supabase
+              .from('songs')
+              .update({ is_published: true })
+              .eq('artist_id', user.id)
+              .in('id', songs.map(song => song.id));
+
+            if (trackPublishError) {
+              throw new Error(
+                'The release was published, but its tracks could not be made public: ' +
+                trackPublishError.message
+              );
             }
 
             const newRelease = {
-              id: song.id,
-              title: song.title,
-              artist: song.artist,
-              type: artistReleaseType,
-              genre: song.genre,
-              audio: artistReleaseAudio,
+              id: publishedRelease.id,
+              title: publishedRelease.title,
+              artist: publishedRelease.artist,
+              type: publishedRelease.release_type,
+              genre: publishedRelease.genre,
+              audio: tracksToPublish[0],
+              tracks: songs.map((song, index) => ({
+                ...tracksToPublish[index],
+                songId: song.id,
+                title: song.title,
+                audioPath: song.audio_url
+              })),
               artwork: artistReleaseArtwork,
-              audioPath,
               artworkPath,
               status: 'Published',
-              createdAt: song.created_at
+              createdAt: publishedRelease.created_at
             };
 
             const updatedReleases = [newRelease, ...artistReleases];
@@ -3881,6 +4026,7 @@ function formatTime(ms) {
             setArtistReleaseType('Single');
             setArtistReleaseGenre('');
             setArtistReleaseAudio(null);
+            setArtistReleaseAudioTracks([]);
             setArtistReleaseArtwork(null);
             setArtistReleaseStep(1);
             setArtistReleaseOpen(false);
@@ -3952,7 +4098,10 @@ function formatTime(ms) {
                     setArtistReleaseArtist(artistReleaseDraft.artist || '');
                     setArtistReleaseType(artistReleaseDraft.type || 'Single');
                     setArtistReleaseGenre(artistReleaseDraft.genre || '');
-                    setArtistReleaseAudio(artistReleaseDraft.audio || null);
+                    const restoredTracks = artistReleaseDraft.tracks ||
+                      (artistReleaseDraft.audio ? [artistReleaseDraft.audio] : []);
+                    setArtistReleaseAudioTracks(restoredTracks);
+                    setArtistReleaseAudio(restoredTracks[0] || null);
                     setArtistReleaseArtwork(artistReleaseDraft.artwork || null);
                     setArtistReleaseStep(artistReleaseDraft.step || 1);
                   }
@@ -3988,7 +4137,10 @@ function formatTime(ms) {
                     setArtistReleaseArtist(artistReleaseDraft.artist || '');
                     setArtistReleaseType(artistReleaseDraft.type || 'Single');
                     setArtistReleaseGenre(artistReleaseDraft.genre || '');
-                    setArtistReleaseAudio(artistReleaseDraft.audio || null);
+                    const restoredTracks = artistReleaseDraft.tracks ||
+                      (artistReleaseDraft.audio ? [artistReleaseDraft.audio] : []);
+                    setArtistReleaseAudioTracks(restoredTracks);
+                    setArtistReleaseAudio(restoredTracks[0] || null);
                     setArtistReleaseArtwork(artistReleaseDraft.artwork || null);
                     setArtistReleaseStep(artistReleaseDraft.step || 1);
                   }
