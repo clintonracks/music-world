@@ -5102,3 +5102,151 @@ section {
   bottom: 64px !important;
   margin-bottom: 0 !important;
 }
+
+/* Artist release management */
+.artistReleaseGroup {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid #333;
+  border-radius: 14px;
+  background: #171717;
+}
+
+.artistReleaseGroup .artistReleaseItem {
+  border: 0;
+  border-radius: 0;
+  align-items: flex-start;
+}
+
+.artistReleaseTrackCount {
+  margin: 0 0 8px;
+  color: #bbb;
+  font-size: 12px;
+}
+
+.artistReleaseActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.artistReleaseActions button,
+.artistInlineEditor button {
+  min-height: 36px;
+  padding: 8px 11px;
+  border: 1px solid #454545;
+  border-radius: 8px;
+  background: #242424;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.artistReleaseActions button:disabled,
+.artistInlineEditor button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.artistReleaseActions button:active,
+.artistInlineEditor button:active {
+  background: #383838;
+}
+
+.artistReleaseTrackList {
+  display: grid;
+  gap: 0;
+  border-top: 1px solid #333;
+  background: #101010;
+}
+
+.artistReleaseTrack {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px;
+  border-bottom: 1px solid #292929;
+}
+
+.artistReleaseTrack:last-child {
+  border-bottom: 0;
+}
+
+.artistReleaseTrackDetails {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  flex: 1;
+}
+
+.artistReleaseTrackDetails strong {
+  overflow-wrap: anywhere;
+  color: #fff;
+  font-size: 14px;
+}
+
+.artistReleaseTrackDetails small,
+.artistReleaseNoTracks {
+  color: #aaa;
+  font-size: 12px;
+}
+
+.artistTrackActions {
+  margin-top: 0;
+  justify-content: flex-end;
+}
+
+.artistInlineEditor {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin: 6px 0;
+}
+
+.artistInlineEditor input {
+  width: 100%;
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid #444;
+  border-radius: 8px;
+  outline: none;
+  background: #101010;
+  color: #fff;
+  font-size: 14px;
+}
+
+.artistInlineEditor input:focus {
+  border-color: #ff4d4d;
+}
+
+.artistReleaseNoTracks {
+  padding: 14px;
+  margin: 0;
+}
+
+@media (max-width: 480px) {
+  .artistReleaseGroup .artistReleaseItem {
+    gap: 10px;
+    padding: 12px;
+  }
+
+  .artistReleaseCover {
+    width: 54px;
+    height: 54px;
+  }
+
+  .artistReleaseTrack {
+    flex-direction: column;
+  }
+
+  .artistTrackActions {
+    justify-content: flex-start;
+  }
+
+  .artistReleaseActions button {
+    flex: 1 1 auto;
+  }
+}

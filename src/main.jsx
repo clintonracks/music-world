@@ -524,6 +524,14 @@ const [artistReleaseArtist, setArtistReleaseArtist] = useState('');
 const [artistReleaseType, setArtistReleaseType] = useState('Single');
 const [artistReleaseGenre, setArtistReleaseGenre] = useState('');
 
+const [selectedReleaseId, setSelectedReleaseId] = useState(null);
+const [editingReleaseId, setEditingReleaseId] = useState(null);
+const [editingReleaseTitle, setEditingReleaseTitle] = useState('');
+const [editingTrackId, setEditingTrackId] = useState(null);
+const [editingTrackTitle, setEditingTrackTitle] = useState('');
+const [releaseActionLoading, setReleaseActionLoading] = useState(false);
+
+
 const [artistReleaseDraft, setArtistReleaseDraft] = useState(() => {
   try {
     return JSON.parse(
@@ -534,6 +542,427 @@ const [artistReleaseDraft, setArtistReleaseDraft] = useState(() => {
   }
 });
 
+
+
+useEffect(() => {
+  const artistId = artistAccount?.id;
+  let cancelled = false;
+
+  if (!artistId) {
+    setArtistReleases([]);
+    return () => {
+      cancelled = true;
+    };
+  }
+
+  const loadArtistReleases = async () => {
+    try {
+      const { data: releases, error: releasesError } = await supabase
+        .from('releases')
+        .select('*')
+        .eq('artist_id', artistId)
+        .order('created_at', { ascending: false });
+
+      if (releasesError) throw releasesError;
+
+      const releaseIds = (releases || []).map(release => release.id);
+      let links = [];
+      let songs = [];
+
+      if (releaseIds.length) {
+        const { data, error } = await supabase
+          .from('release_tracks')
+          .select('*')
+          .in('release_id', releaseIds)
+          .order('track_number', { ascending: true });
+
+        if (error) throw error;
+        links = data || [];
+      }
+
+      const songIds = [...new Set(links.map(link => link.song_id).filter(Boolean))];
+
+      if (songIds.length) {
+        const { data, error } = await supabase
+          .from('songs')
+          .select('*')
+          .eq('artist_id', artistId)
+          .in('id', songIds);
+
+        if (error) throw error;
+        songs = data || [];
+      }
+
+      const songMap = new Map(songs.map(song => [song.id, song]));
+
+      const hydratedReleases = await Promise.all(
+        (releases || []).map(async release => {
+          const releaseLinks = links
+            .filter(link => link.release_id === release.id)
+            .sort((a, b) => a.track_number - b.track_number);
+
+          const tracks = await Promise.all(
+            releaseLinks.map(async link => {
+              const song = songMap.get(link.song_id);
+              if (!song) return null;
+
+              let audioUrl = null;
+              let artworkUrl = null;
+
+              if (song.audio_url) {
+                const { data, error } = await supabase.storage
+                  .from('music')
+                  .createSignedUrl(song.audio_url, 3600);
+
+                if (error) {
+                  console.error('Unable to sign track audio:', error.message);
+                } else {
+                  audioUrl = data?.signedUrl || null;
+                }
+              }
+
+              if (song.artwork_url) {
+                const { data, error } = await supabase.storage
+                  .from('music')
+                  .createSignedUrl(song.artwork_url, 3600);
+
+                if (error) {
+                  console.error('Unable to sign track artwork:', error.message);
+                } else {
+                  artworkUrl = data?.signedUrl || null;
+                }
+              }
+
+              return {
+                ...song,
+                songId: song.id,
+                title: song.title,
+                audioPath: song.audio_url,
+                uri: audioUrl,
+                audioUrl,
+                artwork: artworkUrl,
+                artworkUrl,
+                trackNumber: link.track_number
+              };
+            })
+          );
+
+          let releaseArtworkUrl = null;
+
+          if (release.artwork_url) {
+            const { data, error } = await supabase.storage
+              .from('music')
+              .createSignedUrl(release.artwork_url, 3600);
+
+            if (error) {
+              console.error('Unable to sign release artwork:', error.message);
+            } else {
+              releaseArtworkUrl = data?.signedUrl || null;
+            }
+          }
+
+          return {
+            id: release.id,
+            title: release.title,
+            artist: release.artist,
+            type: release.release_type,
+            genre: release.genre,
+            tracks: tracks.filter(Boolean),
+            audio: tracks.find(Boolean) || null,
+            artwork: releaseArtworkUrl ? { uri: releaseArtworkUrl } : null,
+            artworkPath: release.artwork_url,
+            status: release.status === 'published' ? 'Published' : 'Draft',
+            createdAt: release.created_at
+          };
+        })
+      );
+
+      if (cancelled) return;
+
+      setArtistReleases(hydratedReleases);
+      localStorage.setItem(
+        'musicWorldArtistReleases',
+        JSON.stringify(hydratedReleases)
+      );
+    } catch (error) {
+      console.error('Unable to load artist releases:', error.message || error);
+    }
+  };
+
+  loadArtistReleases();
+
+  return () => {
+    cancelled = true;
+  };
+}, [artistAccount?.id]);
+
+const saveReleaseTitle = async (releaseId, title) => {
+  const cleanTitle = title.trim();
+  if (!cleanTitle) return alert('Enter a release title.');
+
+  const userId = artistAccount?.id;
+  if (!userId) return alert('Please sign in to your artist account.');
+
+  setReleaseActionLoading(true);
+  try {
+    const { error } = await supabase
+      .from('releases')
+      .update({ title: cleanTitle })
+      .eq('id', releaseId)
+      .eq('artist_id', userId);
+
+    if (error) throw error;
+
+    const updated = artistReleases.map(release =>
+      release.id === releaseId ? { ...release, title: cleanTitle } : release
+    );
+    setArtistReleases(updated);
+    localStorage.setItem('musicWorldArtistReleases', JSON.stringify(updated));
+    setEditingReleaseId(null);
+    setEditingReleaseTitle('');
+  } catch (error) {
+    alert('Could not update release title: ' + (error.message || error));
+  } finally {
+    setReleaseActionLoading(false);
+  }
+};
+
+const saveTrackTitle = async (releaseId, songId, title) => {
+  const cleanTitle = title.trim();
+  if (!cleanTitle) return alert('Enter a track title.');
+
+  const userId = artistAccount?.id;
+  if (!userId) return alert('Please sign in to your artist account.');
+
+  setReleaseActionLoading(true);
+  try {
+    const { error } = await supabase
+      .from('songs')
+      .update({ title: cleanTitle })
+      .eq('id', songId)
+      .eq('artist_id', userId);
+
+    if (error) throw error;
+
+    const updated = artistReleases.map(release => {
+      if (release.id !== releaseId) return release;
+      const tracks = (release.tracks || []).map(track =>
+        track.songId === songId || track.id === songId
+          ? { ...track, title: cleanTitle }
+          : track
+      );
+      return {
+        ...release,
+        tracks,
+        audio: tracks.find(Boolean) || null
+      };
+    });
+
+    setArtistReleases(updated);
+    localStorage.setItem('musicWorldArtistReleases', JSON.stringify(updated));
+    setEditingTrackId(null);
+    setEditingTrackTitle('');
+  } catch (error) {
+    alert('Could not update track title: ' + (error.message || error));
+  } finally {
+    setReleaseActionLoading(false);
+  }
+};
+
+const setTrackPublished = async (releaseId, songId, shouldPublish) => {
+  const userId = artistAccount?.id;
+  if (!userId) return alert('Please sign in to your artist account.');
+
+  setReleaseActionLoading(true);
+  try {
+    const { error } = await supabase
+      .from('songs')
+      .update({ is_published: shouldPublish })
+      .eq('id', songId)
+      .eq('artist_id', userId);
+
+    if (error) throw error;
+
+    const updated = artistReleases.map(release => {
+      if (release.id !== releaseId) return release;
+      const tracks = (release.tracks || []).map(track =>
+        track.songId === songId || track.id === songId
+          ? { ...track, is_published: shouldPublish }
+          : track
+      );
+      return { ...release, tracks };
+    });
+
+    setArtistReleases(updated);
+    localStorage.setItem('musicWorldArtistReleases', JSON.stringify(updated));
+  } catch (error) {
+    alert('Could not update track status: ' + (error.message || error));
+  } finally {
+    setReleaseActionLoading(false);
+  }
+};
+
+const setReleasePublished = async (release, shouldPublish) => {
+  const userId = artistAccount?.id;
+  if (!userId) return alert('Please sign in to your artist account.');
+
+  setReleaseActionLoading(true);
+  try {
+    const { error: releaseError } = await supabase
+      .from('releases')
+      .update({
+        status: shouldPublish ? 'published' : 'draft',
+        ...(shouldPublish ? { published_at: new Date().toISOString() } : {})
+      })
+      .eq('id', release.id)
+      .eq('artist_id', userId);
+
+    if (releaseError) throw releaseError;
+
+    const songIds = (release.tracks || [])
+      .map(track => track.songId || track.id)
+      .filter(Boolean);
+
+    if (songIds.length) {
+      const { error: tracksError } = await supabase
+        .from('songs')
+        .update({ is_published: shouldPublish })
+        .eq('artist_id', userId)
+        .in('id', songIds);
+
+      if (tracksError) throw tracksError;
+    }
+
+    const updated = artistReleases.map(item =>
+      item.id === release.id
+        ? {
+            ...item,
+            status: shouldPublish ? 'Published' : 'Draft',
+            tracks: (item.tracks || []).map(track => ({
+              ...track,
+              is_published: shouldPublish
+            }))
+          }
+        : item
+    );
+
+    setArtistReleases(updated);
+    localStorage.setItem('musicWorldArtistReleases', JSON.stringify(updated));
+  } catch (error) {
+    alert('Could not update release status: ' + (error.message || error));
+  } finally {
+    setReleaseActionLoading(false);
+  }
+};
+
+const deleteReleaseTrack = async (release, track) => {
+  if (!window.confirm(`Permanently delete "${track.title || 'this track'}"?`)) return;
+
+  const userId = artistAccount?.id;
+  const songId = track.songId || track.id;
+  if (!userId || !songId) return alert('Track information is incomplete.');
+
+  setReleaseActionLoading(true);
+  try {
+    const { error: linkError } = await supabase
+      .from('release_tracks')
+      .delete()
+      .eq('release_id', release.id)
+      .eq('song_id', songId);
+
+    if (linkError) throw linkError;
+
+    const { error: songError } = await supabase
+      .from('songs')
+      .delete()
+      .eq('id', songId)
+      .eq('artist_id', userId);
+
+    if (songError) throw songError;
+
+    if (track.audioPath) {
+      const { error } = await supabase.storage
+        .from('music')
+        .remove([track.audioPath]);
+      if (error) console.error('Could not remove audio file:', error.message);
+    }
+
+    const updated = artistReleases.map(item => {
+      if (item.id !== release.id) return item;
+      const tracks = (item.tracks || []).filter(
+        itemTrack => (itemTrack.songId || itemTrack.id) !== songId
+      );
+      return { ...item, tracks, audio: tracks[0] || null };
+    });
+
+    setArtistReleases(updated);
+    localStorage.setItem('musicWorldArtistReleases', JSON.stringify(updated));
+  } catch (error) {
+    alert('Could not delete track: ' + (error.message || error));
+  } finally {
+    setReleaseActionLoading(false);
+  }
+};
+
+const deleteEntireRelease = async (release) => {
+  if (!window.confirm(
+    `Permanently delete "${release.title}" and all its tracks? This cannot be undone.`
+  )) return;
+
+  const userId = artistAccount?.id;
+  if (!userId) return alert('Please sign in to your artist account.');
+
+  setReleaseActionLoading(true);
+  try {
+    const tracks = release.tracks || [];
+    const songIds = tracks.map(track => track.songId || track.id).filter(Boolean);
+    const audioPaths = tracks.map(track => track.audioPath).filter(Boolean);
+
+    const { error: linksError } = await supabase
+      .from('release_tracks')
+      .delete()
+      .eq('release_id', release.id);
+
+    if (linksError) throw linksError;
+
+    if (songIds.length) {
+      const { error: songsError } = await supabase
+        .from('songs')
+        .delete()
+        .eq('artist_id', userId)
+        .in('id', songIds);
+
+      if (songsError) throw songsError;
+    }
+
+    const { error: releaseError } = await supabase
+      .from('releases')
+      .delete()
+      .eq('id', release.id)
+      .eq('artist_id', userId);
+
+    if (releaseError) throw releaseError;
+
+    const paths = [...new Set([
+      ...audioPaths,
+      release.artworkPath
+    ].filter(Boolean))];
+
+    if (paths.length) {
+      const { error } = await supabase.storage.from('music').remove(paths);
+      if (error) console.error('Could not remove some release files:', error.message);
+    }
+
+    const updated = artistReleases.filter(item => item.id !== release.id);
+    setArtistReleases(updated);
+    localStorage.setItem('musicWorldArtistReleases', JSON.stringify(updated));
+    setSelectedReleaseId(current => current === release.id ? null : current);
+  } catch (error) {
+    alert('Could not delete release: ' + (error.message || error));
+  } finally {
+    setReleaseActionLoading(false);
+  }
+};
 
 useEffect(() => {
   const hasDraft =
@@ -1077,6 +1506,7 @@ async function loadOnlineSongs() {
       const { data, error } = await supabase
         .from('songs')
         .select('*')
+        .eq('is_published', true)
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -4157,29 +4587,205 @@ function formatTime(ms) {
               </div>
             ) : (
               <div className="artistReleaseList">
-                {artistReleases.map((release) => (
-                  <div className="artistReleaseItem" key={release.id}>
-                    {release.artwork?.uri ? (
-                      <img
-                        src={release.artwork.uri}
-                        alt={release.title}
-                        className="artistReleaseCover"
-                      />
-                    ) : (
-                      <div className="artistReleaseCover artistReleaseCoverFallback">
-                        🎵
-                      </div>
-                    )}
+                {artistReleases.map((release) => {
+                  const tracks = release.tracks || [];
+                  const isExpanded = selectedReleaseId === release.id;
+                  const isPublished = release.status === 'Published';
+                  const isEditingRelease = editingReleaseId === release.id;
 
-                    <div className="artistReleaseInfo">
-                      <h3>{release.title}</h3>
-                      <p>
-                        {release.artist} • {release.type} • {release.genre}
-                      </p>
-                      <span>{release.status}</span>
+                  return (
+                    <div className="artistReleaseGroup" key={release.id}>
+                      <div className="artistReleaseItem">
+                        {release.artwork?.uri ? (
+                          <img
+                            src={release.artwork.uri}
+                            alt={release.title}
+                            className="artistReleaseCover"
+                          />
+                        ) : (
+                          <div className="artistReleaseCover artistReleaseCoverFallback">
+                            🎵
+                          </div>
+                        )}
+
+                        <div className="artistReleaseInfo">
+                          {isEditingRelease ? (
+                            <div className="artistInlineEditor">
+                              <input
+                                type="text"
+                                value={editingReleaseTitle}
+                                onChange={(event) => setEditingReleaseTitle(event.target.value)}
+                                aria-label="Release title"
+                                maxLength={150}
+                              />
+                              <button
+                                type="button"
+                                disabled={releaseActionLoading}
+                                onClick={() => saveReleaseTitle(release.id, editingReleaseTitle)}
+                              >
+                                Save
+                              </button>
+                              <button
+                                type="button"
+                                disabled={releaseActionLoading}
+                                onClick={() => {
+                                  setEditingReleaseId(null);
+                                  setEditingReleaseTitle('');
+                                }}
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          ) : (
+                            <h3>{release.title}</h3>
+                          )}
+
+                          <p>
+                            {release.artist} • {release.type} • {release.genre || 'No genre'}
+                          </p>
+                          <p className="artistReleaseTrackCount">
+                            {tracks.length} {tracks.length === 1 ? 'track' : 'tracks'}
+                          </p>
+                          <span>{release.status || 'Draft'}</span>
+
+                          <div className="artistReleaseActions">
+                            <button
+                              type="button"
+                              disabled={releaseActionLoading}
+                              onClick={() => {
+                                setEditingReleaseId(release.id);
+                                setEditingReleaseTitle(release.title || '');
+                              }}
+                            >
+                              Edit
+                            </button>
+
+                            <button
+                              type="button"
+                              disabled={releaseActionLoading}
+                              onClick={() => setReleasePublished(release, !isPublished)}
+                            >
+                              {isPublished ? 'Take Down' : 'Republish'}
+                            </button>
+
+                            <button
+                              type="button"
+                              disabled={releaseActionLoading}
+                              onClick={() => deleteEntireRelease(release)}
+                            >
+                              Delete Release
+                            </button>
+
+                            <button
+                              type="button"
+                              aria-expanded={isExpanded}
+                              onClick={() => setSelectedReleaseId(
+                                isExpanded ? null : release.id
+                              )}
+                            >
+                              {isExpanded ? 'Hide Tracks' : 'Manage Tracks'}
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+
+                      {isExpanded && (
+                        <div className="artistReleaseTrackList">
+                          {tracks.length === 0 ? (
+                            <p className="artistReleaseNoTracks">
+                              No tracks are linked to this release.
+                            </p>
+                          ) : (
+                            tracks.map((track, index) => {
+                              const songId = track.songId || track.id;
+                              const isEditingTrack = editingTrackId === songId;
+                              const trackPublished = track.is_published ??
+                                (release.status === 'Published');
+
+                              return (
+                                <div className="artistReleaseTrack" key={songId}>
+                                  <div className="artistReleaseTrackDetails">
+                                    <small>Track {track.trackNumber || index + 1}</small>
+
+                                    {isEditingTrack ? (
+                                      <div className="artistInlineEditor">
+                                        <input
+                                          type="text"
+                                          value={editingTrackTitle}
+                                          onChange={(event) => setEditingTrackTitle(event.target.value)}
+                                          aria-label="Track title"
+                                          maxLength={150}
+                                        />
+                                        <button
+                                          type="button"
+                                          disabled={releaseActionLoading}
+                                          onClick={() => saveTrackTitle(
+                                            release.id,
+                                            songId,
+                                            editingTrackTitle
+                                          )}
+                                        >
+                                          Save
+                                        </button>
+                                        <button
+                                          type="button"
+                                          disabled={releaseActionLoading}
+                                          onClick={() => {
+                                            setEditingTrackId(null);
+                                            setEditingTrackTitle('');
+                                          }}
+                                        >
+                                          Cancel
+                                        </button>
+                                      </div>
+                                    ) : (
+                                      <strong>{track.title || `Track ${index + 1}`}</strong>
+                                    )}
+
+                                    <small>{trackPublished ? 'Published' : 'Draft'}</small>
+                                  </div>
+
+                                  <div className="artistReleaseActions artistTrackActions">
+                                    <button
+                                      type="button"
+                                      disabled={releaseActionLoading}
+                                      onClick={() => {
+                                        setEditingTrackId(songId);
+                                        setEditingTrackTitle(track.title || '');
+                                      }}
+                                    >
+                                      Edit Title
+                                    </button>
+
+                                    <button
+                                      type="button"
+                                      disabled={releaseActionLoading}
+                                      onClick={() => setTrackPublished(
+                                        release.id,
+                                        songId,
+                                        !trackPublished
+                                      )}
+                                    >
+                                      {trackPublished ? 'Take Down' : 'Republish'}
+                                    </button>
+
+                                    <button
+                                      type="button"
+                                      disabled={releaseActionLoading}
+                                      onClick={() => deleteReleaseTrack(release, track)}
+                                    >
+                                      Delete Track
+                                    </button>
+                                  </div>
+                                </div>
+                              );
+                            })
+                          )}
+                        </div>
+                      )}
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
 
