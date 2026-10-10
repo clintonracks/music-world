@@ -501,6 +501,7 @@ function App() {
   const [publicArtistOpen, setPublicArtistOpen] = useState(false);
   const [publicArtist, setPublicArtist] = useState(null);
   const [publicArtistTab, setPublicArtistTab] = useState('Music');
+  const [publicSelectedReleaseId, setPublicSelectedReleaseId] = useState(null);
   const [pendingFollowArtist, setPendingFollowArtist] = useState(null);
   const [artistAnalyticsOpen, setArtistAnalyticsOpen] = useState(false);
   const [artistAnalyticsRange, setArtistAnalyticsRange] = useState('Overview');
@@ -1317,79 +1318,175 @@ async function openPublicArtist(artist) {
   }
 
   try {
-    const { data, error } = await supabase
+    const { data: releaseRows, error: releaseError } = await supabase
+      .from('releases')
+      .select('*')
+      .eq('artist_id', artistId)
+      .order('created_at', { ascending: false });
+
+    if (releaseError) throw releaseError;
+
+    const allReleaseRows = releaseRows || [];
+    const allReleaseIds = allReleaseRows.map(release => release.id);
+    let links = [];
+
+    if (allReleaseIds.length) {
+      const { data, error } = await supabase
+        .from('release_tracks')
+        .select('*')
+        .in('release_id', allReleaseIds)
+        .order('track_number', { ascending: true });
+
+      if (error) throw error;
+      links = data || [];
+    }
+
+    const { data: songRows, error: songError } = await supabase
       .from('songs')
       .select('*')
       .eq('artist_id', artistId)
       .eq('is_published', true)
       .order('created_at', { ascending: false });
 
-    if (error) {
-      console.error('PUBLIC ARTIST SONG QUERY ERROR:', error);
-      throw new Error(error.message);
-    }
+    if (songError) throw songError;
 
-    const releases = await Promise.all(
-      (data || []).map(async (song) => {
+    const hydratedSongs = await Promise.all(
+      (songRows || []).map(async song => {
         let audioUrl = null;
         let artworkUrl = null;
 
         if (song.audio_url) {
-          const { data: audioData, error: audioError } =
-            await supabase.storage
-              .from('music')
-              .createSignedUrl(song.audio_url, 3600);
+          const { data, error } = await supabase.storage
+            .from('music')
+            .createSignedUrl(song.audio_url, 3600);
 
-          if (audioError) {
-            console.error(
-              'Unable to load public artist song audio:',
-              {
-                songId: song.id,
-                title: song.title,
-                path: song.audio_url,
-                error: audioError.message
-              }
-            );
+          if (error) {
+            console.error('Unable to sign public song audio:', error.message);
           } else {
-            audioUrl = audioData?.signedUrl || null;
-
+            audioUrl = data?.signedUrl || null;
           }
         }
 
         if (song.artwork_url) {
-          const { data: artworkData } =
-            await supabase.storage
-              .from('music')
-              .createSignedUrl(song.artwork_url, 3600);
+          const { data, error } = await supabase.storage
+            .from('music')
+            .createSignedUrl(song.artwork_url, 3600);
 
-          artworkUrl =
-            artworkData?.signedUrl || null;
+          if (error) {
+            console.error('Unable to sign public song artwork:', error.message);
+          } else {
+            artworkUrl = data?.signedUrl || null;
+          }
         }
 
         return {
           ...song,
+          songId: song.id,
           title: song.title,
           artist: song.artist,
           genre: song.genre,
+          audioPath: song.audio_url,
+          uri: audioUrl,
           audioUrl,
           artwork: artworkUrl,
+          artworkUrl,
           status: 'Published'
         };
       })
+    );
+
+    const publishedSongMap = new Map(
+      hydratedSongs.map(song => [song.id, song])
+    );
+
+    const linkedSongIds = new Set(
+      links.map(link => link.song_id).filter(Boolean)
+    );
+
+    const groupedReleases = await Promise.all(
+      allReleaseRows
+        .filter(release => release.status === 'published')
+        .map(async release => {
+          const releaseLinks = links
+            .filter(link => link.release_id === release.id)
+            .sort((a, b) => Number(a.track_number) - Number(b.track_number));
+
+          const tracks = releaseLinks
+            .map(link => {
+              const song = publishedSongMap.get(link.song_id);
+              if (!song) return null;
+
+              return {
+                ...song,
+                trackNumber: link.track_number
+              };
+            })
+            .filter(Boolean);
+
+          if (!tracks.length) return null;
+
+          let artworkUrl = null;
+
+          if (release.artwork_url) {
+            const { data, error } = await supabase.storage
+              .from('music')
+              .createSignedUrl(release.artwork_url, 3600);
+
+            if (error) {
+              console.error('Unable to sign public release artwork:', error.message);
+            } else {
+              artworkUrl = data?.signedUrl || null;
+            }
+          }
+
+          return {
+            id: release.id,
+            title: release.title,
+            artist: release.artist,
+            type: release.release_type || 'Single',
+            genre: release.genre,
+            artwork: artworkUrl,
+            artworkUrl,
+            tracks,
+            trackCount: tracks.length,
+            audio: tracks[0],
+            status: 'Published',
+            created_at: release.published_at || release.created_at
+          };
+        })
+    );
+
+    const standaloneSongs = hydratedSongs
+      .filter(song => !linkedSongIds.has(song.id))
+      .map(song => ({
+        ...song,
+        type: 'Single',
+        tracks: [song],
+        trackCount: 1,
+        audio: song,
+        created_at: song.created_at
+      }));
+
+    const publicReleases = [
+      ...groupedReleases.filter(Boolean),
+      ...standaloneSongs
+    ].sort((a, b) =>
+      new Date(b.created_at || 0) - new Date(a.created_at || 0)
     );
 
     setPublicArtist(current =>
       current
         ? {
             ...current,
-            releases
+            releases: publicReleases,
+            songs: hydratedSongs
           }
         : current
     );
   } catch (error) {
     console.error(
-      'Unable to load public artist data:',
-      error.message
+      'Unable to load public artist releases:',
+      error.message || error
     );
   }
 }
@@ -6126,44 +6223,45 @@ function formatTime(ms) {
                     </div>
                   </div>
 
-                  {publicArtist.releases && publicArtist.releases.length > 0 ? (
+                  {publicArtist.songs && publicArtist.songs.length > 0 ? (
                     <div className="publicArtistSongList">
-                      {publicArtist.releases.slice(0, 5).map((release, index) => (
+                      {publicArtist.songs.slice(0, 5).map((song, index) => (
                         <button
                           className="publicArtistSong"
-                          key={release.id || index}
+                          key={song.id || index}
                           type="button"
                           onClick={() => {
-                            if (!release.audioUrl && !release.audio_url) {
+                            const audioUrl =
+                              song.audioUrl || song.uri || song.audio_url;
+
+                            if (!audioUrl) {
                               alert('This song is not available for playback yet.');
                               return;
                             }
 
-                            const songArtwork =
-                              release.artwork ||
-                              release.artworkUrl ||
-                              '';
-
                             startSong({
-                              ...release,
-                              uri: release.audioUrl || release.audio_url,
-                              title: release.title,
+                              ...song,
+                              uri: audioUrl,
+                              title: song.title || 'Untitled Song',
                               artist:
-                                release.artist ||
+                                song.artist ||
                                 publicArtist.name ||
                                 publicArtist.artistName ||
                                 'Unknown Artist',
                               album: 'Music World',
-                              artwork: songArtwork
+                              artwork:
+                                song.artwork || song.artworkUrl || ''
                             });
                           }}
                         >
-                          <span className="publicArtistSongNumber">{index + 1}</span>
+                          <span className="publicArtistSongNumber">
+                            {index + 1}
+                          </span>
 
                           <span className="publicArtistSongArtwork">
-                            {release.artwork || release.artworkUrl ? (
+                            {song.artwork || song.artworkUrl ? (
                               <img
-                                src={release.artwork || release.artworkUrl}
+                                src={song.artwork || song.artworkUrl}
                                 alt=""
                               />
                             ) : (
@@ -6172,8 +6270,8 @@ function formatTime(ms) {
                           </span>
 
                           <span className="publicArtistSongInfo">
-                            <strong>{release.title || 'Untitled Song'}</strong>
-                            <small>{release.type || 'Release'}</small>
+                            <strong>{song.title || 'Untitled Song'}</strong>
+                            <small>Song</small>
                           </span>
 
                           <span className="publicArtistSongPlayIcon">▶</span>
@@ -6195,34 +6293,118 @@ function formatTime(ms) {
                 <div className="publicArtistSectionHeader">
                   <div>
                     <h2>All Releases</h2>
-                    <small>Music from this artist</small>
+                    <small>Open an EP or album to explore its tracks</small>
                   </div>
                 </div>
 
                 {publicArtist.releases && publicArtist.releases.length > 0 ? (
                   <div className="publicArtistReleaseList">
-                    {publicArtist.releases.map((release, index) => (
-                      <div className="publicArtistReleaseItem" key={release.id || index}>
-                        <div className="publicArtistReleaseArtwork">
-                          {release.artwork ? (
-                            <img
-                              src={release.artwork}
-                              alt={release.title || 'Release artwork'}
-                            />
-                          ) : (
-                            '♫'
+                    {publicArtist.releases.map((release, index) => {
+                      const isOpen = publicSelectedReleaseId === release.id;
+                      const tracks = release.tracks || [];
+
+                      return (
+                        <div
+                          className="publicArtistReleaseItem"
+                          key={release.id || index}
+                        >
+                          <button
+                            className="publicArtistReleaseToggle"
+                            type="button"
+                            aria-expanded={isOpen}
+                            onClick={() =>
+                              setPublicSelectedReleaseId(current =>
+                                current === release.id ? null : release.id
+                              )
+                            }
+                          >
+                            <span className="publicArtistReleaseArtwork">
+                              {release.artwork || release.artworkUrl ? (
+                                <img
+                                  src={release.artwork || release.artworkUrl}
+                                  alt=""
+                                />
+                              ) : (
+                                '♫'
+                              )}
+                            </span>
+
+                            <span className="publicArtistReleaseInfo">
+                              <strong>
+                                {release.title || 'Untitled Release'}
+                              </strong>
+                              <small>
+                                {release.type || 'Single'}
+                                {' • '}
+                                {release.trackCount || tracks.length} track
+                                {(release.trackCount || tracks.length) === 1
+                                  ? ''
+                                  : 's'}
+                                {' • '}
+                                {release.genre || publicArtist.genre || 'Music'}
+                              </small>
+                            </span>
+
+                            <span className="publicArtistReleaseExpandIcon">
+                              {isOpen ? '−' : '+'}
+                            </span>
+                          </button>
+
+                          {isOpen && (
+                            <div className="publicArtistReleaseTracks">
+                              {tracks.map((track, trackIndex) => (
+                                <button
+                                  className="publicArtistReleaseTrack"
+                                  key={track.id || trackIndex}
+                                  type="button"
+                                  onClick={() => {
+                                    const audioUrl =
+                                      track.audioUrl ||
+                                      track.uri ||
+                                      track.audio_url;
+
+                                    if (!audioUrl) {
+                                      alert(
+                                        'This song is not available for playback yet.'
+                                      );
+                                      return;
+                                    }
+
+                                    startSong({
+                                      ...track,
+                                      uri: audioUrl,
+                                      title: track.title || 'Untitled Song',
+                                      artist:
+                                        track.artist ||
+                                        release.artist ||
+                                        publicArtist.name ||
+                                        publicArtist.artistName ||
+                                        'Unknown Artist',
+                                      album: release.title || 'Music World',
+                                      artwork:
+                                        track.artwork ||
+                                        track.artworkUrl ||
+                                        release.artwork ||
+                                        ''
+                                    });
+                                  }}
+                                >
+                                  <span className="publicArtistReleaseTrackNumber">
+                                    {track.trackNumber || trackIndex + 1}
+                                  </span>
+                                  <span className="publicArtistReleaseTrackTitle">
+                                    {track.title || 'Untitled Song'}
+                                  </span>
+                                  <span className="publicArtistReleaseTrackPlay">
+                                    ▶
+                                  </span>
+                                </button>
+                              ))}
+                            </div>
                           )}
                         </div>
-                        <div>
-                          <strong>{release.title || 'Untitled Release'}</strong>
-                          <small>
-                            {release.type || 'Single'}
-                            {' • '}
-                            {release.genre || publicArtist.genre || 'Music'}
-                          </small>
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 ) : (
                   <div className="empty">
