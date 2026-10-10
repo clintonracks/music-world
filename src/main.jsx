@@ -117,6 +117,8 @@ function App() {
   const audioRef = useRef(null);
   const playbackIdRef = useRef(null);
   const streamRecordedRef = useRef(null);
+  const activeQueueRef = useRef([]);
+  const endedPlaybackIdRef = useRef(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [shuffleEnabled, setShuffleEnabled] = useState(false);
   const [repeatMode, setRepeatMode] = useState('off');
@@ -1514,6 +1516,7 @@ const [accountInfoOpen, setAccountInfoOpen] = useState(false);
   const [deviceMusicSearch, setDeviceMusicSearch] = useState('');
   const [onlineSongs, setOnlineSongs] = useState([]);
   const [spotlightArtist, setSpotlightArtist] = useState(null);
+  const [risingArtists, setRisingArtists] = useState([]);
 const [offlineSongs, setOfflineSongs] = useState(() => {
   try {
     return JSON.parse(
@@ -1647,6 +1650,71 @@ async function loadOnlineSongs() {
       );
 
       setOnlineSongs(songsWithUrls);
+
+      try {
+        const { data: profiles, error: profilesError } = await supabase
+          .from('artist_profiles')
+          .select('id, name, genre, country, bio, photo_url');
+
+        if (profilesError) {
+          throw new Error(profilesError.message);
+        }
+
+        const publishedArtistIds = new Set(
+          songsWithUrls
+            .map(song => song.artist_id)
+            .filter(Boolean)
+            .map(String)
+        );
+
+        const eligibleProfiles = (profiles || [])
+          .filter(profile =>
+            profile?.id &&
+            publishedArtistIds.has(String(profile.id))
+          );
+
+        const profilesWithPhotos = await Promise.all(
+          eligibleProfiles.map(async profile => {
+            let photo = null;
+
+            if (profile.photo_url) {
+              try {
+                const { data: photoData, error: photoError } =
+                  await supabase.storage
+                    .from('music')
+                    .createSignedUrl(profile.photo_url, 3600);
+
+                if (photoError) {
+                  console.error(
+                    'Unable to load Rising Artist photo:',
+                    photoError.message
+                  );
+                } else {
+                  photo = photoData?.signedUrl || null;
+                }
+              } catch (photoError) {
+                console.error(
+                  'Unable to load Rising Artist photo:',
+                  photoError.message
+                );
+              }
+            }
+
+            return {
+              ...profile,
+              photo
+            };
+          })
+        );
+
+        setRisingArtists(profilesWithPhotos);
+      } catch (profilesError) {
+        console.error(
+          'Unable to load Rising Artists:',
+          profilesError.message || String(profilesError)
+        );
+        setRisingArtists([]);
+      }
 
       const featuredSong = songsWithUrls[0];
 
@@ -1897,8 +1965,8 @@ async function loadOnlineSongs() {
         ) {
           setCurrentTime(nextDuration);
 
-          if (repeatMode === 'off') {
-            setIsPlaying(false);
+          if (endedPlaybackIdRef.current !== playbackIdRef.current) {
+            endedPlaybackIdRef.current = playbackIdRef.current;
             await playNext();
           }
         }
@@ -2166,6 +2234,7 @@ function formatTime(ms) {
     const playbackId = crypto.randomUUID();
     playbackIdRef.current = playbackId;
     streamRecordedRef.current = null;
+  endedPlaybackIdRef.current = null;
 
     setPlaying(song);
     await recordRecentlyPlayed(song);
@@ -2187,33 +2256,70 @@ function formatTime(ms) {
         item => item?.audioUrl === song?.uri
       );
 
-      const sourceList = isOnlineSong ? onlineSongs : deviceMusic;
+      const activeQueue = activeQueueRef.current || [];
+      const songIsInActiveQueue = activeQueue.some(
+        item => item?.uri === song.uri
+      );
 
-      const queue = sourceList
-        .map(item => {
-          if (isOnlineSong) {
+      let queue;
+
+      if (Array.isArray(song.playbackQueue) && song.playbackQueue.length > 0) {
+        queue = song.playbackQueue
+          .map(item => ({
+            ...item,
+            uri: item?.uri || item?.audioUrl || item?.audio_url || '',
+            title: item?.title || 'Unknown Song',
+            artist: item?.artist || song.artist || 'Unknown Artist',
+            album: item?.album || song.album || 'Music World',
+            artwork: item?.artwork || item?.artworkUrl || song.artwork || ''
+          }))
+          .filter(item => item.uri);
+
+        activeQueueRef.current = queue;
+      } else if (keepExpanded && songIsInActiveQueue) {
+        queue = activeQueue;
+      } else {
+        const sourceList = isOnlineSong ? onlineSongs : deviceMusic;
+
+        queue = sourceList
+          .map(item => {
+            if (isOnlineSong) {
+              return {
+                ...item,
+                uri: item?.audioUrl || '',
+                title: item?.title || 'Unknown Song',
+                artist: item?.artist || 'Unknown Artist',
+                album: item?.genre || 'Music World',
+                artwork: item?.artworkUrl || ''
+              };
+            }
+
             return {
-              uri: item?.audioUrl || '',
+              ...item,
+              uri: item?.uri || '',
               title: item?.title || 'Unknown Song',
               artist: item?.artist || 'Unknown Artist',
-              album: item?.genre || 'Music World'
+              album: item?.album || '',
+              artwork: item?.artwork || ''
             };
-          }
+          })
+          .filter(item => item.uri);
 
-          return {
-            uri: item?.uri || '',
-            title: item?.title || 'Unknown Song',
-            artist: item?.artist || 'Unknown Artist',
-            album: item?.album || ''
-          };
-        })
-        .filter(item => item.uri);
+        activeQueueRef.current = queue;
+      }
+
+      const nativeQueue = queue.map(item => ({
+        uri: item.uri,
+        title: item.title,
+        artist: item.artist,
+        album: item.album
+      }));
 
       const startIndex = queue.findIndex(item => item.uri === song.uri);
 
-      if (queue.length > 0 && startIndex >= 0) {
+      if (nativeQueue.length > 0 && startIndex >= 0) {
         await DeviceMusic.setQueue({
-          songs: queue,
+          songs: nativeQueue,
           startIndex,
           shuffleEnabled,
           repeatMode
@@ -2232,7 +2338,7 @@ function formatTime(ms) {
       setIsPlaying(false);
       console.error("Native audio playback error:", error);
       alert(
-        "Unable to play this song.\\n\\nDetails: " +
+        "Unable to play this song.\n\nDetails: " +
         (error?.message || String(error))
       );
     }
@@ -2258,21 +2364,29 @@ function formatTime(ms) {
 
   async function playNext(e) {
     if (e) e.stopPropagation();
-
     if (!playing?.uri) return;
 
-    const isOnlineSong = onlineSongs.some(
-      song => song?.audioUrl === playing?.uri
+    const activeQueue = activeQueueRef.current || [];
+    const queueHasCurrentSong = activeQueue.some(
+      item => item?.uri === playing.uri
     );
 
-    const currentList = isOnlineSong ? onlineSongs : deviceMusic;
+    const isOnlineSong = onlineSongs.some(
+      song => song?.audioUrl === playing.uri
+    );
+
+    const currentList = queueHasCurrentSong
+      ? activeQueue
+      : (isOnlineSong ? onlineSongs : deviceMusic);
 
     if (!currentList.length) return;
 
-    const currentIndex = currentList.findIndex(song =>
-      isOnlineSong
-        ? song?.audioUrl === playing?.uri
-        : song?.uri === playing?.uri
+    const currentIndex = currentList.findIndex(item =>
+      queueHasCurrentSong
+        ? item?.uri === playing.uri
+        : (isOnlineSong
+            ? item?.audioUrl === playing.uri
+            : item?.uri === playing.uri)
     );
 
     if (currentIndex < 0) return;
@@ -2284,21 +2398,27 @@ function formatTime(ms) {
         .map((_, index) => index)
         .filter(index => index !== currentIndex);
 
-      nextIndex =
-        availableIndexes[
-          Math.floor(Math.random() * availableIndexes.length)
-        ];
+      nextIndex = availableIndexes[
+        Math.floor(Math.random() * availableIndexes.length)
+      ];
     } else if (currentIndex < currentList.length - 1) {
       nextIndex = currentIndex + 1;
     } else if (repeatMode === 'all') {
       nextIndex = 0;
     } else {
+      setIsPlaying(false);
       return;
     }
 
     const nextSong = currentList[nextIndex];
 
-    if (isOnlineSong) {
+    if (queueHasCurrentSong) {
+      await startSong({
+        ...nextSong,
+        uri: nextSong.uri,
+        playbackQueue: activeQueue
+      }, true);
+    } else if (isOnlineSong) {
       await startSong({
         ...nextSong,
         uri: nextSong.audioUrl,
@@ -2314,7 +2434,6 @@ function formatTime(ms) {
 
   async function playPrevious(e) {
     if (e) e.stopPropagation();
-
     if (!playing?.uri) return;
 
     if (currentTime > 3000) {
@@ -2327,24 +2446,60 @@ function formatTime(ms) {
       return;
     }
 
-    const isOnlineSong = onlineSongs.some(
-      song => song?.audioUrl === playing?.uri
+    const activeQueue = activeQueueRef.current || [];
+    const queueHasCurrentSong = activeQueue.some(
+      item => item?.uri === playing.uri
     );
 
-    const currentList = isOnlineSong ? onlineSongs : deviceMusic;
+    const isOnlineSong = onlineSongs.some(
+      song => song?.audioUrl === playing.uri
+    );
+
+    const currentList = queueHasCurrentSong
+      ? activeQueue
+      : (isOnlineSong ? onlineSongs : deviceMusic);
 
     if (!currentList.length) return;
 
-    const currentIndex = currentList.findIndex(song =>
-      isOnlineSong
-        ? song?.audioUrl === playing?.uri
-        : song?.uri === playing?.uri
+    const currentIndex = currentList.findIndex(item =>
+      queueHasCurrentSong
+        ? item?.uri === playing.uri
+        : (isOnlineSong
+            ? item?.audioUrl === playing.uri
+            : item?.uri === playing.uri)
     );
 
     if (currentIndex > 0) {
       const previousSong = currentList[currentIndex - 1];
 
-      if (isOnlineSong) {
+      if (queueHasCurrentSong) {
+        await startSong({
+          ...previousSong,
+          uri: previousSong.uri,
+          playbackQueue: activeQueue
+        }, true);
+      } else if (isOnlineSong) {
+        await startSong({
+          ...previousSong,
+          uri: previousSong.audioUrl,
+          title: previousSong.title,
+          artist: previousSong.artist,
+          album: previousSong.genre || 'Music World',
+          artwork: previousSong.artworkUrl
+        }, true);
+      } else {
+        await startSong(previousSong, true);
+      }
+    } else if (repeatMode === 'all' && currentList.length > 1) {
+      const previousSong = currentList[currentList.length - 1];
+
+      if (queueHasCurrentSong) {
+        await startSong({
+          ...previousSong,
+          uri: previousSong.uri,
+          playbackQueue: activeQueue
+        }, true);
+      } else if (isOnlineSong) {
         await startSong({
           ...previousSong,
           uri: previousSong.audioUrl,
@@ -2358,6 +2513,7 @@ function formatTime(ms) {
       }
     }
   }
+
   function openPlaylistPicker(song) {
     if (!song) return;
 
@@ -5101,7 +5257,7 @@ function formatTime(ms) {
                   <p>Loading music...</p>
                 </div>
               ) : onlineSongs.length > 0 ? (
-                <div className="chartList">
+                <div className="chartList discoverMusicCarousel">
                   {onlineSongs.map(song => (
                     <div
                       className="row onlineSongRow"
@@ -5159,7 +5315,7 @@ function formatTime(ms) {
 
             <Section title="🔥 Trending Now">
               {onlineSongs.length > 0 ? (
-                <div className="chartList">
+                <div className="chartList discoverMusicCarousel">
                   {onlineSongs.slice(0, 5).map(song => (
                     <div
                       className="row onlineSongRow"
@@ -5207,39 +5363,44 @@ function formatTime(ms) {
             </Section>
 
             <Section title="🚀 Rising Artists">
-              {onlineSongs.length > 0 ? (
-                <div className="chartList">
-                  {onlineSongs
-                    .slice(0, 5)
-                    .map(song => (
-                      <div className="row" key={`rising-${song.id}`}>
-                        <div className="avatar">
-                          {song.artworkUrl ? (
-                            <img src={song.artworkUrl} alt="" />
-                          ) : (
-                            song.artist?.[0] || '♪'
-                          )}
-                        </div>
-
-                        <div className="meta">
-                          <b>{song.artist || 'Unknown Artist'}</b>
-                          <small>{song.title || 'Latest release'}</small>
-                        </div>
-                      </div>
-                    ))}
+              {risingArtists.length > 0 ? (
+                <div className="risingArtistsCarousel">
+                  {risingArtists.map(artist => (
+                    <button
+                      className="risingArtistCard"
+                      key={`rising-${artist.id}`}
+                      type="button"
+                      onClick={() => openPublicArtist(artist)}
+                      aria-label={`Open ${artist.name || 'artist'} profile`}
+                    >
+                      <span className="risingArtistPhoto">
+                        {artist.photo ? (
+                          <img
+                            src={artist.photo}
+                            alt={artist.name || 'Artist'}
+                          />
+                        ) : (
+                          artist.name?.[0]?.toUpperCase() || '♪'
+                        )}
+                      </span>
+                      <span className="risingArtistName">
+                        {artist.name || 'Artist'}
+                      </span>
+                    </button>
+                  ))}
                 </div>
               ) : (
                 <div className="empty">
                   <div>🚀</div>
                   <h2>Artists are getting ready</h2>
-                  <p>New artists will appear here after publishing music.</p>
+                  <p>Artists with published music will appear here.</p>
                 </div>
               )}
             </Section>
 
             <Section title="🆕 Fresh Releases">
               {onlineSongs.length > 0 ? (
-                <div className="cards">
+                <div className="cards discoverFreshCarousel">
                   {onlineSongs.slice(0, 6).map(song => (
                     <Track
                       key={`fresh-${song.id}`}
@@ -6385,7 +6546,32 @@ function formatTime(ms) {
                                         track.artwork ||
                                         track.artworkUrl ||
                                         release.artwork ||
-                                        ''
+                                        '',
+                                      playbackQueue: tracks.map((releaseTrack, index) => ({
+                                        ...releaseTrack,
+                                        uri:
+                                          releaseTrack.audioUrl ||
+                                          releaseTrack.uri ||
+                                          releaseTrack.audio_url ||
+                                          '',
+                                        title:
+                                          releaseTrack.title ||
+                                          `Track ${index + 1}`,
+                                        artist:
+                                          releaseTrack.artist ||
+                                          release.artist ||
+                                          publicArtist.name ||
+                                          publicArtist.artistName ||
+                                          'Unknown Artist',
+                                        album:
+                                          release.title ||
+                                          'Music World',
+                                        artwork:
+                                          releaseTrack.artwork ||
+                                          releaseTrack.artworkUrl ||
+                                          release.artwork ||
+                                          ''
+                                      })).filter(releaseTrack => releaseTrack.uri)
                                     });
                                   }}
                                 >
