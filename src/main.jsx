@@ -1292,7 +1292,7 @@ async function openPublicArtist(artist) {
       0,
     streams: artist.streams || 0,
     verified: artist.verified === true,
-    releases: artist.releases || []
+    releases: []
   };
 
   setPublicArtist(publicArtistData);
@@ -1321,6 +1321,7 @@ async function openPublicArtist(artist) {
       .from('songs')
       .select('*')
       .eq('artist_id', artistId)
+      .eq('is_published', true)
       .order('created_at', { ascending: false });
 
     if (error) {
