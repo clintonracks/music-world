@@ -4133,7 +4133,11 @@ function formatTime(ms) {
               cachedTracks.push({
                 ...selected,
                 cachePath: cached.path,
-                cacheName: cached.name
+                cacheName: cached.name,
+                releaseTrackTitle: selected.releaseTrackTitle || selected.title || selected.name || '',
+                trackNumber: cachedTracks.length + 1,
+                primaryArtist: selected.primaryArtist || artistReleaseArtist || '',
+                featuredArtists: selected.featuredArtists || ''
               });
             }
 
@@ -4158,6 +4162,134 @@ function formatTime(ms) {
         </button>
       </div>
 
+      {artistReleaseAudioTracks.length > 0 && (
+        <section className="artistReleaseTrackDetails">
+          <div className="artistReleaseStep">
+            <span>♫</span>
+            <div>
+              <b>Track Details</b>
+              <small>Edit each song before publishing your release.</small>
+            </div>
+          </div>
+
+          {artistReleaseAudioTracks.map((track, index) => (
+            <div className="artistReleaseTrackCard" key={track.cachePath || track.cacheName || index}>
+              <div className="artistReleaseTrackHeading">
+                <b>Track {index + 1}</b>
+                <div className="artistReleaseTrackActions">
+                  <button
+                    type="button"
+                    className="artistSecondaryButton"
+                    disabled={index === 0}
+                    onClick={() => {
+                      setArtistReleaseAudioTracks(current => {
+                        const next = [...current];
+                        [next[index - 1], next[index]] = [next[index], next[index - 1]];
+                        return next;
+                      });
+                      setArtistReleaseAudio(artistReleaseAudioTracks[index - 1] || track);
+                    }}
+                  >
+                    ↑
+                  </button>
+                  <button
+                    type="button"
+                    className="artistSecondaryButton"
+                    disabled={index === artistReleaseAudioTracks.length - 1}
+                    onClick={() => {
+                      setArtistReleaseAudioTracks(current => {
+                        const next = [...current];
+                        [next[index], next[index + 1]] = [next[index + 1], next[index]];
+                        return next;
+                      });
+                      setArtistReleaseAudio(artistReleaseAudioTracks[index + 1] || track);
+                    }}
+                  >
+                    ↓
+                  </button>
+                  <button
+                    type="button"
+                    className="artistSecondaryButton"
+                    onClick={() => {
+                      const remaining = artistReleaseAudioTracks.filter((_, position) => position !== index);
+                      setArtistReleaseAudioTracks(remaining);
+                      setArtistReleaseAudio(remaining[0] || null);
+                    }}
+                  >
+                    Remove
+                  </button>
+                </div>
+              </div>
+
+              <small className="artistReleaseTrackFilename">
+                Audio file: {track.cacheName || track.name || track.title || 'Selected audio'}
+              </small>
+
+              <label>
+                Track number
+                <input
+                  type="number"
+                  min="1"
+                  step="1"
+                  value={track.trackNumber ?? index + 1}
+                  onChange={event => {
+                    const value = event.target.value;
+                    setArtistReleaseAudioTracks(current => current.map((item, position) =>
+                      position === index ? { ...item, trackNumber: value } : item
+                    ));
+                  }}
+                />
+              </label>
+
+              <label>
+                Song title
+                <input
+                  type="text"
+                  value={track.releaseTrackTitle ?? track.title ?? track.name ?? ''}
+                  placeholder="Enter song title"
+                  onChange={event => {
+                    const value = event.target.value;
+                    setArtistReleaseAudioTracks(current => current.map((item, position) =>
+                      position === index ? { ...item, releaseTrackTitle: value } : item
+                    ));
+                  }}
+                />
+              </label>
+
+              <label>
+                Primary artist(s)
+                <input
+                  type="text"
+                  value={track.primaryArtist ?? artistReleaseArtist}
+                  placeholder="Artist name"
+                  onChange={event => {
+                    const value = event.target.value;
+                    setArtistReleaseAudioTracks(current => current.map((item, position) =>
+                      position === index ? { ...item, primaryArtist: value } : item
+                    ));
+                  }}
+                />
+              </label>
+
+              <label>
+                Featured artist(s)
+                <input
+                  type="text"
+                  value={track.featuredArtists ?? ''}
+                  placeholder="Optional — separate names with commas"
+                  onChange={event => {
+                    const value = event.target.value;
+                    setArtistReleaseAudioTracks(current => current.map((item, position) =>
+                      position === index ? { ...item, featuredArtists: value } : item
+                    ));
+                  }}
+                />
+              </label>
+            </div>
+          ))}
+        </section>
+      )}
+
       {artistReleaseStep === 2 && (
         <div className="artistReleaseReview">
           <div className="artistReleaseStep">
@@ -4179,7 +4311,15 @@ function formatTime(ms) {
               {(artistReleaseAudioTracks.length > 0
                 ? artistReleaseAudioTracks
                 : artistReleaseAudio ? [artistReleaseAudio] : [])
-                .map((track, index) => `${index + 1}. ${track.title || track.name || 'Selected audio'}`)
+                .map((track, index) => {
+                  const number = track.trackNumber ?? index + 1;
+                  const title = track.releaseTrackTitle?.trim() ||
+                    track.title?.trim() || track.name || 'Untitled track';
+                  const primary = track.primaryArtist?.trim() || artistReleaseArtist;
+                  const featured = track.featuredArtists?.trim();
+                  const credits = featured ? `${primary} ft. ${featured}` : primary;
+                  return `${number}. ${title} — ${credits}`;
+                })
                 .join(' • ') || 'No audio selected'}
             </span>
           </div>
@@ -4276,6 +4416,35 @@ function formatTime(ms) {
               throw new Error('One or more selected tracks are not ready for upload. Select them again.');
             }
 
+            const trackNumbers = tracksToPublish.map((track, index) =>
+              Number(track.trackNumber ?? index + 1)
+            );
+
+            if (trackNumbers.some(number =>
+              !Number.isInteger(number) || number < 1
+            )) {
+              throw new Error('Every track number must be a positive whole number.');
+            }
+
+            if (new Set(trackNumbers).size !== trackNumbers.length) {
+              throw new Error('Track numbers must be unique within this release.');
+            }
+
+            if (tracksToPublish.some(track =>
+              !(track.releaseTrackTitle?.trim() ||
+                track.title?.trim() ||
+                track.name?.trim() ||
+                (tracksToPublish.length === 1 ? artistReleaseTitle.trim() : ''))
+            )) {
+              throw new Error('Please enter a title for every track.');
+            }
+
+            if (tracksToPublish.some(track =>
+              !(track.primaryArtist?.trim() || artistReleaseArtist.trim())
+            )) {
+              throw new Error('Please enter a primary artist for every track.');
+            }
+
             if (!artistReleaseArtwork.cachePath) {
               throw new Error('The selected artwork is not ready for upload.');
             }
@@ -4315,12 +4484,24 @@ function formatTime(ms) {
                 track.mimeType || 'audio/mpeg'
               );
 
+              const trackTitle = (
+                track.releaseTrackTitle?.trim() ||
+                track.title?.trim() ||
+                track.name?.trim() ||
+                (tracksToPublish.length === 1
+                  ? artistReleaseTitle.trim()
+                  : `${artistReleaseTitle.trim()} - Track ${index + 1}`)
+              );
+
+              const primaryArtist =
+                track.primaryArtist?.trim() || artistReleaseArtist.trim();
+              const featuredArtists = track.featuredArtists?.trim();
+
               songRows.push({
-                title: track.title?.trim() ||
-                  (tracksToPublish.length === 1
-                    ? artistReleaseTitle.trim()
-                    : `${artistReleaseTitle.trim()} - Track ${index + 1}`),
-                artist: artistReleaseArtist.trim(),
+                title: trackTitle,
+                artist: featuredArtists
+                  ? `${primaryArtist} ft. ${featuredArtists}`
+                  : primaryArtist,
                 genre: artistReleaseGenre,
                 audio_url: audioPath,
                 artwork_url: artworkPath,
@@ -4383,7 +4564,7 @@ function formatTime(ms) {
             const releaseTrackRows = songs.map((song, index) => ({
               release_id: release.id,
               song_id: song.id,
-              track_number: index + 1
+              track_number: trackNumbers[index]
             }));
 
             const { error: linkError } =

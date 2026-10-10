@@ -5250,3 +5250,123 @@ section {
     flex: 1 1 auto;
   }
 }
+
+/* Artist Release Track Details */
+.artistReleaseTrackDetails {
+  margin-top: 18px;
+  padding: 18px;
+  border: 1px solid #343434;
+  border-radius: 20px;
+  background: linear-gradient(145deg, #1b1b1b, #121212);
+}
+
+.artistReleaseTrackCard {
+  margin-top: 16px;
+  padding: 16px;
+  border: 1px solid #343434;
+  border-radius: 16px;
+  background: #151515;
+}
+
+.artistReleaseTrackHeading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.artistReleaseTrackHeading > b {
+  font-size: 16px;
+  color: #fff;
+}
+
+.artistReleaseTrackActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.artistReleaseTrackActions button {
+  min-height: 36px;
+  padding: 7px 11px;
+  border: 1px solid #424242;
+  border-radius: 10px;
+  background: #222;
+  color: #fff;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.artistReleaseTrackActions button:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.artistReleaseTrackActions button:last-child {
+  border-color: #7d282b;
+  color: #ff777b;
+}
+
+.artistReleaseTrackFilename {
+  display: block;
+  margin-bottom: 16px;
+  color: #999;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.artistReleaseTrackCard label {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+  color: #ddd;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.artistReleaseTrackCard label:last-child {
+  margin-bottom: 0;
+}
+
+.artistReleaseTrackCard input {
+  width: 100%;
+  min-height: 46px;
+  box-sizing: border-box;
+  padding: 12px;
+  border: 1px solid #3a3a3a;
+  border-radius: 12px;
+  background: #101010;
+  color: #fff;
+  font: inherit;
+}
+
+.artistReleaseTrackCard input:focus {
+  border-color: #e31b23;
+  outline: none;
+}
+
+@media (max-width: 600px) {
+  .artistReleaseTrackDetails {
+    padding: 12px;
+  }
+
+  .artistReleaseTrackCard {
+    padding: 12px;
+  }
+
+  .artistReleaseTrackHeading {
+    align-items: flex-start;
+  }
+
+  .artistReleaseTrackActions {
+    width: 100%;
+  }
+
+  .artistReleaseTrackActions button {
+    flex: 1;
+  }
+}
