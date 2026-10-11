@@ -181,6 +181,7 @@ async function createMusicWorldShareImage({
 
 async function shareMusicWorldItem({
   kind,
+  itemId,
   title,
   artist,
   imageUrl
@@ -210,9 +211,13 @@ async function shareMusicWorldItem({
     ? `${title || 'Song'} — ${artist || 'Music World'}`
     : `${title || 'Artist'} on Music World`;
 
+  const shareLink = itemId
+    ? `musicworld://${kind}/${encodeURIComponent(itemId)}`
+    : '';
+
   const shareText = kind === 'song'
-    ? `${title || 'Untitled Song'} by ${artist || 'a Music World artist'}\nNOW ON MUSIC WORLD`
-    : `${title || 'Artist'} on Music World\nNOW ON MUSIC WORLD`;
+    ? `${title || 'Untitled Song'} by ${artist || 'a Music World artist'}\nNOW ON MUSIC WORLD${shareLink ? `\nOpen in Music World: ${shareLink}` : ''}`
+    : `${title || 'Artist'} on Music World\nNOW ON MUSIC WORLD${shareLink ? `\nOpen in Music World: ${shareLink}` : ''}`;
 
   await Share.share({
     title: shareTitle,
@@ -368,29 +373,151 @@ function App() {
   const [artistAuthName, setArtistAuthName] = useState('');
 
   useEffect(() => {
-    const handleAuthUrl = ({ url }) => {
-      if (!url || !url.startsWith('musicworld://auth/callback')) {
+    let listenerHandle = null;
+    let disposed = false;
+
+    const handleAppUrl = async ({ url } = {}) => {
+      if (!url) return;
+
+      let link;
+      try {
+        link = new URL(url);
+      } catch {
         return;
       }
 
-      const hash = url.split('#')[1] || '';
-      const params = new URLSearchParams(hash);
+      if (link.protocol !== 'musicworld:') return;
 
-      const accessToken = params.get('access_token');
-      const refreshToken = params.get('refresh_token');
+      if (link.hostname === 'auth' && link.pathname === '/callback') {
+        const params = new URLSearchParams(link.hash.slice(1));
+        const accessToken = params.get('access_token');
+        const refreshToken = params.get('refresh_token');
 
-      if (accessToken && refreshToken) {
-        supabase.auth.setSession({
-          access_token: accessToken,
-          refresh_token: refreshToken
-        });
+        if (accessToken && refreshToken) {
+          try {
+            await supabase.auth.setSession({
+              access_token: accessToken,
+              refresh_token: refreshToken
+            });
+          } catch (error) {
+            console.error('Email confirmation link error:', error);
+          }
+        }
+        return;
+      }
+
+      const itemId = decodeURIComponent(
+        link.pathname.replace(/^\/+/, '')
+      );
+
+      if (!itemId) return;
+
+      try {
+        if (link.hostname === 'artist') {
+          await openPublicArtist({ id: itemId });
+          return;
+        }
+
+        if (link.hostname === 'song') {
+          const { data: song, error } = await supabase
+            .from('songs')
+            .select('*')
+            .eq('id', itemId)
+            .eq('is_published', true)
+            .maybeSingle();
+
+          if (error) throw error;
+          if (!song) throw new Error('This published song could not be found.');
+          if (!song.audio_url) throw new Error('This song has no audio file.');
+
+          const { data: audioData, error: audioError } =
+            await supabase.storage
+              .from('music')
+              .createSignedUrl(song.audio_url, 3600);
+
+          if (audioError) throw audioError;
+          if (!audioData?.signedUrl) {
+            throw new Error('Unable to prepare the song for playback.');
+          }
+
+          let artworkUrl = '';
+          if (song.artwork_url) {
+            const { data: artworkData, error: artworkError } =
+              await supabase.storage
+                .from('music')
+                .createSignedUrl(song.artwork_url, 3600);
+
+            if (artworkError) {
+              console.error('Shared song artwork error:', artworkError);
+            } else {
+              artworkUrl = artworkData?.signedUrl || '';
+            }
+          }
+
+          const sharedSong = {
+            ...song,
+            songId: song.id,
+            title: song.title || 'Untitled Song',
+            artist: song.artist || 'Unknown Artist',
+            audioPath: song.audio_url,
+            uri: audioData.signedUrl,
+            audioUrl: audioData.signedUrl,
+            artwork: artworkUrl,
+            artworkUrl,
+            status: 'Published',
+            playbackQueue: [{
+              ...song,
+              songId: song.id,
+              title: song.title || 'Untitled Song',
+              artist: song.artist || 'Unknown Artist',
+              uri: audioData.signedUrl,
+              audioUrl: audioData.signedUrl,
+              artwork: artworkUrl,
+              artworkUrl
+            }]
+          };
+
+          await startSong(sharedSong);
+        }
+      } catch (error) {
+        console.error('Music World deep link error:', error);
+        alert(
+          'Unable to open this Music World link.\n\n' +
+          (error?.message || String(error))
+        );
       }
     };
 
-    CapacitorApp.addListener('appUrlOpen', handleAuthUrl);
+    const setupListener = async () => {
+      try {
+        const handle = await CapacitorApp.addListener(
+          'appUrlOpen',
+          handleAppUrl
+        );
+
+        if (disposed) {
+          await handle.remove();
+          return;
+        }
+
+        listenerHandle = handle;
+
+        const launchUrl = await CapacitorApp.getLaunchUrl();
+        if (!disposed && launchUrl?.url) {
+          await handleAppUrl(launchUrl);
+        }
+      } catch (error) {
+        console.error('Music World deep-link setup error:', error);
+      }
+    };
+
+    setupListener();
 
     return () => {
-      CapacitorApp.removeAllListeners('appUrlOpen');
+      disposed = true;
+      if (listenerHandle) {
+        listenerHandle.remove();
+      }
     };
   }, []);
 
@@ -6793,6 +6920,7 @@ function formatTime(ms) {
                     try {
                       await shareMusicWorldItem({
                         kind: 'artist',
+                        itemId: publicArtist.id,
                         title: publicArtist.name || publicArtist.artistName || 'Artist',
                         artist: publicArtist.name || publicArtist.artistName || 'Artist',
                         imageUrl: publicArtist.photo?.uri || publicArtist.artwork || ''
@@ -6966,6 +7094,7 @@ function formatTime(ms) {
                               try {
                                 await shareMusicWorldItem({
                                   kind: 'song',
+                                  itemId: song.id,
                                   title: song.title || 'Untitled Song',
                                   artist:
                                     song.artist ||
