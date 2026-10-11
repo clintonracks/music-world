@@ -7,6 +7,7 @@ import android.net.Uri;
 import android.content.Intent;
 import androidx.activity.result.ActivityResult;
 import android.provider.MediaStore;
+import android.provider.OpenableColumns;
 import androidx.media3.common.MediaItem;
 import androidx.media3.common.MediaMetadata;
 import androidx.media3.common.Player;
@@ -434,24 +435,57 @@ public class DeviceMusicPlugin extends Plugin {
         JSObject song = new JSObject();
         String fallback = uri.getLastPathSegment();
 
+        try (Cursor cursor = getContext().getContentResolver().query(
+                uri,
+                new String[] { OpenableColumns.DISPLAY_NAME },
+                null,
+                null,
+                null
+        )) {
+            if (cursor != null && cursor.moveToFirst()) {
+                String displayName = cursor.getString(0);
+                if (displayName != null && !displayName.trim().isEmpty()) {
+                    fallback = displayName.trim();
+                }
+            }
+        } catch (Exception ignored) {
+        }
+
+        if (fallback != null) {
+            int slash = fallback.lastIndexOf('/');
+            if (slash >= 0) fallback = fallback.substring(slash + 1);
+
+            int dot = fallback.lastIndexOf('.');
+            if (dot > 0) fallback = fallback.substring(0, dot);
+
+            fallback = fallback.replace('_', ' ').trim();
+        }
+
+        if (fallback == null || fallback.isEmpty()) {
+            fallback = "Untitled Track";
+        }
+
         try {
             android.media.MediaMetadataRetriever mmr =
                     new android.media.MediaMetadataRetriever();
-            mmr.setDataSource(getContext(), uri);
+            try {
+                mmr.setDataSource(getContext(), uri);
 
-            String title = mmr.extractMetadata(
-                    android.media.MediaMetadataRetriever.METADATA_KEY_TITLE);
-            String artist = mmr.extractMetadata(
-                    android.media.MediaMetadataRetriever.METADATA_KEY_ARTIST);
-            String album = mmr.extractMetadata(
-                    android.media.MediaMetadataRetriever.METADATA_KEY_ALBUM);
+                String title = mmr.extractMetadata(
+                        android.media.MediaMetadataRetriever.METADATA_KEY_TITLE);
+                String artist = mmr.extractMetadata(
+                        android.media.MediaMetadataRetriever.METADATA_KEY_ARTIST);
+                String album = mmr.extractMetadata(
+                        android.media.MediaMetadataRetriever.METADATA_KEY_ALBUM);
 
-            song.put("title", title != null && !title.isEmpty() ? title : fallback);
-            song.put("artist", artist != null ? artist : "");
-            song.put("album", album != null ? album : "");
-            song.put("uri", uri.toString());
-
-            mmr.release();
+                song.put("title", title != null && !title.trim().isEmpty()
+                        ? title.trim() : fallback);
+                song.put("artist", artist != null ? artist : "");
+                song.put("album", album != null ? album : "");
+                song.put("uri", uri.toString());
+            } finally {
+                mmr.release();
+            }
         } catch (Exception e) {
             song.put("title", fallback);
             song.put("artist", "");
@@ -606,11 +640,7 @@ public class DeviceMusicPlugin extends Plugin {
                     );
                 } catch (Exception ignored) {
                 }
-                JSObject song = new JSObject();
-                song.put("title", uri.getLastPathSegment());
-                song.put("artist", "");
-                song.put("album", "");
-                song.put("uri", uri.toString());
+                JSObject song = getAudioMetadata(uri);
                 songs.put(song);
             }
         }
