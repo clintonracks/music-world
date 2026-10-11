@@ -1397,8 +1397,37 @@ async function openPublicArtist(artist) {
       })
     );
 
+    let chartStats = [];
+
+    try {
+      const { data, error } = await supabase.rpc(
+        'get_public_song_chart_stats'
+      );
+
+      if (error) throw error;
+      chartStats = data || [];
+    } catch (chartStatsError) {
+      console.error(
+        'Unable to load public song stream counts:',
+        chartStatsError.message || String(chartStatsError)
+      );
+    }
+
+    const streamStatsBySongId = new Map(
+      chartStats.map(stats => [String(stats.song_id), stats])
+    );
+
+    const songsWithStats = hydratedSongs.map(song => {
+      const stats = streamStatsBySongId.get(String(song.id));
+
+      return {
+        ...song,
+        totalStreams: Number(stats?.total_streams || 0)
+      };
+    });
+
     const publishedSongMap = new Map(
-      hydratedSongs.map(song => [song.id, song])
+      songsWithStats.map(song => [song.id, song])
     );
 
     const linkedSongIds = new Set(
@@ -1481,7 +1510,7 @@ async function openPublicArtist(artist) {
         ? {
             ...current,
             releases: publicReleases,
-            songs: hydratedSongs
+            songs: songsWithStats
           }
         : current
     );
@@ -1649,7 +1678,40 @@ async function loadOnlineSongs() {
         })
       );
 
-      setOnlineSongs(songsWithUrls);
+      let chartStats = [];
+
+      try {
+        const { data, error } = await supabase.rpc(
+          'get_public_song_chart_stats'
+        );
+
+        if (error) {
+          throw error;
+        }
+
+        chartStats = data || [];
+      } catch (chartStatsError) {
+        console.error(
+          'Unable to load song stream counts:',
+          chartStatsError.message || String(chartStatsError)
+        );
+      }
+
+      const streamStatsBySongId = new Map(
+        chartStats.map(stats => [stats.song_id, stats])
+      );
+
+      const songsWithStats = songsWithUrls.map(song => {
+        const stats = streamStatsBySongId.get(song.id);
+
+        return {
+          ...song,
+          totalStreams: Number(stats?.total_streams || 0),
+          weeklyStreams: Number(stats?.weekly_streams || 0)
+        };
+      });
+
+      setOnlineSongs(songsWithStats);
 
       try {
         const { data: profiles, error: profilesError } = await supabase
@@ -1716,49 +1778,46 @@ async function loadOnlineSongs() {
         setRisingArtists([]);
       }
 
-      const featuredSong = songsWithUrls[0];
+      try {
+        const { data: spotlightArtistId, error: spotlightError } =
+          await supabase.rpc('get_weekly_spotlight_artist');
 
-      if (featuredSong?.artist_id) {
-        try {
-          const { data: profile } = await supabase
+        if (spotlightError) {
+          throw spotlightError;
+        }
+
+        if (spotlightArtistId) {
+          const { data: profile, error: profileError } = await supabase
             .from('artist_profiles')
             .select('id, name, genre, country, bio, photo_url')
-            .eq('id', featuredSong.artist_id)
+            .eq('id', spotlightArtistId)
             .maybeSingle();
+
+          if (profileError) {
+            throw profileError;
+          }
 
           let artistPhoto = null;
 
           if (profile?.photo_url) {
-            const { data: photoData } =
-              await supabase.storage
-                .from('music')
-                .createSignedUrl(profile.photo_url, 3600);
+            const { data: photoData } = await supabase.storage
+              .from('music')
+              .createSignedUrl(profile.photo_url, 3600);
 
             artistPhoto = photoData?.signedUrl || null;
           }
 
           setSpotlightArtist({
             ...profile,
-            id: profile?.id || featuredSong.artist_id,
-            name:
-              profile?.name ||
-              featuredSong.artist ||
-              'Artist',
+            id: spotlightArtistId,
+            name: profile?.name || 'Artist',
             photo: artistPhoto
           });
-        } catch (error) {
-          console.error(
-            'Unable to load Spotlight artist:',
-            error
-          );
-
-          setSpotlightArtist({
-            id: featuredSong.artist_id,
-            name: featuredSong.artist || 'Artist',
-            photo: null
-          });
+        } else {
+          setSpotlightArtist(null);
         }
-      } else {
+      } catch (error) {
+        console.error('Unable to load weekly Spotlight artist:', error);
         setSpotlightArtist(null);
       }
     } catch (error) {
@@ -5314,9 +5373,13 @@ function formatTime(ms) {
             </Section>
 
             <Section title="🔥 Trending Now">
-              {onlineSongs.length > 0 ? (
+              {onlineSongs.some(song => song.weeklyStreams > 0) ? (
                 <div className="chartList discoverMusicCarousel">
-                  {onlineSongs.slice(0, 5).map(song => (
+                  {onlineSongs
+                    .filter(song => song.weeklyStreams > 0)
+                    .sort((a, b) => b.weeklyStreams - a.weeklyStreams)
+                    .slice(0, 7)
+                    .map(song => (
                     <div
                       className="row onlineSongRow"
                       key={`trending-${song.id}`}
@@ -5348,7 +5411,9 @@ function formatTime(ms) {
 
                       <div className="meta">
                         <b>{song.title}</b>
-                        <small>{song.artist || 'Unknown Artist'}</small>
+                        <small>
+                          {song.artist || 'Unknown Artist'} · {song.weeklyStreams} streams this week
+                        </small>
                       </div>
                     </div>
                   ))}
@@ -5479,7 +5544,9 @@ function formatTime(ms) {
             <Section title="Music World Charts">
               {onlineSongs.length > 0 ? (
                 <div className="chartList">
-                  {onlineSongs.map((song, i) => (
+                  {[...onlineSongs]
+                  .sort((a, b) => b.totalStreams - a.totalStreams)
+                  .map((song, i) => (
                     <div
                       className="row onlineSongRow"
                       key={`chart-${song.id}`}
@@ -5513,7 +5580,9 @@ function formatTime(ms) {
 
                       <div className="meta">
                         <b>{song.title || 'Unknown Song'}</b>
-                        <small>{song.artist || 'Unknown Artist'}</small>
+                        <small>
+                          {song.artist || 'Unknown Artist'} · {song.totalStreams} total streams
+                        </small>
                       </div>
                     </div>
                   ))}
@@ -5525,6 +5594,117 @@ function formatTime(ms) {
                   <p>Charts will appear as real Music World songs are published and played.</p>
                 </div>
               )}
+            </Section>
+
+            <Section title="🎤 Top Artists">
+              {risingArtists.length > 0 ? (
+                <div className="chartList">
+                  {risingArtists
+                    .map(artist => ({
+                      ...artist,
+                      totalStreams: onlineSongs
+                        .filter(song => String(song.artist_id) === String(artist.id))
+                        .reduce((total, song) => total + song.totalStreams, 0)
+                    }))
+                    .sort((a, b) => b.totalStreams - a.totalStreams)
+                    .slice(0, 10)
+                    .map((artist, i) => (
+                      <div
+                        className="row onlineSongRow"
+                        key={`artist-chart-${artist.id}`}
+                        onClick={() => openPublicArtist(artist)}
+                        role="button"
+                        tabIndex="0"
+                      >
+                        <strong>#{i + 1}</strong>
+                        <div className="avatar">
+                          {artist.photo ? (
+                            <img src={artist.photo} alt="" />
+                          ) : (
+                            artist.name?.[0] || '🎤'
+                          )}
+                        </div>
+                        <div className="meta">
+                          <b>{artist.name || 'Unknown Artist'}</b>
+                          <small>{artist.totalStreams} total streams</small>
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              ) : (
+                <div className="empty">
+                  <div>🎤</div>
+                  <h2>No artist chart data yet</h2>
+                  <p>Artists will appear as their published songs receive streams.</p>
+                </div>
+              )}
+            </Section>
+
+            <Section title="🌍 Continent Charts">
+              {(() => {
+                const countryToContinent = {
+                  zambia: 'Africa', nigeria: 'Africa', 'south africa': 'Africa',
+                  ghana: 'Africa', kenya: 'Africa', uganda: 'Africa',
+                  tanzania: 'Africa', malawi: 'Africa', zimbabwe: 'Africa',
+                  botswana: 'Africa', namibia: 'Africa', mozambique: 'Africa',
+                  rwanda: 'Africa', ethiopia: 'Africa', egypt: 'Africa',
+                  senegal: 'Africa', cameroon: 'Africa', drc: 'Africa',
+                  'democratic republic of the congo': 'Africa',
+                  'united states': 'North America', usa: 'North America',
+                  canada: 'North America', mexico: 'North America',
+                  'united kingdom': 'Europe', uk: 'Europe', france: 'Europe',
+                  germany: 'Europe', italy: 'Europe', spain: 'Europe',
+                  portugal: 'Europe', netherlands: 'Europe', sweden: 'Europe',
+                  norway: 'Europe', switzerland: 'Europe', poland: 'Europe',
+                  china: 'Asia', india: 'Asia', japan: 'Asia',
+                  'south korea': 'Asia', indonesia: 'Asia', philippines: 'Asia',
+                  pakistan: 'Asia', bangladesh: 'Asia', malaysia: 'Asia',
+                  singapore: 'Asia', thailand: 'Asia', turkey: 'Asia',
+                  australia: 'Oceania', 'new zealand': 'Oceania',
+                  fiji: 'Oceania', brazil: 'South America', argentina: 'South America',
+                  colombia: 'South America', chile: 'South America',
+                  peru: 'South America', venezuela: 'South America'
+                };
+
+                const totals = new Map();
+
+                risingArtists.forEach(artist => {
+                  const country = String(artist.country || '').trim().toLowerCase();
+                  const continent = countryToContinent[country];
+                  if (!continent) return;
+
+                  const streams = onlineSongs
+                    .filter(song => String(song.artist_id) === String(artist.id))
+                    .reduce((total, song) => total + song.totalStreams, 0);
+
+                  const current = totals.get(continent) || 0;
+                  totals.set(continent, current + streams);
+                });
+
+                const rows = [...totals.entries()]
+                  .map(([continent, totalStreams]) => ({ continent, totalStreams }))
+                  .sort((a, b) => b.totalStreams - a.totalStreams);
+
+                return rows.length ? (
+                  <div className="chartList">
+                    {rows.map((item, i) => (
+                      <div className="row" key={item.continent}>
+                        <strong>#{i + 1}</strong>
+                        <div className="meta">
+                          <b>{item.continent}</b>
+                          <small>{item.totalStreams} total streams</small>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="empty">
+                    <div>🌍</div>
+                    <h2>No continent chart data yet</h2>
+                    <p>Charts appear when artists have a recognized country and recorded streams.</p>
+                  </div>
+                );
+              })()}
             </Section>
           </>
         )}
@@ -6386,7 +6566,13 @@ function formatTime(ms) {
 
                   {publicArtist.songs && publicArtist.songs.length > 0 ? (
                     <div className="publicArtistSongList">
-                      {publicArtist.songs.slice(0, 5).map((song, index) => (
+                      {[...publicArtist.songs]
+                        .sort((a, b) =>
+                          Number(b.totalStreams || 0) -
+                          Number(a.totalStreams || 0)
+                        )
+                        .slice(0, 5)
+                        .map((song, index) => (
                         <button
                           className="publicArtistSong"
                           key={song.id || index}
@@ -6432,7 +6618,9 @@ function formatTime(ms) {
 
                           <span className="publicArtistSongInfo">
                             <strong>{song.title || 'Untitled Song'}</strong>
-                            <small>Song</small>
+                            <small>
+                              {Number(song.totalStreams || 0)} total streams
+                            </small>
                           </span>
 
                           <span className="publicArtistSongPlayIcon">▶</span>
