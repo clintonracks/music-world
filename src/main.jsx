@@ -1,10 +1,226 @@
 import { supabase } from './supabase';
 import { App as CapacitorApp } from '@capacitor/app';
-import { Filesystem } from '@capacitor/filesystem';
+import { Directory, Filesystem } from '@capacitor/filesystem';
+import { Share } from '@capacitor/share';
+import musicWorldLogo from '../music-world-icon.png';
 import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { createRoot } from 'react-dom/client';
 import { registerPlugin } from '@capacitor/core';
 import './styles.css';
+
+
+async function loadShareArtwork(url) {
+  if (!url) return null;
+
+  return new Promise((resolve) => {
+    const image = new Image();
+    image.crossOrigin = 'anonymous';
+    image.onload = () => resolve(image);
+    image.onerror = () => resolve(null);
+    image.src = url;
+  });
+}
+
+function drawShareImageCover(ctx, image, x, y, width, height) {
+  if (!image) return;
+
+  const sourceRatio = image.width / image.height;
+  const targetRatio = width / height;
+  let sx = 0;
+  let sy = 0;
+  let sw = image.width;
+  let sh = image.height;
+
+  if (sourceRatio > targetRatio) {
+    sw = image.height * targetRatio;
+    sx = (image.width - sw) / 2;
+  } else {
+    sh = image.width / targetRatio;
+    sy = (image.height - sh) / 2;
+  }
+
+  ctx.drawImage(image, sx, sy, sw, sh, x, y, width, height);
+}
+
+async function createMusicWorldShareImage({
+  kind,
+  title,
+  artist,
+  imageUrl
+}) {
+  const canvas = document.createElement('canvas');
+  canvas.width = 1080;
+  canvas.height = 1350;
+
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new Error('Unable to create the share artwork.');
+
+  const background = ctx.createLinearGradient(0, 0, 1080, 1350);
+  background.addColorStop(0, '#242424');
+  background.addColorStop(0.55, '#111111');
+  background.addColorStop(1, '#080808');
+  ctx.fillStyle = background;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  ctx.fillStyle = '#e50914';
+  ctx.fillRect(0, 0, canvas.width, 18);
+  ctx.fillRect(72, 110, 110, 10);
+
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold 40px Arial, sans-serif';
+  ctx.fillText('MUSIC WORLD', 72, 82);
+
+  ctx.fillStyle = '#bbbbbb';
+  ctx.font = 'bold 25px Arial, sans-serif';
+  ctx.fillText(
+    kind === 'song' ? 'MUSIC SPOTLIGHT' : 'ARTIST SPOTLIGHT',
+    72,
+    168
+  );
+
+  const artwork = await loadShareArtwork(imageUrl);
+
+  if (kind === 'artist') {
+    const size = 490;
+    const x = (canvas.width - size) / 2;
+    const y = 230;
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(
+      canvas.width / 2,
+      y + size / 2,
+      size / 2,
+      0,
+      Math.PI * 2
+    );
+    ctx.clip();
+
+    if (artwork) {
+      drawShareImageCover(ctx, artwork, x, y, size, size);
+    } else {
+      ctx.fillStyle = '#303030';
+      ctx.fillRect(x, y, size, size);
+      ctx.fillStyle = '#e50914';
+      ctx.font = 'bold 180px Arial, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('♫', canvas.width / 2, y + 300);
+      ctx.textAlign = 'left';
+    }
+    ctx.restore();
+  } else {
+    const size = 570;
+    const x = (canvas.width - size) / 2;
+    const y = 220;
+
+    ctx.save();
+    ctx.shadowColor = 'rgba(0,0,0,0.45)';
+    ctx.shadowBlur = 35;
+    ctx.fillStyle = '#292929';
+    ctx.fillRect(x, y, size, size);
+    ctx.restore();
+
+    if (artwork) {
+      drawShareImageCover(ctx, artwork, x, y, size, size);
+    } else {
+      ctx.fillStyle = '#e50914';
+      ctx.font = 'bold 180px Arial, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('♫', canvas.width / 2, y + 390);
+      ctx.textAlign = 'left';
+    }
+  }
+
+  const safeTitle = String(title || (kind === 'song' ? 'Untitled Song' : 'Artist'));
+  const safeArtist = String(artist || 'Music World Artist');
+
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold 54px Arial, sans-serif';
+  ctx.fillText(
+    safeTitle.length > 28 ? `${safeTitle.slice(0, 25)}...` : safeTitle,
+    canvas.width / 2,
+    850
+  );
+
+  if (kind === 'song') {
+    ctx.fillStyle = '#cccccc';
+    ctx.font = '34px Arial, sans-serif';
+    ctx.fillText(
+      safeArtist.length > 35 ? `${safeArtist.slice(0, 32)}...` : safeArtist,
+      canvas.width / 2,
+      910
+    );
+  }
+
+  const logo = await loadShareArtwork(musicWorldLogo);
+  if (logo) {
+    ctx.drawImage(logo, 72, 1130, 105, 105);
+  } else {
+    ctx.fillStyle = '#e50914';
+    ctx.fillRect(72, 1130, 105, 105);
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 48px Arial, sans-serif';
+    ctx.fillText('MW', 124, 1195);
+  }
+
+  ctx.textAlign = 'left';
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold 34px Arial, sans-serif';
+  ctx.fillText('NOW ON MUSIC WORLD', 205, 1180);
+
+  ctx.fillStyle = '#999999';
+  ctx.font = '25px Arial, sans-serif';
+  ctx.fillText('Discover music. Discover artists.', 205, 1225);
+
+  ctx.fillStyle = '#e50914';
+  ctx.fillRect(72, 1290, 936, 5);
+
+  return canvas.toDataURL('image/png').split(',')[1];
+}
+
+async function shareMusicWorldItem({
+  kind,
+  title,
+  artist,
+  imageUrl
+}) {
+  const base64 = await createMusicWorldShareImage({
+    kind,
+    title,
+    artist,
+    imageUrl
+  });
+
+  const path = `shares/${kind}-${Date.now()}.png`;
+
+  await Filesystem.writeFile({
+    path,
+    data: base64,
+    directory: Directory.Cache,
+    recursive: true
+  });
+
+  const fileResult = await Filesystem.getUri({
+    path,
+    directory: Directory.Cache
+  });
+
+  const shareTitle = kind === 'song'
+    ? `${title || 'Song'} — ${artist || 'Music World'}`
+    : `${title || 'Artist'} on Music World`;
+
+  const shareText = kind === 'song'
+    ? `${title || 'Untitled Song'} by ${artist || 'a Music World artist'}\nNOW ON MUSIC WORLD`
+    : `${title || 'Artist'} on Music World\nNOW ON MUSIC WORLD`;
+
+  await Share.share({
+    title: shareTitle,
+    text: shareText,
+    files: [fileResult.uri],
+    dialogTitle: 'Share on Music World'
+  });
+}
 
 async function testSupabaseConnection() {
   const { error } = await supabase.auth.getSession();
@@ -6468,23 +6684,47 @@ function formatTime(ms) {
                 </p>
               </div>
 
-              <button
-                className="primary publicArtistFollow"
-                type="button"
-                onClick={async () => {
-                  if (!signedIn) {
-                    setPendingFollowArtist(publicArtist);
-                    setListenerAuthMode('create');
-                    setListenerAuthError('');
-                    setShowSignIn(true);
-                    return;
-                  }
+              <div className="publicArtistActions">
+                <button
+                  className="primary publicArtistFollow"
+                  type="button"
+                  onClick={async () => {
+                    if (!signedIn) {
+                      setPendingFollowArtist(publicArtist);
+                      setListenerAuthMode('create');
+                      setListenerAuthError('');
+                      setShowSignIn(true);
+                      return;
+                    }
 
-                  await toggleArtistFollow(publicArtist.id);
-                }}
-              >
-                {artistFollowing ? 'Following' : 'Follow'}
-              </button>
+                    await toggleArtistFollow(publicArtist.id);
+                  }}
+                >
+                  {artistFollowing ? 'Following' : 'Follow'}
+                </button>
+
+                <button
+                  className="publicArtistShare"
+                  type="button"
+                  onClick={async () => {
+                    try {
+                      await shareMusicWorldItem({
+                        kind: 'artist',
+                        title: publicArtist.name || publicArtist.artistName || 'Artist',
+                        artist: publicArtist.name || publicArtist.artistName || 'Artist',
+                        imageUrl: publicArtist.photo?.uri || publicArtist.artwork || ''
+                      });
+                    } catch (error) {
+                      if (error?.message) {
+                        console.error('Artist sharing failed:', error.message);
+                        alert('Unable to share this artist right now. Please try again.');
+                      }
+                    }
+                  }}
+                >
+                  ↗ Share
+                </button>
+              </div>
             </div>
 
             <div className="publicArtistStats">
@@ -6573,10 +6813,11 @@ function formatTime(ms) {
                         )
                         .slice(0, 5)
                         .map((song, index) => (
-                        <button
+                        <div
                           className="publicArtistSong"
                           key={song.id || index}
-                          type="button"
+                          role="button"
+                          tabIndex={0}
                           onClick={() => {
                             const audioUrl =
                               song.audioUrl || song.uri || song.audio_url;
@@ -6599,6 +6840,13 @@ function formatTime(ms) {
                               artwork:
                                 song.artwork || song.artworkUrl || ''
                             });
+                          }}
+                          onKeyDown={(event) => {
+                            if (event.target !== event.currentTarget) return;
+                            if (event.key === 'Enter' || event.key === ' ') {
+                              event.preventDefault();
+                              event.currentTarget.click();
+                            }
                           }}
                         >
                           <span className="publicArtistSongNumber">
@@ -6624,7 +6872,36 @@ function formatTime(ms) {
                           </span>
 
                           <span className="publicArtistSongPlayIcon">▶</span>
-                        </button>
+
+                          <button
+                            className="publicArtistSongShare"
+                            type="button"
+                            aria-label={`Share ${song.title || 'song'}`}
+                            onClick={async (event) => {
+                              event.stopPropagation();
+
+                              try {
+                                await shareMusicWorldItem({
+                                  kind: 'song',
+                                  title: song.title || 'Untitled Song',
+                                  artist:
+                                    song.artist ||
+                                    publicArtist.name ||
+                                    publicArtist.artistName ||
+                                    'Unknown Artist',
+                                  imageUrl: song.artwork || song.artworkUrl || ''
+                                });
+                              } catch (error) {
+                                if (error?.message) {
+                                  console.error('Song sharing failed:', error.message);
+                                  alert('Unable to share this song right now. Please try again.');
+                                }
+                              }
+                            }}
+                          >
+                            ↗
+                          </button>
+                        </div>
                       ))}
                     </div>
                   ) : (
