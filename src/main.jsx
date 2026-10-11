@@ -3230,49 +3230,132 @@ function formatTime(ms) {
                         return;
                       }
 
-                      const { data, error } = await supabase.auth.signUp({
-                        email,
-                        password,
-                        options: {
-                          emailRedirectTo: 'musicworld://auth/callback',
-                          data: {
-                            artistName: name,
-                            accountType: 'artist'
-                          }
-                        }
-                      });
+                      let user = null;
 
-                      if (error) {
-                        alert(error.message);
+                      const { data: sessionResult, error: sessionError } =
+                        await supabase.auth.getSession();
+
+                      if (sessionError) {
+                        alert(sessionError.message);
                         return;
                       }
 
-                      const user = data?.user;
+                      const currentUser = sessionResult?.session?.user;
+
+                      if (
+                        currentUser &&
+                        currentUser.email?.toLowerCase() === email
+                      ) {
+                        const { data, error } =
+                          await supabase.auth.updateUser({
+                            data: {
+                              artistName: name,
+                              accountType: 'artist'
+                            }
+                          });
+
+                        if (error) {
+                          alert(error.message);
+                          return;
+                        }
+
+                        user = data?.user;
+                      } else {
+                        const { data: loginData, error: loginError } =
+                          await supabase.auth.signInWithPassword({
+                            email,
+                            password
+                          });
+
+                        if (!loginError && loginData?.user) {
+                          const { data, error } =
+                            await supabase.auth.updateUser({
+                              data: {
+                                artistName: name,
+                                accountType: 'artist'
+                              }
+                            });
+
+                          if (error) {
+                            alert(error.message);
+                            return;
+                          }
+
+                          user = data?.user;
+                        } else {
+                          const { data, error } =
+                            await supabase.auth.signUp({
+                              email,
+                              password,
+                              options: {
+                                emailRedirectTo: 'musicworld://auth/callback',
+                                data: {
+                                  artistName: name,
+                                  accountType: 'artist'
+                                }
+                              }
+                            });
+
+                          if (error) {
+                            alert(error.message);
+                            return;
+                          }
+
+                          if (!data?.user) {
+                            alert('Account creation could not be completed.');
+                            return;
+                          }
+
+                          if (!data.session) {
+                            if (
+                              Array.isArray(data.user.identities) &&
+                              data.user.identities.length === 0
+                            ) {
+                              alert(
+                                'An account with this email may already exist. Choose Artist Sign In and use the correct password. If it is a listener account, signing in will upgrade it to an artist account.'
+                              );
+                            } else {
+                              alert(
+                                'Artist account created. Please confirm your email, then choose Artist Sign In to activate your account.'
+                              );
+                            }
+
+                            setArtistAuth('signin');
+                            setArtistAuthPassword('');
+                            return;
+                          }
+
+                          user = data.user;
+                        }
+                      }
 
                       if (!user) {
-                        alert('Account creation could not be completed.');
+                        alert('Artist account could not be activated. Please try signing in.');
                         return;
                       }
 
                       const account = {
                         id: user.id,
                         email: user.email || email,
-                        artistName: name,
-                        createdAt: user.created_at || new Date().toISOString(),
-                        verified: true
+                        artistName:
+                          user.user_metadata?.artistName || name,
+                        createdAt:
+                          user.created_at || new Date().toISOString(),
+                        verified: Boolean(user.email_confirmed_at)
                       };
 
                       setArtistAccount(account);
+                      localStorage.setItem(
+                        'musicWorldArtistAccount',
+                        JSON.stringify(account)
+                      );
+
                       setArtistAuthEmail('');
                       setArtistAuthPassword('');
                       setArtistAuthName('');
                       setArtistAuth(null);
 
-                      alert(
-                        data.session
-                          ? 'Artist account created successfully.'
-                          : 'Artist account created. Please check your email to confirm your account.'
-                      );
+                      alert('Artist account activated successfully.');
                       return;
                     }
 
