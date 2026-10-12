@@ -3086,7 +3086,7 @@ function formatTime(ms) {
       {!artistOpen && !publicArtistOpen && (
         <header>
           <div className="logo">
-            MUSIC<span>WORLD</span>
+            BASHDAT <span>PLAYS</span>
           </div>
 
         </header>
