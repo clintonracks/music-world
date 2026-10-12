@@ -68,7 +68,7 @@ async function createMusicWorldShareImage({
 
   ctx.fillStyle = '#ffffff';
   ctx.font = 'bold 40px Arial, sans-serif';
-  ctx.fillText('MUSIC WORLD', 72, 82);
+  ctx.fillText('BASHDAT PLAYS', 72, 82);
 
   ctx.fillStyle = '#bbbbbb';
   ctx.font = 'bold 25px Arial, sans-serif';
@@ -132,7 +132,7 @@ async function createMusicWorldShareImage({
   }
 
   const safeTitle = String(title || (kind === 'song' ? 'Untitled Song' : 'Artist'));
-  const safeArtist = String(artist || 'Music World Artist');
+  const safeArtist = String(artist || 'Bashdat Plays Artist');
 
   ctx.textAlign = 'center';
   ctx.fillStyle = '#ffffff';
@@ -167,7 +167,7 @@ async function createMusicWorldShareImage({
   ctx.textAlign = 'left';
   ctx.fillStyle = '#ffffff';
   ctx.font = 'bold 34px Arial, sans-serif';
-  ctx.fillText('NOW ON MUSIC WORLD', 205, 1180);
+  ctx.fillText('NOW ON BASHDAT PLAYS', 205, 1180);
 
   ctx.fillStyle = '#999999';
   ctx.font = '25px Arial, sans-serif';
@@ -208,22 +208,22 @@ async function shareMusicWorldItem({
   });
 
   const shareTitle = kind === 'song'
-    ? `${title || 'Song'} — ${artist || 'Music World'}`
-    : `${title || 'Artist'} on Music World`;
+    ? `${title || 'Song'} — ${artist || 'Bashdat Plays'}`
+    : `${title || 'Artist'} on Bashdat Plays`;
 
   const shareLink = itemId
     ? `musicworld://${kind}/${encodeURIComponent(itemId)}`
     : '';
 
   const shareText = kind === 'song'
-    ? `${title || 'Untitled Song'} by ${artist || 'a Music World artist'}\nNOW ON MUSIC WORLD${shareLink ? `\nOpen in Music World: ${shareLink}` : ''}`
-    : `${title || 'Artist'} on Music World\nNOW ON MUSIC WORLD${shareLink ? `\nOpen in Music World: ${shareLink}` : ''}`;
+    ? `${title || 'Untitled Song'} by ${artist || 'a Bashdat Plays artist'}\nNOW ON BASHDAT PLAYS${shareLink ? `\nOpen in Bashdat Plays: ${shareLink}` : ''}`
+    : `${title || 'Artist'} on Bashdat Plays\nNOW ON BASHDAT PLAYS${shareLink ? `\nOpen in Bashdat Plays: ${shareLink}` : ''}`;
 
   await Share.share({
     title: shareTitle,
     text: shareText,
     files: [fileResult.uri],
-    dialogTitle: 'Share on Music World'
+    dialogTitle: 'Share on Bashdat Plays'
   });
 }
 
@@ -480,9 +480,9 @@ function App() {
           await startSong(sharedSong);
         }
       } catch (error) {
-        console.error('Music World deep link error:', error);
+        console.error('Bashdat Plays deep link error:', error);
         alert(
-          'Unable to open this Music World link.\n\n' +
+          'Unable to open this Bashdat Plays link.\n\n' +
           (error?.message || String(error))
         );
       }
@@ -507,7 +507,7 @@ function App() {
           await handleAppUrl(launchUrl);
         }
       } catch (error) {
-        console.error('Music World deep-link setup error:', error);
+        console.error('Bashdat Plays deep-link setup error:', error);
       }
     };
 
@@ -782,7 +782,7 @@ function App() {
         const account = {
           id: user.id,
           email: user.email || '',
-          artistName: user.user_metadata?.artistName || 'Music World Artist',
+          artistName: user.user_metadata?.artistName || 'Bashdat Plays Artist',
           createdAt: user.created_at || new Date().toISOString(),
           verified: true
         };
@@ -2300,7 +2300,7 @@ async function loadOnlineSongs() {
             uri: onlineMatch.audioUrl,
             title: onlineMatch.title || 'Unknown Song',
             artist: onlineMatch.artist || 'Unknown Artist',
-            album: onlineMatch.genre || 'Music World',
+            album: onlineMatch.genre || 'Bashdat Plays',
             artwork: onlineMatch.artworkUrl || null
           };
 
@@ -2672,7 +2672,7 @@ function formatTime(ms) {
             uri: item?.uri || item?.audioUrl || item?.audio_url || '',
             title: item?.title || 'Unknown Song',
             artist: item?.artist || song.artist || 'Unknown Artist',
-            album: item?.album || song.album || 'Music World',
+            album: item?.album || song.album || 'Bashdat Plays',
             artwork: item?.artwork || item?.artworkUrl || song.artwork || ''
           }))
           .filter(item => item.uri);
@@ -2691,7 +2691,7 @@ function formatTime(ms) {
                 uri: item?.audioUrl || '',
                 title: item?.title || 'Unknown Song',
                 artist: item?.artist || 'Unknown Artist',
-                album: item?.genre || 'Music World',
+                album: item?.genre || 'Bashdat Plays',
                 artwork: item?.artworkUrl || ''
               };
             }
@@ -2826,7 +2826,7 @@ function formatTime(ms) {
         uri: nextSong.audioUrl,
         title: nextSong.title,
         artist: nextSong.artist,
-        album: nextSong.genre || 'Music World',
+        album: nextSong.genre || 'Bashdat Plays',
         artwork: nextSong.artworkUrl
       }, true);
     } else {
@@ -2886,7 +2886,7 @@ function formatTime(ms) {
           uri: previousSong.audioUrl,
           title: previousSong.title,
           artist: previousSong.artist,
-          album: previousSong.genre || 'Music World',
+          album: previousSong.genre || 'Bashdat Plays',
           artwork: previousSong.artworkUrl
         }, true);
       } else {
@@ -2907,7 +2907,7 @@ function formatTime(ms) {
           uri: previousSong.audioUrl,
           title: previousSong.title,
           artist: previousSong.artist,
-          album: previousSong.genre || 'Music World',
+          album: previousSong.genre || 'Bashdat Plays',
           artwork: previousSong.artworkUrl
         }, true);
       } else {
@@ -3111,7 +3111,7 @@ function formatTime(ms) {
                       uri: onlineSongs[0].audioUrl,
                       title: onlineSongs[0].title,
                       artist: onlineSongs[0].artist,
-                      album: 'Music World',
+                      album: 'Bashdat Plays',
                       artwork: onlineSongs[0].artworkUrl
                     })}
                     className="primary"
@@ -3152,7 +3152,7 @@ function formatTime(ms) {
                           uri: song.audioUrl,
                           title: song.title,
                           artist: song.artist,
-                          album: 'Music World',
+                          album: 'Bashdat Plays',
                           artwork: song.artworkUrl
                         });
                       }}
@@ -3185,7 +3185,7 @@ function formatTime(ms) {
                 <div className="aiMusicIcon">✦</div>
 
                 <div className="aiMusicContent">
-                  <div className="aiMusicLabel">MUSIC WORLD AI</div>
+                  <div className="aiMusicLabel">BASHDAT PLAYS AI</div>
                   <b>Create beyond the ordinary.</b>
                   <p>
                     Explore AI-generated, AI-assisted and experimental music
@@ -3209,7 +3209,7 @@ function formatTime(ms) {
                 <div className="forArtistsContent">
                   <b>Build your music career</b>
                   <p>
-                    Join Music World as an artist. Create your artist profile,
+                    Join Bashdat Plays as an artist. Create your artist profile,
                     manage your music and reach listeners around the world.
                   </p>
 
@@ -3249,11 +3249,11 @@ function formatTime(ms) {
 
             <div className="artistPortalHero">
               <div className="artistPortalIcon">🎤</div>
-              <p className="eyebrow">MUSIC WORLD FOR ARTISTS</p>
+              <p className="eyebrow">BASHDAT PLAYS FOR ARTISTS</p>
               <h1>Turn your music<br /><em>into a journey.</em></h1>
               <p className="sub">
                 Create your artist presence, manage your music and connect
-                with listeners through Music World.
+                with listeners through Bashdat Plays.
               </p>
             </div>
 
@@ -3277,7 +3277,7 @@ function formatTime(ms) {
                   <span className="artistAuthIcon">＋</span>
                   <span>
                     <b>Create Artist Account</b>
-                    <small>Start your journey on Music World.</small>
+                    <small>Start your journey on Bashdat Plays.</small>
                   </span>
                 </button>
               </div>
@@ -3298,7 +3298,7 @@ function formatTime(ms) {
 
                 <p>
                   {artistAuth === 'signin'
-                    ? 'Sign in to manage your Music World artist profile.'
+                    ? 'Sign in to manage your Bashdat Plays artist profile.'
                     : 'Create your artist account and start building your presence.'}
                 </p>
 
@@ -3509,7 +3509,7 @@ function formatTime(ms) {
                       email: user.email || email,
                       artistName:
                         user.user_metadata?.artistName ||
-                        'Music World Artist',
+                        'Bashdat Plays Artist',
                       createdAt:
                         user.created_at ||
                         new Date().toISOString(),
@@ -3534,7 +3534,7 @@ function formatTime(ms) {
               <div className="artistDashboardHeader">
                 <div>
                   <span className="artistDashboardLabel">ARTIST STUDIO</span>
-                  <h2>{artistAccount?.artistName || 'Your Music World'}</h2>
+                  <h2>{artistAccount?.artistName || 'Your Bashdat Plays'}</h2>
                   <p>
                     {artistAccount?.email
                       ? artistAccount.email
@@ -3660,7 +3660,7 @@ function formatTime(ms) {
       <span className="artistDashboardLabel">ARTIST STUDIO</span>
       <h1>Earnings</h1>
       <p>
-        Track future royalties and revenue from your Music World releases.
+        Track future royalties and revenue from your Bashdat Plays releases.
       </p>
     </div>
 
@@ -3704,7 +3704,7 @@ function formatTime(ms) {
       <div className="artistEarningsSectionTitle">
         <div>
           <h2>Revenue Overview</h2>
-          <small>Your Music World earnings activity</small>
+          <small>Your Bashdat Plays earnings activity</small>
         </div>
       </div>
 
@@ -3753,7 +3753,7 @@ function formatTime(ms) {
         <b>Earnings will activate with the artist system.</b>
         <small>
           Revenue tracking, royalty calculations and payout management
-          will be connected when Music World artist accounts and
+          will be connected when Bashdat Plays artist accounts and
           distribution are implemented.
         </small>
       </div>
@@ -3851,7 +3851,7 @@ function formatTime(ms) {
       <div className="artistAudienceSectionTitle">
         <div>
           <h2>How Listeners Discover You</h2>
-          <small>Music World discovery sources</small>
+          <small>Bashdat Plays discovery sources</small>
         </div>
       </div>
 
@@ -4076,7 +4076,7 @@ function formatTime(ms) {
       <span className="artistDashboardLabel">ARTIST STUDIO</span>
       <h1>Artist Profile</h1>
       <p>
-        Build the public identity listeners will see on Music World.
+        Build the public identity listeners will see on Bashdat Plays.
       </p>
     </div>
 
@@ -4380,7 +4380,7 @@ function formatTime(ms) {
       <div className="artistProfileSectionTitle">
         <div>
           <h2>Audience</h2>
-          <small>Your Music World audience</small>
+          <small>Your Bashdat Plays audience</small>
         </div>
       </div>
 
@@ -5135,7 +5135,7 @@ function formatTime(ms) {
             }
 
             if (user.user_metadata?.accountType !== 'artist') {
-              alert('Please sign in with a Music World artist account to publish music.');
+              alert('Please sign in with a Bashdat Plays artist account to publish music.');
               return;
             }
 
@@ -5410,7 +5410,7 @@ function formatTime(ms) {
       <div>
         <b>Release setup</b>
         <small>
-          Your information will be used to prepare your music for Music World.
+          Your information will be used to prepare your music for Bashdat Plays.
           Nothing is published yet.
         </small>
       </div>
@@ -5430,7 +5430,7 @@ function formatTime(ms) {
 
               <span className="artistDashboardLabel">ARTIST STUDIO</span>
               <h1>Music</h1>
-              <p>Manage your releases and build your catalog on Music World.</p>
+              <p>Manage your releases and build your catalog on Bashdat Plays.</p>
             </div>
 
             <div className="artistMusicHero">
@@ -5725,7 +5725,7 @@ function formatTime(ms) {
               <div>
                 <span>🌍</span>
                 <b>Distribution</b>
-                <small>Prepare music for Music World listeners.</small>
+                <small>Prepare music for Bashdat Plays listeners.</small>
               </div>
             </div>
           </section>
@@ -5758,7 +5758,7 @@ function formatTime(ms) {
                           uri: song.audioUrl,
                           title: song.title,
                           artist: song.artist,
-                          album: 'Music World',
+                          album: 'Bashdat Plays',
                           artwork: song.artworkUrl
                         });
                       }}
@@ -5820,7 +5820,7 @@ function formatTime(ms) {
                           uri: song.audioUrl,
                           title: song.title,
                           artist: song.artist,
-                          album: 'Music World',
+                          album: 'Bashdat Plays',
                           artwork: song.artworkUrl
                         });
                       }}
@@ -5911,7 +5911,7 @@ function formatTime(ms) {
                           uri: song.audioUrl,
                           title: song.title,
                           artist: song.artist,
-                          album: 'Music World',
+                          album: 'Bashdat Plays',
                           artwork: song.artworkUrl
                         });
                       }}
@@ -5927,7 +5927,7 @@ function formatTime(ms) {
               )}
             </Section>
 
-            <Section title="🎤 Music World Spotlight">
+            <Section title="🎤 Bashdat Plays Spotlight">
               {spotlightArtist ? (
                 <button
                   className="spotlightCard"
@@ -5955,7 +5955,7 @@ function formatTime(ms) {
               ) : (
                 <div className="empty">
                   <div>🎤</div>
-                  <h2>Music World Spotlight</h2>
+                  <h2>Bashdat Plays Spotlight</h2>
                   <p>Featured artists will appear here.</p>
                 </div>
               )}
@@ -5967,7 +5967,7 @@ function formatTime(ms) {
           <>
             <Title title="Charts" />
 
-            <Section title="Music World Charts">
+            <Section title="Bashdat Plays Charts">
               {onlineSongs.length > 0 ? (
                 <div className="chartList">
                   {[...onlineSongs]
@@ -5987,7 +5987,7 @@ function formatTime(ms) {
                           uri: song.audioUrl,
                           title: song.title,
                           artist: song.artist,
-                          album: 'Music World',
+                          album: 'Bashdat Plays',
                           artwork: song.artworkUrl
                         });
                       }}
@@ -6017,7 +6017,7 @@ function formatTime(ms) {
                 <div className="empty">
                   <div>♫</div>
                   <h2>No chart data yet</h2>
-                  <p>Charts will appear as real Music World songs are published and played.</p>
+                  <p>Charts will appear as real Bashdat Plays songs are published and played.</p>
                 </div>
               )}
             </Section>
@@ -6750,8 +6750,8 @@ function formatTime(ms) {
             {!signedIn ? (
               <div className="profile">
                 <div className="bigAvatar">♪</div>
-                <h2>Welcome to MUSICWORLD</h2>
-                <p>Sign in to manage your Music World account.</p>
+                <h2>Welcome to BASHDAT PLAYS</h2>
+                <p>Sign in to manage your Bashdat Plays account.</p>
 
                 <button
                   className="primary"
@@ -6768,8 +6768,8 @@ function formatTime(ms) {
               <div className="profile">
                 <div className="bigAvatar">♪</div>
 
-                <h2>Your MUSICWORLD profile</h2>
-                <p>Music World listener</p>
+                <h2>Your BASHDAT PLAYS profile</h2>
+                <p>Bashdat Plays listener</p>
 
                 <div className="stats">
                   <div>
@@ -6880,7 +6880,7 @@ function formatTime(ms) {
                   {publicArtist.verified && (
                     <span
                       className="publicArtistVerified"
-                      title="Verified Music World artist"
+                      title="Verified Bashdat Plays artist"
                       aria-label="Verified artist"
                     >
                       ✓
@@ -7047,7 +7047,7 @@ function formatTime(ms) {
                                 publicArtist.name ||
                                 publicArtist.artistName ||
                                 'Unknown Artist',
-                              album: 'Music World',
+                              album: 'Bashdat Plays',
                               artwork:
                                 song.artwork || song.artworkUrl || ''
                             });
@@ -7218,7 +7218,7 @@ function formatTime(ms) {
                                         publicArtist.name ||
                                         publicArtist.artistName ||
                                         'Unknown Artist',
-                                      album: release.title || 'Music World',
+                                      album: release.title || 'Bashdat Plays',
                                       artwork:
                                         track.artwork ||
                                         track.artworkUrl ||
@@ -7242,7 +7242,7 @@ function formatTime(ms) {
                                           'Unknown Artist',
                                         album:
                                           release.title ||
-                                          'Music World',
+                                          'Bashdat Plays',
                                         artwork:
                                           releaseTrack.artwork ||
                                           releaseTrack.artworkUrl ||
@@ -7454,7 +7454,7 @@ function formatTime(ms) {
                 }}
               >
                 {listenerAuthMode === 'signin'
-                  ? 'New to Music World? Create an account'
+                  ? 'New to Bashdat Plays? Create an account'
                   : 'Already have an account? Sign in'}
               </button>
 
@@ -7587,7 +7587,7 @@ function formatTime(ms) {
       <div className="artistProfileSectionTitle">
         <div>
           <h2>Your Account</h2>
-          <small>Music World account details</small>
+          <small>Bashdat Plays account details</small>
         </div>
       </div>
 
@@ -7642,7 +7642,7 @@ function formatTime(ms) {
       <div className="artistProfileSectionTitle">
         <div>
           <h2>Your Account</h2>
-          <small>Music World account details</small>
+          <small>Bashdat Plays account details</small>
         </div>
       </div>
 
@@ -7919,7 +7919,7 @@ function formatTime(ms) {
                         uri: a.audioUrl,
                         title: a.title,
                         artist: a.artist,
-                        album: 'Music World',
+                        album: 'Bashdat Plays',
                         artwork: a.artworkUrl
                       });
                     } else {
@@ -8281,7 +8281,7 @@ function Section({ title, action, onAction, children }) {
 function Title({ title }) {
   return (
     <div className="title">
-      <p className="eyebrow">MUSICWORLD</p>
+      <p className="eyebrow">BASHDAT PLAYS</p>
       <h1>{title}</h1>
     </div>
   );
