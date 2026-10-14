@@ -920,7 +920,15 @@ function App() {
   const [artistAnalyticsRange, setArtistAnalyticsRange] = useState('Overview');
   const [artistAudienceOpen, setArtistAudienceOpen] = useState(false);
   const [artistEarningsOpen, setArtistEarningsOpen] = useState(false);
-const [artistReleaseOpen, setArtistReleaseOpen] = useState(false);
+const [artistReleaseOpen, setArtistReleaseOpen] = useState(() => {
+  try {
+    return (
+      localStorage.getItem('musicWorldArtistReleaseStudioOpen') === 'true'
+    );
+  } catch {
+    return false;
+  }
+});
 const [artistReleaseStep, setArtistReleaseStep] = useState(1);
 const [artistReleaseAudio, setArtistReleaseAudio] = useState(null);
 const [artistReleaseAudioTracks, setArtistReleaseAudioTracks] = useState([]);
@@ -955,6 +963,37 @@ const [artistReleaseDraft, setArtistReleaseDraft] = useState(() => {
     return null;
   }
 });
+
+useEffect(() => {
+  if (!artistReleaseOpen || !artistReleaseDraft) return;
+
+  setArtistReleaseTitle(artistReleaseDraft.title || '');
+  setArtistReleaseArtist(artistReleaseDraft.artist || '');
+  setArtistReleaseType(artistReleaseDraft.type || 'Single');
+  setArtistReleaseGenre(artistReleaseDraft.genre || '');
+
+  const restoredTracks = artistReleaseDraft.tracks ||
+    (artistReleaseDraft.audio ? [artistReleaseDraft.audio] : []);
+
+  setArtistReleaseAudioTracks(restoredTracks);
+  setArtistReleaseAudio(restoredTracks[0] || null);
+  setArtistReleaseArtwork(artistReleaseDraft.artwork || null);
+  setArtistReleaseStep(artistReleaseDraft.step || 1);
+}, []);
+
+
+
+useEffect(() => {
+  try {
+    if (artistReleaseOpen) {
+      localStorage.setItem('musicWorldArtistReleaseStudioOpen', 'true');
+    } else {
+      localStorage.removeItem('musicWorldArtistReleaseStudioOpen');
+    }
+  } catch (error) {
+    console.warn('Unable to save release studio screen state:', error);
+  }
+}, [artistReleaseOpen]);
 
 
 
