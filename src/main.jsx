@@ -5,7 +5,7 @@ import { Share } from '@capacitor/share';
 import musicWorldLogo from '../music-world-icon.png';
 import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { createRoot } from 'react-dom/client';
-import { registerPlugin } from '@capacitor/core';
+import { registerPlugin, Capacitor } from '@capacitor/core';
 import './styles.css';
 
 
@@ -257,34 +257,79 @@ async function copySelectedFileToCache(uri) {
 
   return result;
 }	
-async function uploadCachedFile(cachePath, objectPath, contentType) {
-  if (!cachePath) {
-    throw new Error('No cached file is available for upload.');
+async function pickBrowserFiles(accept, multiple = false) {
+  if (Capacitor.isNativePlatform()) {
+    throw new Error('Browser file selection is only available on the web.');
   }
 
-  const file = await Filesystem.readFile({
-    path: cachePath
+  return new Promise((resolve) => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = accept;
+    input.multiple = multiple;
+    input.style.display = 'none';
+    document.body.appendChild(input);
+
+    let finished = false;
+
+    const finish = (files) => {
+      if (finished) return;
+      finished = true;
+      input.remove();
+      resolve(files);
+    };
+
+    input.addEventListener('change', () => {
+      finish(Array.from(input.files || []));
+    }, { once: true });
+
+    input.addEventListener('cancel', () => {
+      finish([]);
+    }, { once: true });
+
+    input.click();
   });
+}
 
-  if (!file?.data) {
-    throw new Error('Unable to read the cached file.');
+async function uploadCachedFile(fileOrCachePath, objectPath, contentType) {
+  if (!fileOrCachePath) {
+    throw new Error('No file is available for upload.');
   }
 
-  const byteCharacters = atob(file.data);
-  const byteNumbers = new Uint8Array(byteCharacters.length);
+  let blob;
 
-  for (let i = 0; i < byteCharacters.length; i++) {
-    byteNumbers[i] = byteCharacters.charCodeAt(i);
+  if (typeof Blob !== 'undefined' && fileOrCachePath instanceof Blob) {
+    blob = fileOrCachePath;
+  } else {
+    const file = await Filesystem.readFile({
+      path: fileOrCachePath
+    });
+
+    if (!file?.data) {
+      throw new Error('Unable to read the cached file.');
+    }
+
+    const byteCharacters = atob(file.data);
+    const byteNumbers = new Uint8Array(byteCharacters.length);
+
+    for (let i = 0; i < byteCharacters.length; i++) {
+      byteNumbers[i] = byteCharacters.charCodeAt(i);
+    }
+
+    blob = new Blob([byteNumbers], {
+      type: contentType || 'application/octet-stream'
+    });
   }
 
-  const blob = new Blob([byteNumbers], {
-    type: contentType || 'application/octet-stream'
-  });
+  const uploadContentType =
+    contentType ||
+    blob.type ||
+    'application/octet-stream';
 
   const { data, error } = await supabase.storage
     .from('music')
     .upload(objectPath, blob, {
-      contentType: contentType || 'application/octet-stream',
+      contentType: uploadContentType,
       upsert: false
     });
 
@@ -301,12 +346,33 @@ function App() {
     setDeviceMusicLoading(true);
 
     try {
+      if (!Capacitor.isNativePlatform()) {
+        const files = await pickBrowserFiles('audio/*', true);
+
+        const selectedTracks = files.map((file) => {
+          const title = file.name.replace(/\.[^.]+$/, '');
+
+          return {
+            id: `browser-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+            uri: URL.createObjectURL(file),
+            title,
+            name: file.name,
+            artist: 'Unknown Artist',
+            album: '',
+            mimeType: file.type || 'audio/mpeg',
+            file
+          };
+        });
+
+        setDeviceMusic(selectedTracks);
+        return;
+      }
 
       const permission = await DeviceMusic.requestPermission();
+
       if (!permission.granted) {
         setDeviceMusic([]);
         alert('Music permission is required to access music on this phone.');
-        setDeviceMusicLoading(false);
         return;
       }
 
@@ -314,10 +380,11 @@ function App() {
       setDeviceMusic(result.songs || []);
     } catch (error) {
       console.error('Device Music error:', error);
-      setDeviceMusic([]); alert('Device Music error: ' + (error?.message || error));
+      setDeviceMusic([]);
+      alert('Device Music error: ' + (error?.message || error));
+    } finally {
+      setDeviceMusicLoading(false);
     }
-
-    setDeviceMusicLoading(false);
   };
   const [tab, setTab] = useState('Discover');
   const [navigationStack, setNavigationStack] = useState(['Discover']);
@@ -334,6 +401,7 @@ function App() {
     });
   }
   const [playing, setPlaying] = useState(null);
+  const webAudioRef = useRef(null);
   const [expandedPlayer, setExpandedPlayer] = useState(false);
   const audioRef = useRef(null);
   const playbackIdRef = useRef(null);
@@ -2268,7 +2336,16 @@ async function loadOnlineSongs() {
 
     const updateNativePlayback = async () => {
       try {
-        const state = await DeviceMusic.getPlaybackState();
+        const state = Capacitor.isNativePlatform()
+          ? await DeviceMusic.getPlaybackState()
+          : {
+              currentTime: webAudioRef.current?.currentTime || 0,
+              duration: webAudioRef.current?.duration || 0,
+              isPlaying: Boolean(
+                webAudioRef.current && !webAudioRef.current.paused
+              ),
+              currentUri: playing.uri
+            };
 
         const nextTime = Number(state.currentTime);
         const nextDuration = Number(state.duration);
@@ -2283,7 +2360,9 @@ async function loadOnlineSongs() {
 
         setIsPlaying(Boolean(state.isPlaying));
 
-        const nativeUri = state.currentUri || '';
+        const nativeUri = Capacitor.isNativePlatform()
+          ? (state.currentUri || '')
+          : playing.uri;
         let activeSong = playing;
 
         const onlineMatch = nativeUri
@@ -2360,6 +2439,7 @@ async function loadOnlineSongs() {
         }
 
         if (
+          Capacitor.isNativePlatform() &&
           Number.isFinite(nextDuration) &&
           nextDuration > 0 &&
           Number.isFinite(nextTime) &&
@@ -2421,7 +2501,13 @@ async function loadOnlineSongs() {
     setCurrentTime(position);
 
     try {
-      await DeviceMusic.seekTo({ position });
+      if (!Capacitor.isNativePlatform()) {
+        if (webAudioRef.current) {
+          webAudioRef.current.currentTime = position;
+        }
+      } else {
+        await DeviceMusic.seekTo({ position });
+      }
     } catch (error) {
       console.error("Seek error:", error);
     }
@@ -2719,7 +2805,47 @@ function formatTime(ms) {
 
       const startIndex = queue.findIndex(item => item.uri === song.uri);
 
-      if (nativeQueue.length > 0 && startIndex >= 0) {
+      if (!Capacitor.isNativePlatform()) {
+        if (webAudioRef.current) {
+          webAudioRef.current.pause();
+          webAudioRef.current.onended = null;
+        }
+
+        const audio = new Audio(song.uri);
+        audio.preload = 'auto';
+        webAudioRef.current = audio;
+
+        const updateWebAudioDuration = () => {
+          if (Number.isFinite(audio.duration) && audio.duration > 0) {
+            setDuration(audio.duration);
+          }
+        };
+
+        audio.onloadedmetadata = updateWebAudioDuration;
+        audio.ondurationchange = updateWebAudioDuration;
+        audio.oncanplay = updateWebAudioDuration;
+
+        audio.ontimeupdate = () => {
+          updateWebAudioDuration();
+          setCurrentTime(audio.currentTime || 0);
+        };
+
+        audio.onplay = () => setIsPlaying(true);
+        audio.onpause = () => setIsPlaying(false);
+
+        audio.onended = () => {
+          if (repeatMode === 'one') {
+            audio.currentTime = 0;
+            audio.play().catch(error => {
+              console.error('Browser audio replay error:', error);
+            });
+          } else {
+            playNext();
+          }
+        };
+
+        await audio.play();
+      } else if (nativeQueue.length > 0 && startIndex >= 0) {
         await DeviceMusic.setQueue({
           songs: nativeQueue,
           startIndex,
@@ -2752,6 +2878,18 @@ function formatTime(ms) {
     if (!playing?.uri) return;
 
     try {
+      if (!Capacitor.isNativePlatform()) {
+        const audio = webAudioRef.current;
+        if (!audio) return;
+
+        if (isPlaying) {
+          audio.pause();
+        } else {
+          await audio.play();
+        }
+        return;
+      }
+
       if (isPlaying) {
         await DeviceMusic.pause();
         setIsPlaying(false);
@@ -2760,7 +2898,7 @@ function formatTime(ms) {
         setIsPlaying(true);
       }
     } catch (error) {
-      console.error("Native playback error:", error);
+      console.error("Playback error:", error);
     }
   }
 
@@ -2838,9 +2976,15 @@ function formatTime(ms) {
     if (e) e.stopPropagation();
     if (!playing?.uri) return;
 
-    if (currentTime > 3000) {
+    if (currentTime > 3) {
       try {
-        await DeviceMusic.seekTo({ position: 0 });
+        if (!Capacitor.isNativePlatform()) {
+          if (webAudioRef.current) {
+            webAudioRef.current.currentTime = 0;
+          }
+        } else {
+          await DeviceMusic.seekTo({ position: 0 });
+        }
         setCurrentTime(0);
       } catch (error) {
         console.error("Previous seek error:", error);
@@ -4236,9 +4380,21 @@ function formatTime(ms) {
               }
 
               setArtistProfile(profile);
+              const persistentProfile = {
+                ...profile,
+                photo: profile.photo
+                  ? {
+                      uri: profile.photo_url || profile.photo.uri || '',
+                      name: profile.photo.name || '',
+                      cachePath: profile.photo.cachePath,
+                      cacheName: profile.photo.cacheName,
+                      mimeType: profile.photo.mimeType
+                    }
+                  : profile.photo
+              };
               localStorage.setItem(
                 'musicWorldArtistProfile',
-                JSON.stringify(profile)
+                JSON.stringify(persistentProfile)
               );
 
               setArtistProfileEditOpen(false);
@@ -4414,29 +4570,59 @@ function formatTime(ms) {
         <div
           onClick={async () => {
             try {
-              const result = await DeviceMusic.pickArtwork();
+              let photo;
 
-              if (!result?.uri) {
-                alert('No photo was selected.');
-                return;
-              }
+              if (!Capacitor.isNativePlatform()) {
+                const [file] = await pickBrowserFiles('image/*', false);
+                if (!file) return;
 
-              const cached = await copySelectedFileToCache(result.uri);
+                photo = {
+                  uri: URL.createObjectURL(file),
+                  name: file.name || 'artist-photo',
+                  mimeType: file.type || 'image/jpeg',
+                  file,
+                  cacheName: file.name || 'artist-photo'
+                };
+              } else {
+                const result = await DeviceMusic.pickArtwork();
 
-              const updatedProfile = {
-                ...artistProfile,
-                photo: {
+                if (!result?.uri) {
+                  alert('No photo was selected.');
+                  return;
+                }
+
+                const cached = await copySelectedFileToCache(result.uri);
+
+                photo = {
                   uri: result.uri,
                   name: result.name || cached.name || 'artist-photo',
                   cachePath: cached.path,
-                  cacheName: cached.name
-                }
+                  cacheName: cached.name,
+                  mimeType: result.mimeType || 'image/jpeg'
+                };
+              }
+
+              const updatedProfile = {
+                ...artistProfile,
+                photo
               };
 
               setArtistProfile(updatedProfile);
+              const savedProfile = {
+                ...updatedProfile,
+                photo: updatedProfile.photo
+                  ? {
+                      uri: updatedProfile.photo.uri,
+                      name: updatedProfile.photo.name,
+                      cachePath: updatedProfile.photo.cachePath,
+                      cacheName: updatedProfile.photo.cacheName,
+                      mimeType: updatedProfile.photo.mimeType
+                    }
+                  : updatedProfile.photo
+              };
               localStorage.setItem(
                 'musicWorldArtistProfile',
-                JSON.stringify(updatedProfile)
+                JSON.stringify(savedProfile)
               );
 
               alert('Artist photo updated successfully.');
@@ -4554,7 +4740,7 @@ function formatTime(ms) {
 
               let photoUrl = artistProfile.photo_url || '';
 
-              if (artistProfile.photo?.cachePath) {
+              if (artistProfile.photo?.cachePath || artistProfile.photo?.file) {
                 const fileName =
                   artistProfile.photo.cacheName ||
                   artistProfile.photo.name ||
@@ -4569,9 +4755,11 @@ function formatTime(ms) {
                   `${artistAccount.id}/artist-profile/${Date.now()}-${safeFileName}`;
 
                 await uploadCachedFile(
-                  artistProfile.photo.cachePath,
+                  artistProfile.photo.file || artistProfile.photo.cachePath,
                   photoPath,
-                  'image/jpeg'
+                  artistProfile.photo.mimeType ||
+                    artistProfile.photo.file?.type ||
+                    'image/jpeg'
                 );
 
                 photoUrl = photoPath;
@@ -4812,6 +5000,20 @@ function formatTime(ms) {
           className="artistSecondaryButton"
           onClick={async () => {
             try {
+              if (!Capacitor.isNativePlatform()) {
+                const [file] = await pickBrowserFiles('image/*', false);
+                if (!file) return;
+
+                setArtistReleaseArtwork({
+                  uri: URL.createObjectURL(file),
+                  name: file.name,
+                  mimeType: file.type || 'image/jpeg',
+                  file,
+                  cacheName: file.name
+                });
+                return;
+              }
+
               const result = await DeviceMusic.pickArtwork();
 
               if (!result?.uri) {
@@ -4852,6 +5054,38 @@ function formatTime(ms) {
           className="primary"
           onClick={async () => {
           try {
+            if (!Capacitor.isNativePlatform()) {
+              const files = await pickBrowserFiles(
+                'audio/*',
+                artistReleaseType !== 'Single'
+              );
+
+              if (!files.length) {
+                alert('No music files were selected.');
+                return;
+              }
+
+              const browserTracks = files.map((file, index) => {
+                const title = file.name.replace(/\.[^.]+$/, '');
+                return {
+                  id: `browser-release-${Date.now()}-${index}`,
+                  uri: URL.createObjectURL(file),
+                  title,
+                  name: file.name,
+                  mimeType: file.type || 'audio/mpeg',
+                  file,
+                  releaseTrackTitle: title,
+                  trackNumber: index + 1,
+                  primaryArtist: artistReleaseArtist || '',
+                  featuredArtists: ''
+                };
+              });
+
+              setArtistReleaseAudioTracks(browserTracks);
+              setArtistReleaseAudio(browserTracks[0] || null);
+              return;
+            }
+
             const result = await DeviceMusic.pickAudio();
             const selectedTracks = result?.songs || [];
 
@@ -5151,7 +5385,7 @@ function formatTime(ms) {
               throw new Error('A Single release must contain exactly one track.');
             }
 
-            if (tracksToPublish.some(track => !track.cachePath)) {
+            if (tracksToPublish.some(track => !track.cachePath && !track.file)) {
               throw new Error('One or more selected tracks are not ready for upload. Select them again.');
             }
 
@@ -5184,7 +5418,7 @@ function formatTime(ms) {
               throw new Error('Please enter a primary artist for every track.');
             }
 
-            if (!artistReleaseArtwork.cachePath) {
+            if (!artistReleaseArtwork.cachePath && !artistReleaseArtwork.file) {
               throw new Error('The selected artwork is not ready for upload.');
             }
 
@@ -5201,9 +5435,11 @@ function formatTime(ms) {
               `${user.id}/artwork/${timestamp}-${artworkName}`;
 
             await uploadCachedFile(
-              artistReleaseArtwork.cachePath,
+              artistReleaseArtwork.file || artistReleaseArtwork.cachePath,
               artworkPath,
-              artistReleaseArtwork.mimeType || 'image/jpeg'
+              artistReleaseArtwork.mimeType ||
+                artistReleaseArtwork.file?.type ||
+                'image/jpeg'
             );
 
             const songRows = [];
@@ -5218,9 +5454,9 @@ function formatTime(ms) {
                 `${user.id}/audio/${timestamp}-${index + 1}-${audioName}`;
 
               await uploadCachedFile(
-                track.cachePath,
+                track.file || track.cachePath,
                 audioPath,
-                track.mimeType || 'audio/mpeg'
+                track.mimeType || track.file?.type || 'audio/mpeg'
               );
 
               const trackTitle = (
@@ -8025,11 +8261,19 @@ function formatTime(ms) {
               e.stopPropagation();
 
               try {
-                await DeviceMusic.stop();
+                if (!Capacitor.isNativePlatform()) {
+                  if (webAudioRef.current) {
+                    webAudioRef.current.pause();
+                    webAudioRef.current.removeAttribute('src');
+                    webAudioRef.current.load();
+                    webAudioRef.current = null;
+                  }
+                } else {
+                  await DeviceMusic.stop();
+                }
               } catch (error) {
                 console.error("Stop playback error:", error);
               }
-
               setPlaying(null);
               setIsPlaying(false);
               setCurrentTime(0);
@@ -8177,9 +8421,11 @@ function formatTime(ms) {
                 setRepeatMode(nextMode);
 
                 try {
-                  await DeviceMusic.setRepeatMode({
-                    repeatMode: nextMode
-                  });
+                  if (Capacitor.isNativePlatform()) {
+                    await DeviceMusic.setRepeatMode({
+                      repeatMode: nextMode
+                    });
+                  }
                 } catch (error) {
                   console.error('Repeat mode error:', error);
                 }
@@ -8201,7 +8447,8 @@ function formatTime(ms) {
             </button>
           </div>
 
-          {playing && onlineSongs.some(
+          <div className="playerActionButtons">
+{playing && onlineSongs.some(
             song => song?.id === playing?.id
           ) && (
             <div className="playerActionRow">
@@ -8245,6 +8492,8 @@ function formatTime(ms) {
               </button>
             </div>
           )}
+
+                    </div>
 
           <button
             className="closeFull"

@@ -5672,3 +5672,120 @@ section {
     margin-left: 6px;
   }
 }
+
+
+/* Compact, single-row expanded-player action buttons */
+.fullPlayer .playerActionButtons {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: calc(100% - 32px);
+  max-width: 420px;
+  margin: 12px auto;
+  flex-shrink: 0;
+}
+
+.fullPlayer .playerActionButtons .playerActionRow {
+  display: contents;
+}
+
+.fullPlayer .playerActionButtons .playerActionButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 40px;
+  padding: 8px 10px;
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.2;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  box-sizing: border-box;
+}
+
+@media (max-width: 360px) {
+  .fullPlayer .playerActionButtons {
+    gap: 6px;
+    width: calc(100% - 24px);
+  }
+
+  .fullPlayer .playerActionButtons .playerActionButton {
+    padding: 7px 5px;
+    font-size: 12px;
+  }
+}
+
+
+
+/* Compact expanded player for small screens */
+.fullPlayer {
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch;
+  box-sizing: border-box !important;
+  padding-top: max(62px, calc(env(safe-area-inset-top) + 54px)) !important;
+  padding-bottom: calc(24px + env(safe-area-inset-bottom)) !important;
+  gap: 8px;
+}
+
+.fullPlayer .largeCover {
+  width: min(58vw, 220px);
+  height: min(58vw, 220px);
+  max-height: 27vh;
+  aspect-ratio: 1 / 1;
+  flex-shrink: 0;
+  margin-top: 4px;
+  margin-bottom: 8px;
+}
+
+.fullPlayer .largeCover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.fullPlayer .controls {
+  flex-shrink: 0;
+  margin-top: 6px;
+  margin-bottom: 6px;
+}
+
+.fullPlayer .progress {
+  flex-shrink: 0;
+  margin-top: 6px;
+  margin-bottom: 6px;
+}
+
+.fullPlayer .playerActionButtons {
+  flex-shrink: 0;
+  margin-top: 6px;
+  margin-bottom: 10px;
+}
+
+.fullPlayer .closeFull {
+  position: fixed !important;
+  top: max(12px, env(safe-area-inset-top)) !important;
+  right: 16px !important;
+  z-index: 3000 !important;
+}
+
+@media (max-height: 740px) {
+  .fullPlayer .largeCover {
+    width: min(48vw, 175px);
+    height: min(48vw, 175px);
+    max-height: 23vh;
+  }
+
+  .fullPlayer {
+    gap: 5px;
+  }
+
+  .fullPlayer .controls {
+    margin-top: 3px;
+    margin-bottom: 3px;
+  }
+}
