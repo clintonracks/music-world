@@ -1333,6 +1333,8 @@ const deleteReleaseTrack = async (release, track) => {
 
     if (songError) throw songError;
 
+    setOnlineSongs(current => current.filter(song => song.id !== songId));
+
     if (track.audioPath) {
       const { error } = await supabase.storage
         .from('music')
@@ -1395,6 +1397,8 @@ const deleteEntireRelease = async (release) => {
       .eq('artist_id', userId);
 
     if (releaseError) throw releaseError;
+
+    setOnlineSongs(current => current.filter(song => !songIds.includes(song.id)));
 
     const paths = [...new Set([
       ...audioPaths,
