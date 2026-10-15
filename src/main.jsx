@@ -1309,7 +1309,7 @@ const setReleasePublished = async (release, shouldPublish) => {
 };
 
 const deleteReleaseTrack = async (release, track) => {
-  if (!window.confirm(`Remove "${track.title || 'this track'}" from this release? The original song and audio file will remain in your music library.`)) return;
+  if (!window.confirm(`Permanently delete "${track.title || 'this track'}"?`)) return;
 
   const userId = artistAccount?.id;
   const songId = track.songId || track.id;
@@ -1324,6 +1324,21 @@ const deleteReleaseTrack = async (release, track) => {
       .eq('song_id', songId);
 
     if (linkError) throw linkError;
+
+    const { error: songError } = await supabase
+      .from('songs')
+      .delete()
+      .eq('id', songId)
+      .eq('artist_id', userId);
+
+    if (songError) throw songError;
+
+    if (track.audioPath) {
+      const { error } = await supabase.storage
+        .from('music')
+        .remove([track.audioPath]);
+      if (error) console.error('Could not remove audio file:', error.message);
+    }
 
     const updated = artistReleases.map(item => {
       if (item.id !== release.id) return item;
@@ -1344,7 +1359,7 @@ const deleteReleaseTrack = async (release, track) => {
 
 const deleteEntireRelease = async (release) => {
   if (!window.confirm(
-    `Delete the release "${release.title}" and remove its track links? The original songs and audio files will remain in your music library.`
+    `Permanently delete "${release.title}" and all its tracks? This cannot be undone.`
   )) return;
 
   const userId = artistAccount?.id;
@@ -1352,12 +1367,26 @@ const deleteEntireRelease = async (release) => {
 
   setReleaseActionLoading(true);
   try {
+    const tracks = release.tracks || [];
+    const songIds = tracks.map(track => track.songId || track.id).filter(Boolean);
+    const audioPaths = tracks.map(track => track.audioPath).filter(Boolean);
+
     const { error: linksError } = await supabase
       .from('release_tracks')
       .delete()
       .eq('release_id', release.id);
 
     if (linksError) throw linksError;
+
+    if (songIds.length) {
+      const { error: songsError } = await supabase
+        .from('songs')
+        .delete()
+        .eq('artist_id', userId)
+        .in('id', songIds);
+
+      if (songsError) throw songsError;
+    }
 
     const { error: releaseError } = await supabase
       .from('releases')
@@ -1367,13 +1396,14 @@ const deleteEntireRelease = async (release) => {
 
     if (releaseError) throw releaseError;
 
-    if (release.artworkPath) {
-      const { error } = await supabase.storage
-        .from('music')
-        .remove([release.artworkPath]);
-      if (error) {
-        console.error('Could not remove release artwork:', error.message);
-      }
+    const paths = [...new Set([
+      ...audioPaths,
+      release.artworkPath
+    ].filter(Boolean))];
+
+    if (paths.length) {
+      const { error } = await supabase.storage.from('music').remove(paths);
+      if (error) console.error('Could not remove some release files:', error.message);
     }
 
     const updated = artistReleases.filter(item => item.id !== release.id);
