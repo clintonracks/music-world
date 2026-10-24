@@ -8,6 +8,8 @@ import { createRoot } from 'react-dom/client';
 import { registerPlugin, Capacitor } from '@capacitor/core';
 import './styles.css';
 
+const COUNTRY_OPTIONS = ['Afghanistan', 'Albania', 'Algeria', 'Andorra', 'Angola', 'Antigua and Barbuda', 'Argentina', 'Armenia', 'Australia', 'Austria', 'Azerbaijan', 'Bahamas', 'Bahrain', 'Bangladesh', 'Barbados', 'Belarus', 'Belgium', 'Belize', 'Benin', 'Bhutan', 'Bolivia', 'Bosnia and Herzegovina', 'Botswana', 'Brazil', 'Brunei', 'Bulgaria', 'Burkina Faso', 'Burundi', 'Cabo Verde', 'Cambodia', 'Cameroon', 'Canada', 'Central African Republic', 'Chad', 'Chile', 'China', 'Colombia', 'Comoros', 'Costa Rica', 'Ivory Coast', 'Croatia', 'Cuba', 'Cyprus', 'Czechia', 'Democratic Republic of the Congo', 'Denmark', 'Djibouti', 'Dominica', 'Dominican Republic', 'Ecuador', 'Egypt', 'El Salvador', 'Equatorial Guinea', 'Eritrea', 'Estonia', 'Eswatini', 'Ethiopia', 'Fiji', 'Finland', 'France', 'Gabon', 'Gambia', 'Georgia', 'Germany', 'Ghana', 'Greece', 'Grenada', 'Guatemala', 'Guinea', 'Guinea-Bissau', 'Guyana', 'Haiti', 'Honduras', 'Hungary', 'Iceland', 'India', 'Indonesia', 'Iran', 'Iraq', 'Ireland', 'Israel', 'Italy', 'Jamaica', 'Japan', 'Jordan', 'Kazakhstan', 'Kenya', 'Kiribati', 'Kuwait', 'Kyrgyzstan', 'Laos', 'Latvia', 'Lebanon', 'Lesotho', 'Liberia', 'Libya', 'Liechtenstein', 'Lithuania', 'Luxembourg', 'Madagascar', 'Malawi', 'Malaysia', 'Maldives', 'Mali', 'Malta', 'Marshall Islands', 'Mauritania', 'Mauritius', 'Mexico', 'Micronesia', 'Moldova', 'Monaco', 'Mongolia', 'Montenegro', 'Morocco', 'Mozambique', 'Myanmar', 'Namibia', 'Nauru', 'Nepal', 'Netherlands', 'New Zealand', 'Nicaragua', 'Niger', 'Nigeria', 'North Korea', 'North Macedonia', 'Norway', 'Oman', 'Pakistan', 'Palau', 'Palestine', 'Panama', 'Papua New Guinea', 'Paraguay', 'Peru', 'Philippines', 'Poland', 'Portugal', 'Qatar', 'Republic of the Congo', 'Romania', 'Russia', 'Rwanda', 'Saint Kitts and Nevis', 'Saint Lucia', 'Saint Vincent and the Grenadines', 'Samoa', 'San Marino', 'Sao Tome and Principe', 'Saudi Arabia', 'Senegal', 'Serbia', 'Seychelles', 'Sierra Leone', 'Singapore', 'Slovakia', 'Slovenia', 'Solomon Islands', 'Somalia', 'South Africa', 'South Korea', 'South Sudan', 'Spain', 'Sri Lanka', 'Sudan', 'Suriname', 'Sweden', 'Switzerland', 'Syria', 'Tajikistan', 'Tanzania', 'Thailand', 'Timor-Leste', 'Togo', 'Tonga', 'Trinidad and Tobago', 'Tunisia', 'Turkey', 'Turkmenistan', 'Tuvalu', 'Uganda', 'Ukraine', 'United Arab Emirates', 'United Kingdom', 'United States', 'Uruguay', 'Uzbekistan', 'Vanuatu', 'Vatican City', 'Venezuela', 'Vietnam', 'Yemen', 'Zambia', 'Zimbabwe'];
+
 
 async function loadShareArtwork(url) {
   if (!url) return null;
@@ -421,6 +423,7 @@ function App() {
   const [recentlyPlayedSongs, setRecentlyPlayedSongs] = useState([]);
   const [recentlyPlayedOpen, setRecentlyPlayedOpen] = useState(false);
   const [listenerName, setListenerName] = useState('');
+  const [listenerCountry, setListenerCountry] = useState('');
   const [listenerEmail, setListenerEmail] = useState('');
   const [listenerPassword, setListenerPassword] = useState('');
   const [listenerAuthLoading, setListenerAuthLoading] = useState(false);
@@ -439,6 +442,7 @@ function App() {
   const [artistAuthEmail, setArtistAuthEmail] = useState('');
   const [artistAuthPassword, setArtistAuthPassword] = useState('');
   const [artistAuthName, setArtistAuthName] = useState('');
+  const [artistAuthCountry, setArtistAuthCountry] = useState('');
 
   useEffect(() => {
     let listenerHandle = null;
@@ -851,6 +855,7 @@ function App() {
           id: user.id,
           email: user.email || '',
           artistName: user.user_metadata?.artistName || 'Bashdat Plays Artist',
+                      country: user.user_metadata?.country || '',
           createdAt: user.created_at || new Date().toISOString(),
           verified: true
         };
@@ -1309,13 +1314,25 @@ const setReleasePublished = async (release, shouldPublish) => {
 };
 
 const deleteReleaseTrack = async (release, track) => {
-  if (!window.confirm(`Permanently delete "${track.title || 'this track'}"?`)) return;
+  if (!window.confirm(
+    `Permanently delete "${track.title || 'this track'}"? This cannot be undone.`
+  )) return;
 
   const userId = artistAccount?.id;
   const songId = track.songId || track.id;
-  if (!userId || !songId) return alert('Track information is incomplete.');
+
+  if (!userId || !songId) {
+    alert('Track information is incomplete.');
+    return;
+  }
+
+  const remainingTracks = (release.tracks || []).filter(
+    item => (item.songId || item.id) !== songId
+  );
+  const deletingLastTrack = remainingTracks.length === 0;
 
   setReleaseActionLoading(true);
+
   try {
     const { error: linkError } = await supabase
       .from('release_tracks')
@@ -1325,35 +1342,80 @@ const deleteReleaseTrack = async (release, track) => {
 
     if (linkError) throw linkError;
 
-    const { error: songError } = await supabase
+    const { data: deletedSongs, error: songError } = await supabase
       .from('songs')
       .delete()
       .eq('id', songId)
-      .eq('artist_id', userId);
+      .eq('artist_id', userId)
+      .select('id');
 
     if (songError) throw songError;
 
-    setOnlineSongs(current => current.filter(song => song.id !== songId));
-
-    if (track.audioPath) {
-      const { error } = await supabase.storage
-        .from('music')
-        .remove([track.audioPath]);
-      if (error) console.error('Could not remove audio file:', error.message);
+    if (!deletedSongs?.some(song => song.id === songId)) {
+      throw new Error(
+        'Supabase did not confirm deletion of this song. Check ownership and database DELETE/SELECT permissions.'
+      );
     }
 
-    const updated = artistReleases.map(item => {
-      if (item.id !== release.id) return item;
-      const tracks = (item.tracks || []).filter(
-        itemTrack => (itemTrack.songId || itemTrack.id) !== songId
-      );
-      return { ...item, tracks, audio: tracks[0] || null };
-    });
+    if (deletingLastTrack) {
+      const { data: deletedReleases, error: releaseError } = await supabase
+        .from('releases')
+        .delete()
+        .eq('id', release.id)
+        .eq('artist_id', userId)
+        .select('id');
+
+      if (releaseError) throw releaseError;
+
+      if (!deletedReleases?.some(item => item.id === release.id)) {
+        throw new Error(
+          'The song was deleted, but Supabase did not confirm deletion of its empty release. Check release ownership and database permissions.'
+        );
+      }
+    }
+
+    setOnlineSongs(current =>
+      current.filter(song => song.id !== songId)
+    );
+
+    const updated = deletingLastTrack
+      ? artistReleases.filter(item => item.id !== release.id)
+      : artistReleases.map(item => {
+          if (item.id !== release.id) return item;
+          return {
+            ...item,
+            tracks: remainingTracks,
+            audio: remainingTracks[0] || null
+          };
+        });
 
     setArtistReleases(updated);
     localStorage.setItem('musicWorldArtistReleases', JSON.stringify(updated));
+
+    if (deletingLastTrack) {
+      setSelectedReleaseId(current =>
+        current === release.id ? null : current
+      );
+    }
+
+    const paths = [
+      track.audioPath,
+      ...(deletingLastTrack ? [release.artworkPath] : [])
+    ].filter(Boolean);
+
+    if (paths.length) {
+      const { error: storageError } = await supabase.storage
+        .from('music')
+        .remove([...new Set(paths)]);
+
+      if (storageError) {
+        console.error('Database deletion succeeded, but file cleanup failed:', storageError.message);
+        alert('The song was deleted, but some audio or artwork files could not be removed. Check Storage permissions.');
+      }
+    }
   } catch (error) {
-    alert('Could not delete track: ' + (error.message || error));
+    console.error('Track deletion failed:', error);
+    alert('Could not completely delete the track: ' + (error.message || error));
   } finally {
     setReleaseActionLoading(false);
   }
@@ -1365,13 +1427,24 @@ const deleteEntireRelease = async (release) => {
   )) return;
 
   const userId = artistAccount?.id;
-  if (!userId) return alert('Please sign in to your artist account.');
+
+  if (!userId) {
+    alert('Please sign in to your artist account.');
+    return;
+  }
 
   setReleaseActionLoading(true);
+
   try {
     const tracks = release.tracks || [];
-    const songIds = tracks.map(track => track.songId || track.id).filter(Boolean);
-    const audioPaths = tracks.map(track => track.audioPath).filter(Boolean);
+    const songIds = [...new Set(
+      tracks.map(track => track.songId || track.id).filter(Boolean)
+    )];
+
+    const paths = [...new Set([
+      ...tracks.map(track => track.audioPath),
+      release.artworkPath
+    ].filter(Boolean))];
 
     const { error: linksError } = await supabase
       .from('release_tracks')
@@ -1381,46 +1454,71 @@ const deleteEntireRelease = async (release) => {
     if (linksError) throw linksError;
 
     if (songIds.length) {
-      const { error: songsError } = await supabase
+      const { data: deletedSongs, error: songsError } = await supabase
         .from('songs')
         .delete()
         .eq('artist_id', userId)
-        .in('id', songIds);
+        .in('id', songIds)
+        .select('id');
 
       if (songsError) throw songsError;
+
+      const deletedIds = new Set(
+        (deletedSongs || []).map(song => song.id)
+      );
+      const remainingIds = songIds.filter(id => !deletedIds.has(id));
+
+      if (remainingIds.length) {
+        throw new Error(
+          `Supabase did not confirm deletion of ${remainingIds.length} song record(s). Check ownership and database permissions.`
+        );
+      }
     }
 
-    const { error: releaseError } = await supabase
+    const { data: deletedReleases, error: releaseError } = await supabase
       .from('releases')
       .delete()
       .eq('id', release.id)
-      .eq('artist_id', userId);
+      .eq('artist_id', userId)
+      .select('id');
 
     if (releaseError) throw releaseError;
 
-    setOnlineSongs(current => current.filter(song => !songIds.includes(song.id)));
-
-    const paths = [...new Set([
-      ...audioPaths,
-      release.artworkPath
-    ].filter(Boolean))];
-
-    if (paths.length) {
-      const { error } = await supabase.storage.from('music').remove(paths);
-      if (error) console.error('Could not remove some release files:', error.message);
+    if (!deletedReleases?.some(item => item.id === release.id)) {
+      throw new Error(
+        'Supabase did not confirm deletion of this release. Check ownership and database permissions.'
+      );
     }
+
+    setOnlineSongs(current =>
+      current.filter(song => !songIds.includes(song.id))
+    );
 
     const updated = artistReleases.filter(item => item.id !== release.id);
     setArtistReleases(updated);
     localStorage.setItem('musicWorldArtistReleases', JSON.stringify(updated));
-    setSelectedReleaseId(current => current === release.id ? null : current);
+
+    setSelectedReleaseId(current =>
+      current === release.id ? null : current
+    );
+
+    if (paths.length) {
+      const { error: storageError } = await supabase.storage
+        .from('music')
+        .remove(paths);
+
+      if (storageError) {
+        console.error('Release deleted, but file cleanup failed:', storageError.message);
+        alert('The release was deleted, but some files could not be removed. Check Storage permissions.');
+      }
+    }
   } catch (error) {
-    alert('Could not delete release: ' + (error.message || error));
+    console.error('Release deletion failed:', error);
+    alert('Could not completely delete the release: ' + (error.message || error));
   } finally {
     setReleaseActionLoading(false);
   }
 };
-
 useEffect(() => {
   const hasDraft =
     artistReleaseTitle.trim() ||
@@ -1997,6 +2095,7 @@ const [accountInfoOpen, setAccountInfoOpen] = useState(false);
   const [deviceMusicOpen, setDeviceMusicOpen] = useState(false);
   const [deviceMusicLoading, setDeviceMusicLoading] = useState(false);
   const [deviceMusicSearch, setDeviceMusicSearch] = useState('');
+  const [deviceMusicSort, setDeviceMusicSort] = useState('title-az');
   const [onlineSongs, setOnlineSongs] = useState([]);
   const [spotlightArtist, setSpotlightArtist] = useState(null);
   const [risingArtists, setRisingArtists] = useState([]);
@@ -2343,14 +2442,109 @@ async function loadOnlineSongs() {
   const filteredDeviceMusic = useMemo(() => {
     const q = deviceMusicSearch.trim().toLowerCase();
 
-    if (!q) return deviceMusic;
-
-    return deviceMusic.filter(song =>
-      `${song.title || ''} ${song.artist || ''}`
+    const matches = deviceMusic.filter(song =>
+      !q || `${song.title || ''} ${song.artist || ''}`
         .toLowerCase()
         .includes(q)
     );
-  }, [deviceMusic, deviceMusicSearch]);
+
+    const getSongDate = song => {
+      const keys = [
+        'dateAdded', 'date_added', 'dateCreated', 'date_created',
+        'createdAt', 'created_at', 'creationTime', 'creation_time',
+        'modifiedTime', 'modified_time', 'dateModified', 'date_modified'
+      ];
+
+      for (const key of keys) {
+        const value = song?.[key];
+        if (value === undefined || value === null || value === '') continue;
+
+        let timestamp;
+
+        if (typeof value === 'number' ||
+            /^\\d+(\\.\\d+)?$/.test(String(value))) {
+          timestamp = Number(value);
+
+          // Convert Unix seconds to milliseconds when needed.
+          if (timestamp > 0 && timestamp < 100000000000) {
+            timestamp *= 1000;
+          }
+        } else {
+          timestamp = Date.parse(value);
+        }
+
+        if (Number.isFinite(timestamp) && timestamp > 0) {
+          return timestamp;
+        }
+      }
+
+      return null;
+    };
+
+    return matches
+      .map((song, index) => ({ song, index }))
+      .sort((a, b) => {
+        const left = a.song;
+        const right = b.song;
+        let result = 0;
+
+        switch (deviceMusicSort) {
+          case 'title-az':
+            result = String(left.title || 'Unknown Song')
+              .localeCompare(String(right.title || 'Unknown Song'));
+            break;
+
+          case 'title-za':
+            result = String(right.title || 'Unknown Song')
+              .localeCompare(String(left.title || 'Unknown Song'));
+            break;
+
+          case 'artist-az':
+            result = String(left.artist || 'Unknown Artist')
+              .localeCompare(String(right.artist || 'Unknown Artist'));
+            break;
+
+          case 'artist-za':
+            result = String(right.artist || 'Unknown Artist')
+              .localeCompare(String(left.artist || 'Unknown Artist'));
+            break;
+
+          case 'shortest':
+            result = (Number(left.duration) || 0) -
+              (Number(right.duration) || 0);
+            break;
+
+          case 'longest':
+            result = (Number(right.duration) || 0) -
+              (Number(left.duration) || 0);
+            break;
+
+          case 'oldest':
+          case 'newest': {
+            const leftDate = getSongDate(left);
+            const rightDate = getSongDate(right);
+
+            if (leftDate === null && rightDate !== null) return 1;
+            if (leftDate !== null && rightDate === null) return -1;
+
+            if (leftDate === null && rightDate === null) {
+              return a.index - b.index;
+            }
+
+            result = deviceMusicSort === 'oldest'
+              ? leftDate - rightDate
+              : rightDate - leftDate;
+            break;
+          }
+
+          default:
+            result = a.index - b.index;
+        }
+
+        return result || a.index - b.index;
+      })
+      .map(item => item.song);
+  }, [deviceMusic, deviceMusicSearch, deviceMusicSort]);
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
@@ -2432,10 +2626,18 @@ async function loadOnlineSongs() {
             playing?.title !== activeSong.title ||
             playing?.artist !== activeSong.artist
           ) {
+            if (playing?.uri !== activeSong.uri) {
+              playbackIdRef.current = crypto.randomUUID();
+              streamRecordedRef.current = null;
+              endedPlaybackIdRef.current = null;
+            }
             setPlaying(activeSong);
           }
         } else if (deviceMatch && playing?.uri !== deviceMatch.uri) {
           activeSong = deviceMatch;
+          playbackIdRef.current = crypto.randomUUID();
+          streamRecordedRef.current = null;
+          endedPlaybackIdRef.current = null;
           setPlaying(activeSong);
         }
 
@@ -2768,7 +2970,7 @@ function formatTime(ms) {
   endedPlaybackIdRef.current = null;
 
     setPlaying(song);
-    await recordRecentlyPlayed(song);
+    void recordRecentlyPlayed(song);
 
     if (!keepExpanded) {
       setExpandedPlayer(false);
@@ -2791,6 +2993,7 @@ function formatTime(ms) {
       const songIsInActiveQueue = activeQueue.some(
         item => item?.uri === song.uri
       );
+      const reuseActiveQueue = !(Array.isArray(song.playbackQueue) && song.playbackQueue.length > 0) && songIsInActiveQueue;
 
       let queue;
 
@@ -2807,7 +3010,7 @@ function formatTime(ms) {
           .filter(item => item.uri);
 
         activeQueueRef.current = queue;
-      } else if (keepExpanded && songIsInActiveQueue) {
+      } else if (reuseActiveQueue) {
         queue = activeQueue;
       } else {
         const sourceList = isOnlineSong ? onlineSongs : deviceMusic;
@@ -2888,6 +3091,12 @@ function formatTime(ms) {
         };
 
         await audio.play();
+      } else if (reuseActiveQueue && startIndex >= 0) {
+        await DeviceMusic.playQueueIndex({
+          index: startIndex,
+          shuffleEnabled,
+          repeatMode
+        });
       } else if (nativeQueue.length > 0 && startIndex >= 0) {
         await DeviceMusic.setQueue({
           songs: nativeQueue,
@@ -3279,7 +3488,7 @@ function formatTime(ms) {
         </header>
       )}
 
-      <main>
+      <main key={tab} className="tabTransition">
 
         {tab === 'Home' && !artistOpen && (
           <>
@@ -3510,6 +3719,7 @@ function formatTime(ms) {
                 </label>
 
                 {artistAuth === 'create' && (
+                  <>
                   <label>
                     Artist Name
                     <input
@@ -3519,6 +3729,20 @@ function formatTime(ms) {
   onChange={(e) => setArtistAuthName(e.target.value)}
 />
                   </label>
+                  <label>
+                    Country
+                    <select
+                      value={artistAuthCountry}
+                      onChange={(e) => setArtistAuthCountry(e.target.value)}
+                      required
+                    >
+                      <option value="">Select your country</option>
+                      {COUNTRY_OPTIONS.map(country => (
+                        <option key={country} value={country}>{country}</option>
+                      ))}
+                    </select>
+                  </label>
+                  </>
                 )}
 
                 <button
@@ -3536,6 +3760,11 @@ function formatTime(ms) {
                     if (artistAuth === 'create') {
                       if (!name) {
                         alert('Please enter your artist name.');
+                        return;
+                      }
+
+                      if (!artistAuthCountry) {
+                        alert('Please select your country.');
                         return;
                       }
 
@@ -3562,10 +3791,7 @@ function formatTime(ms) {
                       ) {
                         const { data, error } =
                           await supabase.auth.updateUser({
-                            data: {
-                              artistName: name,
-                              accountType: 'artist'
-                            }
+                            data: { artistName: name, accountType: 'artist', country: artistAuthCountry }
                           });
 
                         if (error) {
@@ -3584,10 +3810,7 @@ function formatTime(ms) {
                         if (!loginError && loginData?.user) {
                           const { data, error } =
                             await supabase.auth.updateUser({
-                              data: {
-                                artistName: name,
-                                accountType: 'artist'
-                              }
+                              data: { artistName: name, accountType: 'artist', country: artistAuthCountry }
                             });
 
                           if (error) {
@@ -3603,10 +3826,7 @@ function formatTime(ms) {
                               password,
                               options: {
                                 emailRedirectTo: 'musicworld://auth/callback',
-                                data: {
-                                  artistName: name,
-                                  accountType: 'artist'
-                                }
+                                data: { artistName: name, accountType: 'artist', country: artistAuthCountry }
                               }
                             });
 
@@ -3653,6 +3873,7 @@ function formatTime(ms) {
                         email: user.email || email,
                         artistName:
                           user.user_metadata?.artistName || name,
+                        country: user.user_metadata?.country || artistAuthCountry,
                         createdAt:
                           user.created_at || new Date().toISOString(),
                         verified: Boolean(user.email_confirmed_at)
@@ -6655,6 +6876,24 @@ function formatTime(ms) {
           </button>
         )}
       </div>
+
+      <div className="deviceMusicSortRow">
+        <label htmlFor="deviceMusicSort">Sort by</label>
+        <select
+          id="deviceMusicSort"
+          value={deviceMusicSort}
+          onChange={e => setDeviceMusicSort(e.target.value)}
+        >
+          <option value="title-az">Title A–Z</option>
+          <option value="title-za">Title Z–A</option>
+          <option value="artist-az">Artist A–Z</option>
+          <option value="artist-za">Artist Z–A</option>
+          <option value="oldest">Oldest first</option>
+          <option value="newest">Newest first</option>
+          <option value="shortest">Shortest first</option>
+          <option value="longest">Longest first</option>
+        </select>
+      </div>
     </div>
 
     {deviceMusicLoading ? (
@@ -6673,13 +6912,13 @@ function formatTime(ms) {
             <div
               className={`songRow ${isCurrentSong ? 'playingSong' : ''}`}
               key={song.id}
-              onClick={() => startSong(song)}
+              onClick={() => startSong({ ...song, playbackQueue: filteredDeviceMusic })}
               role="button"
               tabIndex="0"
               onKeyDown={e => {
                 if (e.key === 'Enter' || e.key === ' ') {
                   e.preventDefault();
-                  startSong(song);
+                  startSong({ ...song, playbackQueue: filteredDeviceMusic });
                 }
               }}
             >
@@ -7584,6 +7823,22 @@ function formatTime(ms) {
                   }}
                 />
               )}
+              {listenerAuthMode === 'create' && (
+                <select
+                  value={listenerCountry}
+                  onChange={(e) => {
+                    setListenerCountry(e.target.value);
+                    setListenerAuthError('');
+                  }}
+                  aria-label="Country"
+                  required
+                >
+                  <option value="">Select your country</option>
+                  {COUNTRY_OPTIONS.map(country => (
+                    <option key={country} value={country}>{country}</option>
+                  ))}
+                </select>
+              )}
 
               <input
                 placeholder="Email address"
@@ -7614,8 +7869,8 @@ function formatTime(ms) {
                   if (listenerAuthMode === 'create') {
                     const name = listenerName.trim();
 
-                    if (!name || !email || !listenerPassword) {
-                      setListenerAuthError('Please enter your name, email and password.');
+                    if (!name || !listenerCountry || !email || !listenerPassword) {
+                      setListenerAuthError('Please enter your name, country, email and password.');
                       return;
                     }
 
@@ -7632,9 +7887,7 @@ function formatTime(ms) {
                       password: listenerPassword,
                       options: {
                         emailRedirectTo: 'musicworld://auth/callback',
-                        data: {
-                          displayName: name
-                        }
+                        data: { displayName: name, country: listenerCountry }
                       }
                     });
 
@@ -7650,6 +7903,7 @@ function formatTime(ms) {
                       setShowSignIn(false);
                       setListenerPassword('');
                       setListenerName('');
+                      setListenerCountry('');
 
                       if (pendingFollowArtist) {
                         await toggleArtistFollow(

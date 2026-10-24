@@ -133,6 +133,49 @@ public class DeviceMusicPlugin extends Plugin {
         });
     }
 
+
+    @PluginMethod
+    public void playQueueIndex(PluginCall call) {
+        int index = call.getInt("index", -1);
+        boolean shuffleEnabled = call.getBoolean("shuffleEnabled", false);
+        String repeatMode = call.getString("repeatMode", "off");
+
+        if (index < 0) {
+            call.reject("Invalid queue index");
+            return;
+        }
+
+        getActivity().runOnUiThread(() -> {
+            ListenableFuture<MediaController> future = getController();
+            future.addListener(() -> {
+                try {
+                    MediaController controller = future.get();
+
+                    if (index >= controller.getMediaItemCount()) {
+                        call.reject("Selected song is not in the active queue");
+                        return;
+                    }
+
+                    controller.seekTo(index, 0);
+                    controller.setShuffleModeEnabled(shuffleEnabled);
+
+                    if ("one".equals(repeatMode)) {
+                        controller.setRepeatMode(Player.REPEAT_MODE_ONE);
+                    } else if ("all".equals(repeatMode)) {
+                        controller.setRepeatMode(Player.REPEAT_MODE_ALL);
+                    } else {
+                        controller.setRepeatMode(Player.REPEAT_MODE_OFF);
+                    }
+
+                    controller.play();
+                    call.resolve();
+                } catch (Exception e) {
+                    call.reject("Unable to switch playback track", e);
+                }
+            }, androidx.core.content.ContextCompat.getMainExecutor(getContext()));
+        });
+    }
+
     @PluginMethod
     public void setQueue(PluginCall call) {
         try {

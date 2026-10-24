@@ -5789,3 +5789,201 @@ section {
     margin-bottom: 3px;
   }
 }
+
+/* ==========================================
+   BASHDAT PLAYS — SMOOTH PLAYER TRANSITIONS
+   ========================================== */
+
+/* Mini-player entrance */
+.player {
+  animation: bashdatMiniPlayerIn 260ms cubic-bezier(0.2, 0.75, 0.25, 1) both;
+}
+
+@keyframes bashdatMiniPlayerIn {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 14px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+/* Full-screen player entrance */
+.fullPlayer {
+  animation: bashdatFullPlayerIn 300ms cubic-bezier(0.2, 0.75, 0.25, 1) both;
+  transform-origin: center bottom;
+}
+
+@keyframes bashdatFullPlayerIn {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 18px, 0) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+/* Subtle artwork entrance */
+.fullPlayer .largeCover {
+  animation: bashdatArtworkIn 380ms cubic-bezier(0.2, 0.75, 0.25, 1) both;
+  animation-delay: 45ms;
+}
+
+@keyframes bashdatArtworkIn {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Smooth, lightweight control feedback */
+.player button,
+.fullPlayer button {
+  transition:
+    transform 160ms ease,
+    background-color 180ms ease,
+    border-color 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.player button:active,
+.fullPlayer button:active {
+  transform: scale(0.94);
+}
+
+/* Respect Android accessibility motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  .player,
+  .fullPlayer,
+  .fullPlayer .largeCover {
+    animation: none !important;
+  }
+
+  .player button,
+  .fullPlayer button {
+    transition: none !important;
+  }
+}
+
+
+/* BASHDAT PLAYS — MAIN SCREEN TRANSITIONS */
+main.tabTransition {
+  animation: bashdatTabEnter 240ms ease-out both;
+}
+
+@keyframes bashdatTabEnter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  main.tabTransition {
+    animation: none !important;
+  }
+}
+
+/* BASHDAT PLAYS — ARTIST PAGE TRANSITIONS */
+.artistPortal,
+.publicArtistPage,
+.artistProfileStudio {
+  animation: bashdatArtistPageEnter 280ms cubic-bezier(0.2, 0.75, 0.25, 1) both;
+}
+
+.artistPortalHero,
+.publicArtistHero,
+.artistProfilePreview {
+  animation: bashdatArtistContentEnter 360ms cubic-bezier(0.2, 0.75, 0.25, 1) both;
+  animation-delay: 35ms;
+}
+
+@keyframes bashdatArtistPageEnter {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 12px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes bashdatArtistContentEnter {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 8px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .artistPortal,
+  .publicArtistPage,
+  .artistProfileStudio,
+  .artistPortalHero,
+  .publicArtistHero,
+  .artistProfilePreview {
+    animation: none !important;
+  }
+}
+
+
+/* Bashdat Plays — sticky offline music search and sorting */
+.deviceMusicHeader {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  box-sizing: border-box;
+  padding: 12px 0 10px;
+  background: #111;
+}
+
+.deviceMusicSortRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  margin: 0 0 4px;
+  color: #bdbdbd;
+  font-size: 13px;
+}
+
+.deviceMusicSortRow label {
+  flex: 0 0 auto;
+}
+
+.deviceMusicSortRow select {
+  flex: 1;
+  min-width: 0;
+  max-width: 260px;
+  height: 42px;
+  padding: 0 12px;
+  border: 1px solid #383838;
+  border-radius: 11px;
+  background: #242424;
+  color: #fff;
+  font: inherit;
+}
+
+.deviceMusicSortRow select:focus-visible,
+.deviceMusicSearch:focus-within {
+  outline: 2px solid #e50914;
+  outline-offset: 2px;
+}
