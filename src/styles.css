@@ -5987,3 +5987,67 @@ main.tabTransition {
   outline: 2px solid #e50914;
   outline-offset: 2px;
 }
+
+
+/* Bashdat Plays off-day Spotlight promotion */
+.spotlightPromo {
+  display: flex;
+  align-items: stretch;
+  gap: 16px;
+  min-height: 220px;
+  padding: 24px 20px;
+  overflow: hidden;
+  border: 1px solid rgba(229, 9, 20, 0.3);
+  border-radius: 18px;
+  color: #fff;
+  background:
+    radial-gradient(circle at 90% 10%, rgba(229, 9, 20, 0.25), transparent 42%),
+    linear-gradient(135deg, #292929 0%, #151515 65%, #101010 100%);
+}
+
+.spotlightPromoIcon {
+  flex: 0 0 48px;
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background: #e50914;
+  color: #fff;
+  font-size: 29px;
+  font-weight: 700;
+}
+
+.spotlightPromoContent {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  min-width: 0;
+}
+
+.spotlightPromoEyebrow {
+  color: #ff777d;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 1.2px;
+}
+
+.spotlightPromoContent h2 {
+  margin: 3px 0 0;
+  color: #fff;
+  font-size: 23px;
+  line-height: 1.2;
+}
+
+.spotlightPromoContent p {
+  margin: 0 0 6px;
+  color: #d0d0d0;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.spotlightPromoContent small {
+  color: #f0f0f0;
+  font-size: 12px;
+}

@@ -2099,6 +2099,21 @@ const [accountInfoOpen, setAccountInfoOpen] = useState(false);
   const [onlineSongs, setOnlineSongs] = useState([]);
   const [spotlightArtist, setSpotlightArtist] = useState(null);
   const [risingArtists, setRisingArtists] = useState([]);
+
+  const spotlightWeekday = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Africa/Lusaka',
+    weekday: 'long'
+  }).format(new Date());
+
+  const isSpotlightDay =
+    spotlightWeekday === 'Tuesday' || spotlightWeekday === 'Friday';
+
+  const spotlightTitle =
+    spotlightWeekday === 'Tuesday'
+      ? '🌟 Rising Star Spotlight'
+      : spotlightWeekday === 'Friday'
+        ? '🎤 Featured Artist'
+        : '✨ Discover New Artists';
 const [offlineSongs, setOfflineSongs] = useState(() => {
   try {
     return JSON.parse(
@@ -2350,22 +2365,26 @@ async function loadOnlineSongs() {
             throw profileError;
           }
 
-          let artistPhoto = null;
+          if (!profile?.id || !profile.name?.trim()) {
+            setSpotlightArtist(null);
+          } else {
+            let artistPhoto = null;
 
-          if (profile?.photo_url) {
-            const { data: photoData } = await supabase.storage
-              .from('music')
-              .createSignedUrl(profile.photo_url, 3600);
+            if (profile.photo_url) {
+              const { data: photoData } = await supabase.storage
+                .from('music')
+                .createSignedUrl(profile.photo_url, 3600);
 
-            artistPhoto = photoData?.signedUrl || null;
+              artistPhoto = photoData?.signedUrl || null;
+            }
+
+            setSpotlightArtist({
+              ...profile,
+              id: spotlightArtistId,
+              name: profile.name,
+              photo: artistPhoto
+            });
           }
-
-          setSpotlightArtist({
-            ...profile,
-            id: spotlightArtistId,
-            name: profile?.name || 'Artist',
-            photo: artistPhoto
-          });
         } else {
           setSpotlightArtist(null);
         }
@@ -2993,7 +3012,7 @@ function formatTime(ms) {
       const songIsInActiveQueue = activeQueue.some(
         item => item?.uri === song.uri
       );
-      const reuseActiveQueue = !(Array.isArray(song.playbackQueue) && song.playbackQueue.length > 0) && songIsInActiveQueue;
+      const reuseActiveQueue = !isOnlineSong && !(Array.isArray(song.playbackQueue) && song.playbackQueue.length > 0) && songIsInActiveQueue;
 
       let queue;
 
@@ -6427,8 +6446,8 @@ function formatTime(ms) {
               )}
             </Section>
 
-            <Section title="🎤 Bashdat Plays Spotlight">
-              {spotlightArtist ? (
+            <Section title={spotlightTitle}>
+              {isSpotlightDay && spotlightArtist ? (
                 <button
                   className="spotlightCard"
                   type="button"
@@ -6438,25 +6457,52 @@ function formatTime(ms) {
                     {spotlightArtist.photo ? (
                       <img
                         src={spotlightArtist.photo}
-                        alt={spotlightArtist.name || 'Artist'}
+                        alt={spotlightArtist.name}
                       />
                     ) : (
-                      spotlightArtist.name?.[0] || '🎤'
+                      spotlightArtist.name[0] || '🎤'
                     )}
                   </div>
 
                   <div className="meta">
-                    <b>{spotlightArtist.name || 'Artist'}</b>
+                    <b>{spotlightArtist.name}</b>
                     <small>
-                      {spotlightArtist.genre || 'Featured artist'}
+                      {spotlightWeekday === 'Tuesday'
+                        ? `Rising Star${spotlightArtist.genre ? ` · ${spotlightArtist.genre}` : ''}`
+                        : `Featured Artist${spotlightArtist.genre ? ` · ${spotlightArtist.genre}` : ''}`}
                     </small>
                   </div>
                 </button>
-              ) : (
+              ) : isSpotlightDay ? (
                 <div className="empty">
                   <div>🎤</div>
-                  <h2>Bashdat Plays Spotlight</h2>
-                  <p>Featured artists will appear here.</p>
+                  <h2>
+                    {spotlightWeekday === 'Tuesday'
+                      ? 'Rising Star Spotlight'
+                      : 'Featured Artist'}
+                  </h2>
+                  <p>
+                    We're preparing this artist feature. Check back soon
+                    and keep discovering new music.
+                  </p>
+                </div>
+              ) : (
+                <div className="spotlightPromo">
+                  <div className="spotlightPromoIcon" aria-hidden="true">
+                    ♫
+                  </div>
+                  <div className="spotlightPromoContent">
+                    <span className="spotlightPromoEyebrow">
+                      YOUR NEXT FAVOURITE STARTS HERE
+                    </span>
+                    <h2>Discover Your Sound</h2>
+                    <p>
+                      Explore new artists, fresh releases and trending
+                      music on Bashdat Plays.
+                    </p>
+                    <small>Rising Star Spotlight · Tuesdays</small>
+                    <small>Featured Artist · Fridays</small>
+                  </div>
                 </div>
               )}
             </Section>
