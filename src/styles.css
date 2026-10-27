@@ -6051,3 +6051,47 @@ main.tabTransition {
   color: #f0f0f0;
   font-size: 12px;
 }
+
+
+/* Bashdat Plays: player loading indicator */
+.player .play.isLoading,
+.controls .playButton.isLoading {
+  cursor: wait;
+  opacity: 0.95;
+}
+
+.playerLoadingSpinner {
+  display: inline-block;
+  width: 21px;
+  height: 21px;
+  border: 2.5px solid rgba(255, 255, 255, 0.32);
+  border-top-color: #ffffff;
+  border-right-color: #ffffff;
+  border-radius: 50%;
+  animation: bashdatPlayerSpin 0.72s linear infinite;
+  flex: 0 0 auto;
+}
+
+.controls .playButton .playerLoadingSpinner {
+  width: 25px;
+  height: 25px;
+  border-width: 3px;
+}
+
+.player button.play:disabled,
+.controls .playButton:disabled {
+  opacity: 0.95;
+  cursor: wait;
+}
+
+@keyframes bashdatPlayerSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .playerLoadingSpinner {
+    animation-duration: 1.8s;
+  }
+}

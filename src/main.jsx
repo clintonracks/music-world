@@ -411,6 +411,7 @@ function App() {
   const activeQueueRef = useRef([]);
   const endedPlaybackIdRef = useRef(null);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [isSongLoading, setIsSongLoading] = useState(false);
   const [shuffleEnabled, setShuffleEnabled] = useState(false);
   const [repeatMode, setRepeatMode] = useState('off');
   const [currentTime, setCurrentTime] = useState(0);
@@ -667,6 +668,22 @@ function App() {
     };
 
     loadArtistFollowers();
+
+    const refreshArtistAnalytics = () => {
+      loadArtistFollowers();
+    };
+
+    window.addEventListener(
+      'bashdat-stream-recorded',
+      refreshArtistAnalytics
+    );
+
+    return () => {
+      window.removeEventListener(
+        'bashdat-stream-recorded',
+        refreshArtistAnalytics
+      );
+    };
   }, [artistAccount?.id]);
 
   async function toggleFavorite(song) {
@@ -2124,6 +2141,7 @@ const [offlineSongs, setOfflineSongs] = useState(() => {
   }
 });
   const [onlineMusicLoading, setOnlineMusicLoading] = useState(false);
+  const [onlineMusicError, setOnlineMusicError] = useState('');
 const [offlineMusicLoading, setOfflineMusicLoading] = useState(false);
   const [offlineMusicOpen, setOfflineMusicOpen] = useState(false);
 
@@ -2199,6 +2217,7 @@ const [offlineMusicLoading, setOfflineMusicLoading] = useState(false);
 
 async function loadOnlineSongs() {
     setOnlineMusicLoading(true);
+    setOnlineMusicError('');
 
     try {
       const { data, error } = await supabase
@@ -2394,6 +2413,11 @@ async function loadOnlineSongs() {
       }
     } catch (error) {
       console.error('Unable to load online songs:', error);
+      setOnlineMusicError(
+        typeof navigator !== 'undefined' && !navigator.onLine
+          ? 'You appear to be offline. Check your internet connection and try again.'
+          : 'We could not load online music. Check your connection and try again.'
+      );
     } finally {
       setOnlineMusicLoading(false);
     }
@@ -2694,11 +2718,27 @@ async function loadOnlineSongs() {
                 } else {
                   streamRecordedRef.current = playbackIdRef.current;
                   console.log('Stream recorded:', playbackIdRef.current);
+
+                  window.dispatchEvent(
+                    new CustomEvent('bashdat-stream-recorded')
+                  );
                 }
+              } else {
+                console.warn(
+                  'Stream not recorded: listener is signed out.'
+                );
               }
             } catch (error) {
               console.error('Stream recording error:', error);
             }
+          } else {
+            console.warn(
+              'Stream not recorded: song has no artist ID.',
+              {
+                songId: activeSong?.id,
+                title: activeSong?.title
+              }
+            );
           }
         }
 
@@ -2983,6 +3023,7 @@ function formatTime(ms) {
   }
 
   async function startSong(song, keepExpanded = false) {
+    setIsSongLoading(true);
     const playbackId = crypto.randomUUID();
     playbackIdRef.current = playbackId;
     streamRecordedRef.current = null;
@@ -3000,6 +3041,7 @@ function formatTime(ms) {
 
     if (!song?.uri) {
       setIsPlaying(false);
+      setIsSongLoading(false);
       return;
     }
 
@@ -3140,13 +3182,15 @@ function formatTime(ms) {
         "Unable to play this song.\n\nDetails: " +
         (error?.message || String(error))
       );
+    } finally {
+      setIsSongLoading(false);
     }
   }
 
   async function togglePlayback(e) {
     if (e) e.stopPropagation();
 
-    if (!playing?.uri) return;
+    if (!playing?.uri || isSongLoading) return;
 
     try {
       if (!Capacitor.isNativePlatform()) {
@@ -3957,6 +4001,9 @@ function formatTime(ms) {
               </div>
             )}
 
+            {!artistMusicOpen && !artistProfileOpen &&
+              !artistAnalyticsOpen && !artistAudienceOpen &&
+              !artistEarningsOpen && (
             <div className="artistDashboardPreview">
               <div className="artistDashboardHeader">
                 <div>
@@ -4071,6 +4118,7 @@ function formatTime(ms) {
                 </div>
               </div>
             </div>
+            )}
           </section>
         )}
 
@@ -6259,6 +6307,20 @@ function formatTime(ms) {
                 <div className="empty">
                   <div>♫</div>
                   <p>Loading music...</p>
+                </div>
+              ) : onlineMusicError ? (
+                <div className="empty onlineMusicError" role="alert">
+                  <div>📡</div>
+                  <h2>Can't load online music</h2>
+                  <p>{onlineMusicError}</p>
+                  <button
+                    type="button"
+                    className="primary"
+                    onClick={loadOnlineSongs}
+                    disabled={onlineMusicLoading}
+                  >
+                    {onlineMusicLoading ? 'Trying again…' : 'Try Again'}
+                  </button>
                 </div>
               ) : onlineSongs.length > 0 ? (
                 <div className="chartList discoverMusicCarousel">
@@ -8627,10 +8689,13 @@ function formatTime(ms) {
           </button>
 
           <button
-            className="play"
+            className={`play${isSongLoading ? " isLoading" : ""}`}
             onClick={togglePlayback}
+            disabled={isSongLoading}
+            aria-label={isSongLoading ? "Loading song" : isPlaying ? "Pause" : "Play"}
+            aria-busy={isSongLoading}
           >
-            {isPlaying ? "❚❚" : "▶"}
+            {isSongLoading ? <span className="playerLoadingSpinner" aria-hidden="true" /> : isPlaying ? "❚❚" : "▶"}
           </button>
 
           <button
@@ -8728,11 +8793,13 @@ function formatTime(ms) {
             </button>
 
             <button
-              className="playButton"
+              className={`playButton${isSongLoading ? " isLoading" : ""}`}
               onClick={togglePlayback}
-              aria-label={isPlaying ? "Pause" : "Play"}
+              disabled={isSongLoading}
+              aria-label={isSongLoading ? "Loading song" : isPlaying ? "Pause" : "Play"}
+              aria-busy={isSongLoading}
             >
-              {isPlaying ? "❚❚" : "▶"}
+              {isSongLoading ? <span className="playerLoadingSpinner" aria-hidden="true" /> : isPlaying ? "❚❚" : "▶"}
             </button>
 
             <button
