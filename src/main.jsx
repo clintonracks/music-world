@@ -2700,33 +2700,43 @@ async function loadOnlineSongs() {
 
           if (artistId) {
             try {
-              const { data: { user } } = await supabase.auth.getUser();
-
-              if (user?.id) {
-                const { error: streamError } = await supabase
-                  .from('streams')
-                  .insert({
-                    song_id: activeSong?.id,
-                    artist_id: artistId,
-                    playback_id: playbackIdRef.current,
-                    listener_id: user.id,
-                    played_at: new Date().toISOString()
-                  });
+              if (!activeSong?.id) {
+                console.warn('Stream not recorded: song has no ID.');
+              } else {
+                const {
+                  data: streamInserted,
+                  error: streamError
+                } = await supabase.rpc('record_stream', {
+                  p_song_id: activeSong.id,
+                  p_artist_id: artistId,
+                  p_playback_id: playbackIdRef.current
+                });
 
                 if (streamError) {
-                  console.error('Stream recording error:', streamError.message);
-                } else {
-                  streamRecordedRef.current = playbackIdRef.current;
-                  console.log('Stream recorded:', playbackIdRef.current);
-
-                  window.dispatchEvent(
-                    new CustomEvent('bashdat-stream-recorded')
+                  console.error(
+                    'Stream recording error:',
+                    streamError.message
                   );
+                } else {
+                  // Stop repeated attempts for this playback, including duplicates.
+                  streamRecordedRef.current = playbackIdRef.current;
+
+                  if (streamInserted) {
+                    console.log(
+                      'Stream recorded:',
+                      playbackIdRef.current
+                    );
+
+                    window.dispatchEvent(
+                      new CustomEvent('bashdat-stream-recorded')
+                    );
+                  } else {
+                    console.log(
+                      'Stream already recorded:',
+                      playbackIdRef.current
+                    );
+                  }
                 }
-              } else {
-                console.warn(
-                  'Stream not recorded: listener is signed out.'
-                );
               }
             } catch (error) {
               console.error('Stream recording error:', error);
@@ -3687,7 +3697,7 @@ function formatTime(ms) {
           </>
         )}
 
-        {artistOpen && (
+        {artistOpen && !artistAudienceOpen && !artistEarningsOpen && (
           <section className="artistPortal">
             <button
               className="artistBack artistPortalBack"
